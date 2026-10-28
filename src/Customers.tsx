@@ -68,7 +68,7 @@ function PetFields({ values, setValues, busy, id }: { values: PetDraft; setValue
   </div>;
 }
 
-function PetForm({ customers, initial, customerId, onSaved, onClose }: Callbacks & { customers: Customer[]; initial?: Pet; customerId?: string }) {
+export function PetForm({ customers, initial, customerId, onSaved, onClose }: Callbacks & { customers: Customer[]; initial?: Pet; customerId?: string }) {
   const id = useId();
   const [mode, setMode] = useState<'new' | 'existing'>(initial || customerId ? 'existing' : 'new');
   const [guardian, setGuardian] = useState({ name: '', phone: '', notes: '' });

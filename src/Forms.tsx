@@ -6,12 +6,13 @@ import type { Appointment, Customer, PaymentMethod, Pet, Pricing, Shampoo } from
 
 type FormCallbacks = { onSaved: () => void; onClose: () => void };
 
-export function Modal({ title, description, children, onClose, busy = false }: {
+export function Modal({ title, description, children, onClose, busy = false, className = '' }: {
   title: string;
   description?: string;
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
+  className?: string;
 }) {
   const titleId = useId();
   const descriptionId = useId();
@@ -28,7 +29,8 @@ export function Modal({ title, description, children, onClose, busy = false }: {
     const dialog = dialogRef.current;
     const first = dialog?.querySelector<HTMLElement>('[data-autofocus]')
       ?? dialog?.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
-    (first ?? dialog)?.focus();
+    // Open mobile sheets without summoning the keyboard before the user taps a field.
+    (window.matchMedia('(max-width: 760px)').matches ? dialog : first ?? dialog)?.focus({ preventScroll: true });
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
@@ -56,11 +58,12 @@ export function Modal({ title, description, children, onClose, busy = false }: {
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = previousOverflow;
-      if (previousFocus?.isConnected) previousFocus.focus();
+      if (previousFocus?.isConnected && previousFocus !== document.body) previousFocus.focus({ preventScroll: true });
+      else document.querySelector<HTMLElement>('[data-primary-add]')?.focus({ preventScroll: true });
     };
   }, []);
 
-  return <div className="modal-backdrop" onClick={(event) => {
+  return <div className={`modal-backdrop ${className}`} onClick={(event) => {
     if (event.target === event.currentTarget && !busy) onClose();
   }}>
     <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId}
