@@ -22,6 +22,7 @@
 ```bash
 npm ci
 npm run test:demo
+npm run test:calendar
 npm run package:demo
 ```
 
@@ -44,7 +45,7 @@ npm run package:demo
 
 ## 화면을 수정한 뒤 다시 게시하기
 
-`npm run test:demo`와 `npm run build:demo`를 실행하고 새 `demo-dist` 내용을 `gh-pages` 브랜치에 커밋·업로드합니다. Pages가 해당 브랜치를 다시 배포합니다. 실제 고객 기록이 있는 `data` 디렉터리나 서버 파일을 게시 브랜치에 포함하지 않습니다. 원본 코드 수정은 `main`에도 별도로 저장합니다.
+`npm run test:demo`, `npm run test:calendar`, `npm run build:demo`를 실행하고 새 `demo-dist` 내용을 `gh-pages` 브랜치에 커밋·업로드합니다. Pages가 해당 브랜치를 다시 배포합니다. 실제 고객 기록이 있는 `data` 디렉터리나 서버 파일을 게시 브랜치에 포함하지 않습니다. 원본 코드 수정은 `main`에도 별도로 저장합니다.
 
 현재 `main` 변경을 자동으로 빌드하는 워크플로는 없습니다. GitHub 기본 Pages 배포가 이미 빌드된 `gh-pages` 파일을 게시하는 방식입니다. 별도 정적 호스팅을 쓰려면 `artifacts/mongle-demo.zip`을 풀어 `index.html`이 바로 들어 있는 폴더를 업로드할 수도 있습니다.
 

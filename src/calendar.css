@@ -1,0 +1,78 @@
+.calendar-period-bar{margin-bottom:16px;flex-wrap:wrap}
+.calendar-period-bar .period-picker{gap:8px}
+.calendar-period-bar .month-control{min-width:123px}
+.calendar-period-actions{display:flex;align-items:center;gap:12px}
+.calendar-view-switch{display:flex;padding:3px;border:1px solid #dce5d4;border-radius:8px;background:#eef3e8}
+.calendar-view-switch button{padding:8px 14px;border-radius:5px;background:transparent;color:#7a8c6d;font-size:11px}
+.calendar-view-switch button.active{background:white;color:#3c5c31;box-shadow:0 1px 4px #43563612;font-weight:650}
+.studio-calendar{display:grid;gap:22px;margin-bottom:24px}
+.calendar-summary{display:flex;align-items:center;padding:21px 25px;gap:40px;background:#fcfdf9;border-bottom:1px solid #e1e8da}
+.calendar-summary>div{display:flex;align-items:baseline;gap:14px}
+.calendar-summary>div>span{font-size:11px;color:#67785e}
+.calendar-summary strong{font-size:21px;font-weight:650;letter-spacing:-.5px;color:#344b2c;font-variant-numeric:tabular-nums}
+.calendar-summary small{font-size:10px;font-weight:400;letter-spacing:0;margin-left:4px}
+.calendar-summary>p{color:#78896a;font-size:11px;line-height:1.7}
+.calendar-income,.calendar-summary .calendar-income{color:#397c56}
+.calendar-spending,.calendar-summary .calendar-spending{color:#b55d46}
+.month-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid #e1e8da;background:#f8faf4}
+.month-weekdays span{padding:12px;text-align:left;font-size:11px;color:#65795b;font-weight:600}
+.month-weekdays span:first-child{color:#b16b5b}
+.month-weekdays span:last-child{color:#6385a3}
+.month-cells{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.month-day,.month-blank{min-height:128px;border-right:1px solid #e5ebdf;border-bottom:1px solid #e5ebdf}
+.month-day:nth-child(7n),.month-blank:nth-child(7n){border-right:0}
+.month-blank{background:repeating-linear-gradient(135deg,#fafbf8,#fafbf8 6px,#f5f7f0 6px,#f5f7f0 7px)}
+.month-day{min-width:0;padding:10px 12px;display:flex;flex-direction:column;align-items:stretch;text-align:left;background:white;position:relative;transition:background .12s;color:#405a35}
+.month-day:hover{background:#f4f8ed}
+.month-day.is-selected{background:#edf4e4;box-shadow:inset 0 0 0 2px #839e69}
+.month-day:focus-visible{outline:3px solid #3f704d;outline-offset:-3px;z-index:1}
+.month-day-heading{display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.month-day-number{font-size:12px;min-width:23px;height:23px;display:inline-flex;align-items:center;justify-content:center;font-weight:600}
+.month-day:nth-child(7n+1) .month-day-number{color:#b16b5b}
+.month-day:nth-child(7n) .month-day-number{color:#6385a3}
+.month-day.is-current .month-day-number{color:white;background:#567547;border-radius:50%}
+.month-today{font-size:9px;color:#64804d}
+.month-day-bookings{min-width:0;display:grid;gap:5px;margin:0 0 7px}
+.month-booking-count{font-size:10px;color:#617a4d;font-weight:600}
+.month-booking-preview{display:grid;gap:4px}
+.month-booking-preview>span{font-size:10px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#718064}
+.month-booking-preview time{font-variant-numeric:tabular-nums;font-size:9px;color:#89957d}
+.month-day-money{display:grid;gap:5px;margin-top:auto;padding-top:5px;font-size:12px;letter-spacing:-.25px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.month-calendar-note{padding:14px 20px;display:flex;justify-content:space-between;gap:14px;font-size:10px;color:#7a886c;line-height:1.7;flex-wrap:wrap}
+.month-calendar-note>span:last-child{display:flex;align-items:center;gap:5px}
+.month-calendar-note i{display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:7px}
+.income-dot{background:#397c56}.spending-dot{background:#b55d46}
+.selected-day-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:23px 25px;border-bottom:1px solid #e6ebde}
+.selected-day-heading h2{display:flex;align-items:center;gap:8px;font-size:18px;margin-top:9px;color:#3f5d32;font-weight:650}
+.selected-day-heading h2>svg{color:#80996b}
+.selected-day-actions{display:flex;gap:9px}
+.selected-day-totals{display:flex;gap:25px;padding:17px 25px;border-bottom:1px solid #e6ebde;background:#fafcf6;font-size:11px;color:#7a886f;flex-wrap:wrap}
+.selected-day-totals strong{margin-left:8px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.selected-day-columns{display:grid;grid-template-columns:minmax(0,1fr)}
+.selected-day-columns.has-both{grid-template-columns:1fr 1fr}
+.selected-day-columns>section{padding:23px 25px;min-width:0}
+.selected-day-columns.has-both>section+section{border-left:1px solid #e6ebde}
+.selected-day-columns h3{display:flex;align-items:center;gap:6px;font-size:13px;color:#597447;margin:0 0 15px;font-weight:600}
+.selected-day-columns h3>span{font-size:10px;color:#879778;font-weight:400;margin-left:4px}
+.calendar-records{display:grid;gap:12px}
+.calendar-booking-record{padding:14px;border:1px solid #e5ecdc;background:#fcfdf9;border-radius:8px}
+.calendar-record-main{display:flex;align-items:flex-start;gap:15px}
+.calendar-record-main>time{color:#537742;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.8}
+.calendar-record-main>div{min-width:0;flex:1}
+.calendar-record-main>strong{font-size:12px;white-space:nowrap;color:#506b40;line-height:1.8;font-variant-numeric:tabular-nums}
+.calendar-record-main .pet-name,.calendar-transaction .pet-name{font-size:12px;color:#405e31;line-height:1.8;text-align:left;overflow-wrap:anywhere}
+.calendar-record-main p,.calendar-transaction p{font-size:10px;color:#8a997b;line-height:1.8;margin-top:3px;overflow-wrap:anywhere}
+.calendar-record-actions{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:10px}
+.calendar-record-actions .badge{display:inline-flex;align-items:center;gap:4px}
+.calendar-transaction{display:flex;align-items:flex-start;gap:10px;padding:13px 0;border-bottom:1px solid #edf1e7}
+.calendar-transaction:last-child{border-bottom:0}
+.calendar-transaction>div{flex:1;min-width:0}
+.calendar-transaction>strong{font-size:12px;line-height:1.8;font-variant-numeric:tabular-nums;white-space:nowrap}
+.calendar-transaction>.icon-button{width:23px;height:23px;flex-shrink:0}
+.transaction-kind{font-size:9px;white-space:nowrap;padding:5px 6px;border-radius:4px;line-height:1.4}
+.transaction-kind.is-income{background:#eaf4e8;color:#397c56}.transaction-kind.is-spending{background:#fbf0e8;color:#b55d46}
+.transaction-description{display:block;font-size:12px;line-height:1.8;color:#60744f;font-weight:500;overflow-wrap:anywhere}
+.calendar-no-records{padding:22px 14px;border:1px dashed #e0e8d6;border-radius:7px;background:#fafcf6;font-size:12px;color:#849376;line-height:1.9;text-align:center}
+@media(max-width:1200px){.calendar-summary{gap:25px}.calendar-summary>div{flex-direction:column;gap:8px}.month-day{padding:8px}.selected-day-columns.has-both{grid-template-columns:1fr}.selected-day-columns.has-both>section+section{border-left:0;border-top:1px solid #e6ebde}}
+@media(max-width:760px){.calendar-period-bar{gap:12px}.calendar-period-bar .period-picker{gap:3px}.calendar-period-bar .month-control{min-width:112px}.calendar-period-bar .period-picker>.btn{padding:7px 9px;margin-left:4px}.calendar-period-actions{gap:5px;margin-left:auto}.calendar-view-switch button{padding:7px 9px;font-size:10px}.studio-calendar{gap:16px}.calendar-summary{padding:16px 12px;gap:12px;justify-content:space-between}.calendar-summary>div{gap:8px}.calendar-summary>div>span{font-size:10px}.calendar-summary strong{font-size:16px;letter-spacing:-.6px;overflow-wrap:anywhere}.calendar-summary small{font-size:9px;margin-left:2px}.calendar-summary>p{max-width:65%;font-size:10px}.month-weekdays span{padding:10px 6px;font-size:10px}.month-day,.month-blank{min-height:100px}.month-day{padding:6px 3px}.month-day-heading{gap:0;margin-bottom:4px}.month-day-number{font-size:11px;min-width:20px;height:20px}.month-today{font-size:8px}.month-booking-preview{display:none}.month-booking-count{font-size:8px;letter-spacing:-.4px}.month-day-money{font-size:9px;letter-spacing:-.5px;gap:4px;padding-top:2px;line-height:1.4}.month-calendar-note{padding:11px 12px;font-size:9px;gap:5px}.selected-day-heading{padding:18px 15px;flex-direction:column;align-items:flex-start;gap:15px}.selected-day-heading h2{font-size:17px}.selected-day-actions{width:100%}.selected-day-actions>.btn{flex:1;justify-content:center}.selected-day-totals{padding:15px;gap:14px;font-size:10px}.selected-day-totals strong{font-size:11px;margin-left:5px}.selected-day-columns>section{padding:18px 15px}.calendar-record-main{gap:10px}.calendar-record-main>time{font-size:12px}.calendar-record-main>strong,.calendar-transaction>strong{font-size:11px}.calendar-transaction{gap:7px}.calendar-mode-ledger .month-day,.calendar-mode-ledger .month-blank{min-height:90px}}
+@media(max-width:370px){.calendar-summary strong{font-size:14px}.calendar-summary small{display:none}.calendar-summary>div>span{font-size:9px}.month-today{display:none}.month-day-money{font-size:8px}.month-day,.month-blank{min-height:90px}.calendar-record-main>strong{font-size:10px}}
