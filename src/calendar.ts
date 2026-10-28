@@ -7,6 +7,9 @@ export type CalendarDay = {
   expenses: Expense[];
   income: number;
   spending: number;
+  bookingAmount: number;
+  completedCount: number;
+  completedAmount: number;
 };
 
 export function shiftMonth(month: string, delta: number): string {
@@ -20,11 +23,20 @@ export function monthDays(month: string, appointments: Appointment[], expenses: 
   const days = Array.from({ length: count }, (_, index): CalendarDay => ({
     date: `${month}-${String(index + 1).padStart(2, '0')}`,
     appointments: [], payments: [], expenses: [], income: 0, spending: 0,
+    bookingAmount: 0, completedCount: 0, completedAmount: 0,
   }));
   const byDate = new Map(days.map(day => [day.date, day]));
   for (const appointment of appointments) {
     if (appointment.status === 'cancelled') continue;
-    byDate.get(appointment.date)?.appointments.push(appointment);
+    const visitDay = byDate.get(appointment.date);
+    if (visitDay) {
+      visitDay.appointments.push(appointment);
+      visitDay.bookingAmount += appointment.price;
+      if (appointment.status === 'completed') {
+        visitDay.completedCount += 1;
+        visitDay.completedAmount += appointment.price;
+      }
+    }
     const paymentDay = appointment.paidDate ? byDate.get(appointment.paidDate) : undefined;
     if (appointment.paymentStatus === 'paid' && paymentDay) {
       paymentDay.payments.push(appointment);

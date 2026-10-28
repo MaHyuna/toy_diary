@@ -222,7 +222,7 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
       shampooUsage: usage.map(({ shampooId, usedMl, customerCharge }) => ({ shampooId, usedMl: Number(usedMl), customerCharge: Number(customerCharge) })),
     }));
   }
-  return <Modal title={initial ? '예약 수정' : '새 예약'} description="아이와 보호자 정보, 방문 일정을 함께 기록해요." onClose={onClose} busy={busy}>
+  return <Modal title={initial ? '예약 수정' : '새 예약'} description="반려견을 고르고 방문 시간을 정해 주세요." onClose={onClose} busy={busy} className="appointment-form">
     <form onSubmit={submit}>
       <div className="modal-body">
         <div className="form-grid">
@@ -258,6 +258,7 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
           <div className="field"><label htmlFor={`${formId}-service`}>미용 서비스 <span aria-hidden="true">*</span></label>
             <input id={`${formId}-service`} list={`${formId}-services`} value={values.service} onChange={(e) => updatePricingInput('service', e.target.value)} required maxLength={100} disabled={busy} />
             <datalist id={`${formId}-services`}>{pricing.services.map((service) => <option key={service.id} value={service.name} />)}</datalist></div>
+          <h3 className="form-section-title field-full">언제 방문하나요?</h3>
           <div className="field"><label htmlFor={`${formId}-date`}>예약 날짜 <span aria-hidden="true">*</span></label>
             <input id={`${formId}-date`} type="date" value={values.date} onChange={(e) => update('date', e.target.value)} required disabled={busy} /></div>
           <div className="field"><label htmlFor={`${formId}-time`}>예약 시간 <span aria-hidden="true">*</span></label>
@@ -271,6 +272,7 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
           <div className="field"><label htmlFor={`${formId}-weight-fee`}>몸무게 추가요금 (원)</label>
             <input id={`${formId}-weight-fee`} type="number" min="0" max="100000000" step="1" value={values.weightSurcharge} onChange={(e) => update('weightSurcharge', e.target.value)} required disabled={busy} /></div>
           <p className="field-hint field-full">요금표 기준으로 계산했어요. 현장 상황에 맞게 조정할 수 있어요. 서비스·견종·몸무게를 바꾸면 요금표의 금액을 다시 적용합니다.</p>
+          <details className="form-disclosure field-full" open={!!initial?.extraCharges.length}><summary>현장 추가요금<span>{extras.length ? `${extras.length}개 항목` : "입질 · 엉킴 등"}</span></summary>
           <div className="field field-full extra-charges">
             <div className="extra-charges-header"><span>현장 추가요금</span><button type="button" className="btn btn-secondary" disabled={busy || extras.length >= 20} onClick={() => {
               const rowId = String(nextExtraId.current++);
@@ -286,6 +288,8 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
             </div>)}
             <datalist id={`${formId}-extra-reasons`}><option value="입질 대응" /><option value="심한 엉킴" /><option value="추가 작업" /></datalist>
           </div>
+          </details>
+          <details className="form-disclosure field-full" open={!!initial?.shampooUsage.length}><summary>샴푸 사용 기록<span>{usage.length ? `${usage.length}개 제품` : "제품 · 사용량"}</span></summary>
           <div className="field field-full shampoo-usage">
             <div className="extra-charges-header"><span>사용한 샴푸</span><button type="button" className="btn btn-secondary" disabled={busy || usage.length >= 10 || !nextShampoo} onClick={() => {
               if (!nextShampoo) return;
@@ -313,6 +317,7 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
             {usage.length > 0 && <div className="shampoo-cost-summary"><span>이번 방문 샴푸 사용 원가</span><strong>{money(estimatedShampooCost)}원</strong><span>고객 추가요금</span><strong>{money(shampooSurcharge)}원</strong></div>}
             <p className="field-hint">샴푸 구매비는 지출로 기록해요. 여기의 사용 원가는 참고용이며 가계부에서 다시 차감하지 않아요.</p>
           </div>
+          </details>
           <div className="field field-full"><label htmlFor={`${formId}-price`}>예상 총금액 (원)</label>
             <input id={`${formId}-price`} type="number" value={total} readOnly aria-describedby={`${formId}-total-description`} />
             <p id={`${formId}-total-description`} className="field-hint">기본요금 + 견종 추가요금 + 몸무게 추가요금 + 현장 추가요금 + 샴푸 고객 추가요금</p></div>
@@ -321,7 +326,7 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
         </div>
         <FormError error={error} />
       </div>
-      <footer className="modal-footer"><button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>취소</button><SaveButton busy={busy}>{initial ? '변경 사항 저장' : '예약 등록'}</SaveButton></footer>
+      <footer className="modal-footer"><div className="booking-save-total" aria-live="polite"><span>예약 금액</span><strong>{money(total)}원</strong></div><SaveButton busy={busy}>{initial ? '변경 사항 저장' : '예약 등록'}</SaveButton></footer>
     </form>
   </Modal>;
 }
@@ -361,10 +366,10 @@ export function SettleForm({ appointment, onSaved, onClose }: FormCallbacks & { 
     event.preventDefault();
     void run(() => api(`/appointments/${appointment.id}/settle`, 'POST', { paymentMethod: method, paidDate }));
   }
-  return <Modal title="정산하기" description={`${appointment.dogName} · ${appointment.service}`} onClose={onClose} busy={busy}>
+  return <Modal title="미용 완료 · 결제 확인" description={`${appointment.dogName} · ${appointment.service}`} onClose={onClose} busy={busy}>
     <form onSubmit={submit}>
       <div className="modal-body">
-        <div className="amount-preview"><span>결제 받은 금액</span><strong>{money(appointment.price)}<small>원</small></strong></div>
+        <div className="amount-preview"><span>최종 미용 금액</span><strong>{money(appointment.price)}<small>원</small></strong></div>
         <div className="form-grid">
           <div className="field field-full"><span>결제 수단</span>
             <div className="segmented" role="group" aria-label="결제 수단">
@@ -378,10 +383,10 @@ export function SettleForm({ appointment, onSaved, onClose }: FormCallbacks & { 
           </div>
           <div className="field field-full"><label htmlFor={`${formId}-paid-date`}>실제 결제일</label>
             <input id={`${formId}-paid-date`} type="date" value={paidDate} max={today()} onChange={(e) => setPaidDate(e.target.value)} required disabled={busy} /></div>
-          <p className="field-hint field-full">실제 결제일 기준으로 매출에 반영됩니다. 정산 후에는 금액과 예약을 수정할 수 없으니 확인해 주세요.</p>
+          <p className="field-hint field-full">결제까지 확인하면 미용 완료로 기록돼요. 추가요금이 있다면 먼저 예약·요금 수정에서 반영해 주세요. 완료 후에는 금액과 예약을 수정할 수 없어요.</p>
         </div><FormError error={error} />
       </div>
-      <footer className="modal-footer"><button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>취소</button><SaveButton busy={busy}>정산 완료</SaveButton></footer>
+      <footer className="modal-footer"><button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>취소</button><SaveButton busy={busy}>완료 · 결제 기록</SaveButton></footer>
     </form>
   </Modal>;
 }

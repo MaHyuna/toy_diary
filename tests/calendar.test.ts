@@ -8,8 +8,8 @@ test('calendar counts visits on booking dates and income only on actual payment 
   const visit = fixture.appointments[0];
   const appointments = [
     { ...visit, id: 'late-payment', date: '2030-01-31', time: '10:00', paidDate: '2030-02-02', price: 65000, paymentStatus: 'paid' as const },
-    { ...visit, id: 'unpaid', date: '2030-02-02', time: '14:00', paidDate: null, price: 80000, paymentStatus: 'unpaid' as const },
-    { ...visit, id: 'paid-visit', date: '2030-02-02', time: '09:00', paidDate: '2030-02-03', price: 35000, paymentStatus: 'paid' as const },
+    { ...visit, id: 'unpaid', status: 'scheduled' as const, date: '2030-02-02', time: '14:00', paidDate: null, price: 80000, paymentStatus: 'unpaid' as const },
+    { ...visit, id: 'paid-visit', status: 'completed' as const, date: '2030-02-02', time: '09:00', paidDate: '2030-02-03', price: 35000, paymentStatus: 'paid' as const },
     { ...visit, id: 'cancelled', date: '2030-02-02', time: '12:00', status: 'cancelled' as const, paidDate: null, paymentStatus: 'unpaid' as const },
   ];
   const originalOrder = appointments.map(appointment => appointment.id);
@@ -19,6 +19,11 @@ test('calendar counts visits on booking dates and income only on actual payment 
     { ...fixture.expenses[0], id: 'outside', date: '2030-01-31', amount: 99999 },
   ]);
   assert.deepEqual(days[1].appointments.map(appointment => appointment.id), ['paid-visit', 'unpaid']);
+  assert.equal(days[1].bookingAmount, 115000);
+  assert.equal(days[1].completedCount, 1);
+  assert.equal(days[1].completedAmount, 35000);
+  assert.equal(days[2].bookingAmount, 0);
+  assert.equal(days[2].completedCount, 0);
   assert.equal(days[1].income, 65000);
   assert.equal(days[1].spending, 15000);
   assert.equal(days[2].income, 35000);
@@ -36,11 +41,25 @@ test('month grids include leap days, full months and empty days without timezone
   assert.equal(december.length, 31);
   assert.equal(december[0].date, '2030-12-01');
   assert.equal(december.at(-1)?.date, '2030-12-31');
-  assert.ok(december.every(day => day.income === 0 && day.spending === 0));
+  assert.ok(december.every(day => day.income === 0 && day.spending === 0 && day.bookingAmount === 0 && day.completedCount === 0));
 });
 
 test('calendar month navigation crosses years and leap years', () => {
   assert.equal(shiftMonth('2030-12', 1), '2031-01');
   assert.equal(shiftMonth('2030-01', -1), '2029-12');
   assert.equal(shiftMonth('2028-03', -1), '2028-02');
+});
+
+
+test('a future quote is visible before payment and cancellation removes it from the visit calendar', () => {
+  const fixture = createDemoData('2030-02-20');
+  const visit = { ...fixture.appointments[0], date: '2030-03-02', status: 'scheduled' as const, paymentStatus: 'unpaid' as const, paidDate: null, price: 97000 };
+  const booked = monthDays('2030-03', [visit], [])[1];
+  assert.equal(booked.bookingAmount, 97000);
+  assert.equal(booked.appointments.length, 1);
+  assert.equal(booked.completedCount, 0);
+  assert.equal(booked.income, 0);
+  const cancelled = monthDays('2030-03', [{ ...visit, status: 'cancelled' as const }], [])[1];
+  assert.equal(cancelled.bookingAmount, 0);
+  assert.equal(cancelled.appointments.length, 0);
 });
