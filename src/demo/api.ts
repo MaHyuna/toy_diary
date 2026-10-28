@@ -1,5 +1,5 @@
 import type { Appointment, Customer, Expense, PaymentMethod, Pet, Pricing, Shampoo, ShampooUsage, State } from '../types.ts';
-import { createDemoData } from './seed.ts';
+import { addExpandedDemoData, createDemoData, DEMO_SEED_REVISION } from './seed.ts';
 import type { DemoData } from './seed.ts';
 
 export type StorageLike = { getItem(key: string): string | null; setItem(key: string, value: string): void };
@@ -232,7 +232,7 @@ function validateStored(value: unknown, today: string): DemoData {
 export function createDemoApi(storage: StorageLike, options: { today?: () => string } = {}) {
   const getToday = options.today ?? koreaToday;
   function persist(data: DemoData) {
-    try { storage.setItem(KEY, JSON.stringify({ version: 1, data })); }
+    try { storage.setItem(KEY, JSON.stringify({ version: 1, seedRevision: DEMO_SEED_REVISION, data })); }
     catch { fail('체험 기록을 저장하지 못했어요. 브라우저 저장 공간과 설정을 확인해 주세요.'); }
   }
   function read(): DemoData {
@@ -240,8 +240,19 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
     try { raw = storage.getItem(KEY); }
     catch { return fail('브라우저 체험 기록에 접근하지 못했어요. 저장 공간 사용을 허용해 주세요.'); }
     if (raw === null) { const initial = createDemoData(day(getToday())); persist(initial); return clone(initial); }
-    try { return validateStored(JSON.parse(raw), getToday()); }
+    let data: DemoData, seedRevision: number;
+    try {
+      const wrapper = object(JSON.parse(raw));
+      data = validateStored(wrapper, getToday());
+      seedRevision = wrapper.seedRevision === undefined ? 1 : amount(wrapper.seedRevision, '예시 데이터 버전', 1, DEMO_SEED_REVISION);
+    }
     catch { return fail('저장된 체험 기록을 읽을 수 없어요. 체험 데이터 초기화로 다시 시작해 주세요.'); }
+    if (seedRevision < DEMO_SEED_REVISION) {
+      data = addExpandedDemoData(data, day(getToday()));
+      validateStored({ version: 1, data }, getToday());
+      persist(data);
+    }
+    return data;
   }
   function locked<T>(operation: () => T): Promise<T> {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.locks) return navigator.locks.request(KEY, operation);

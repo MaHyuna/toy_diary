@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createDemoApi } from '../src/demo/api.ts';
+import { createDemoData, DEMO_SEED_REVISION } from '../src/demo/seed.ts';
 import type { Appointment, Customer, Pet, Pricing, Shampoo, State } from '../src/types.ts';
 
 const KEY = 'mongle-demo-v1';
@@ -252,4 +253,83 @@ test('invalid dates, amounts, associations and unknown staff never mutate demo r
   await assert.rejects(api.request('/expenses', 'POST', { date: '2031-01-01', category: '소모품', amount: 1000, memo: '' }));
   await assert.rejects(api.request('/state?month=2030-99'));
   assert.equal(storage.getItem(KEY), saved);
+});
+
+test('expanded examples cover multiple months with linked customers, valid totals and no booking conflicts', async () => {
+  for (const today of ['2030-01-20', '2030-01-01', '2028-02-29', '2030-12-31']) {
+    const storage = new MemoryStorage();
+    const api = createDemoApi(storage, { today: () => today });
+    const initial = await api.request<State>('/state');
+    const restored = await api.request<State>('/state');
+    assert.deepEqual(restored, initial, 'all expanded samples must survive validation on reload');
+    assert.equal(initial.customers.length, 24);
+    assert.equal(initial.pets.length, 28);
+    assert.equal(initial.shampoos.length, 4);
+    assert.ok(initial.appointments.length > 140);
+    assert.ok(initial.expenses.length >= 15);
+    assert.ok(new Set(initial.appointments.map(item => item.date)).size > 50);
+    assert.ok(initial.customers.every(customer => !customer.phone));
+    assert.ok(initial.expenses.every(expense => expense.date <= today));
+    const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+    for (const appointment of initial.appointments) {
+      assert.equal(appointment.price, appointment.basePrice + appointment.breedSurcharge + appointment.weightSurcharge + appointment.extraCharges.reduce((sum, item) => sum + item.amount, 0) + appointment.shampooSurcharge);
+      assert.ok(initial.pets.some(pet => pet.id === appointment.petId && pet.customerId === appointment.customerId));
+      if (appointment.paymentStatus === 'paid') assert.ok(appointment.paidDate! <= today);
+      if (appointment.date > today) assert.equal(appointment.paymentStatus, 'unpaid');
+    }
+    const active = initial.appointments.filter(item => item.status !== 'cancelled');
+    for (let index = 0; index < active.length; index++) {
+      for (const other of active.slice(index + 1)) {
+        const current = active[index];
+        if (current.date === other.date) assert.ok(minutes(current.time) + current.duration <= minutes(other.time) || minutes(other.time) + other.duration <= minutes(current.time), `overlap on ${current.date}`);
+      }
+    }
+  }
+});
+
+function legacyStorage() {
+  const data = createDemoData(TODAY);
+  for (const key of ['customers', 'pets', 'shampoos', 'appointments', 'expenses'] as const) {
+    (data[key] as { id: string }[]) = data[key].filter(row => parseInt(row.id.slice(2), 16) < 100);
+  }
+  // A user-modified booking occupies the first sample slot. One original
+  // expense was deleted, and custom pricing must remain as entered.
+  data.appointments[1] = { ...data.appointments[1], date: '2029-12-02', time: '09:00', duration: 120, notes: '사용자가 입력한 예약 메모' };
+  data.customers[0].notes = '사용자가 입력한 고객 메모';
+  data.pricing.services[0].basePrice = 99000;
+  data.expenses = data.expenses.slice(1);
+  const storage = new MemoryStorage();
+  storage.setItem(KEY, JSON.stringify({ version: 1, data }));
+  return { storage, data };
+}
+
+test('existing browsers receive samples once while retaining edits, deletions and occupied slots', async () => {
+  const { storage, data: old } = legacyStorage();
+  const { api } = setup(storage);
+  const expanded = await api.request<State>('/state');
+  assert.ok(expanded.appointments.length > old.appointments.length);
+  for (const key of ['appointments', 'customers', 'pets', 'shampoos', 'expenses'] as const) {
+    for (const row of old[key]) assert.deepEqual(expanded[key].find(item => item.id === row.id), row);
+  }
+  assert.deepEqual(expanded.pricing, old.pricing);
+  assert.ok(!expanded.expenses.some(expense => parseInt(expense.id.slice(2), 16) === 1));
+  assert.equal(expanded.appointments.filter(item => item.date === '2029-12-02' && item.time === '09:00').length, 1);
+  assert.equal(JSON.parse(storage.getItem(KEY)!).seedRevision, DEMO_SEED_REVISION);
+  const addedExpense = expanded.expenses.find(expense => !old.expenses.some(previous => previous.id === expense.id))!;
+  await api.request(`/expenses/${addedExpense.id}`, 'DELETE');
+  const after = await api.request<State>('/state');
+  assert.ok(!after.expenses.some(expense => expense.id === addedExpense.id));
+  const later = createDemoApi(storage, { today: () => '2030-01-21' });
+  const reopened = await later.request<State>('/state');
+  assert.deepEqual(reopened, after, 'reload or date change must not re-add or duplicate samples');
+});
+
+test('a failed sample upgrade never replaces the existing stored records', async () => {
+  const { storage } = legacyStorage();
+  const before = storage.getItem(KEY);
+  storage.failWrites = true;
+  await assert.rejects(setup(storage).api.request('/state'), /저장하지 못했어요/);
+  assert.equal(storage.getItem(KEY), before);
+  storage.failWrites = false;
+  assert.ok((await setup(storage).api.request<State>('/state')).appointments.length > 140);
 });
