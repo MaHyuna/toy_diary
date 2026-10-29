@@ -1,6 +1,6 @@
-import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js';
-import {createCanvasEditor} from './price-studio-canvas.js';
-import {renderPoster} from './price-studio-render.js';
+import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=canvas-1';
+import {createCanvasEditor} from './price-studio-canvas.js?v=canvas-1';
+import {renderPoster} from './price-studio-render.js?v=canvas-1';
 const $=id=>document.getElementById(id),KEY='mongle-price-studio-v2';
 const clone=x=>JSON.parse(JSON.stringify(x)),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let project=createDefaultProject(),active=project.sections[0].id,tab='content',logo=null,logoSeq=0,undo=[],redo=[],last='',timer,paused=false,csvHandle=null,csvQueue=Promise.resolve(),fontReady=false,result={error:''};
