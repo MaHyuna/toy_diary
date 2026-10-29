@@ -27,12 +27,15 @@ export function Modal({ title, description, children, onClose, busy = false, cla
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const dialog = dialogRef.current;
+    const underneath = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).filter(node => node !== dialog && !node.inert);
+    underneath.forEach(node => { node.inert = true; });
     const first = dialog?.querySelector<HTMLElement>('[data-autofocus]')
       ?? dialog?.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
     // Open mobile sheets without summoning the keyboard before the user taps a field.
     (window.matchMedia('(max-width: 760px)').matches ? dialog : first ?? dialog)?.focus({ preventScroll: true });
 
     function onKeyDown(event: KeyboardEvent) {
+      if (dialog !== Array.from(document.querySelectorAll('[role="dialog"]')).at(-1)) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         if (!busyRef.current) closeRef.current();
@@ -57,6 +60,7 @@ export function Modal({ title, description, children, onClose, busy = false, cla
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      underneath.forEach(node => { node.inert = false; });
       document.body.style.overflow = previousOverflow;
       if (previousFocus?.isConnected && previousFocus !== document.body) previousFocus.focus({ preventScroll: true });
       else document.querySelector<HTMLElement>('[data-primary-add]')?.focus({ preventScroll: true });

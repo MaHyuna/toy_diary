@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
@@ -30,7 +32,7 @@ EDITABLE_FIELDS = {
 PAYMENT_METHODS = {"card", "cash", "transfer"}
 BREAKDOWN_FIELDS = {"basePrice", "breedSurcharge", "weightSurcharge", "extraCharges"}
 CUSTOMER_FIELDS = {"name", "phone", "notes"}
-PET_FIELDS = {"customerId", "name", "breed", "weight", "birthDate", "sex", "neutered", "allergies", "healthNotes", "behaviorNotes", "preferredStyle", "visitIntervalWeeks"}
+PET_FIELDS = {"photos", "customerId", "name", "breed", "weight", "birthDate", "sex", "neutered", "allergies", "healthNotes", "behaviorNotes", "preferredStyle", "visitIntervalWeeks"}
 SHAMPOO_FIELDS = {"name", "purchasePrice", "volumeMl", "dilutionWaterRatio", "notes", "archived"}
 DEFAULT_PRICING = {
     "services": [
@@ -132,6 +134,23 @@ def validate_pet(data):
         result[key] = text_field(data, key, label, maximum=2000)
     interval = data.get("visitIntervalWeeks")
     result["visitIntervalWeeks"] = None if interval is None else integer(interval, "방문 주기(주)", minimum=1, maximum=104)
+    photos = data.get("photos", [])
+    if not isinstance(photos, list) or len(photos) > 6:
+        raise APIError("사진은 아이당 6장까지 저장할 수 있습니다.")
+    result["photos"] = []
+    for photo in photos:
+        if not isinstance(photo, dict) or set(photo) != {"id", "src", "caption", "date"}:
+            raise APIError("사진 항목을 확인해 주세요.")
+        src = photo["src"]
+        if not isinstance(src, str) or len(src) > 350000 or not re.fullmatch(r"data:image/jpeg;base64,[A-Za-z0-9+/]+=*", src):
+            raise APIError("JPEG 사진을 선택해 주세요.")
+        try:
+            image_bytes = base64.b64decode(src.split(",", 1)[1], validate=True)
+        except (ValueError, binascii.Error):
+            raise APIError("사진 데이터를 읽을 수 없습니다.") from None
+        if not image_bytes.startswith(b"\xff\xd8") or not image_bytes.endswith(b"\xff\xd9"):
+            raise APIError("JPEG 사진을 선택해 주세요.")
+        result["photos"].append({"id": text_field(photo, "id", "사진 ID", required=True, maximum=80), "src": src, "caption": text_field(photo, "caption", "사진 설명", maximum=120), "date": valid_date(photo["date"], "촬영일")})
     return result
 
 
@@ -318,6 +337,9 @@ class Store:
             """)
             # executescript commits its surrounding transaction. Keep all migrations atomic.
             connection.execute("BEGIN IMMEDIATE")
+            pet_columns = {row["name"] for row in connection.execute("PRAGMA table_info(pets)")}
+            if "photos" not in pet_columns:
+                connection.execute("ALTER TABLE pets ADD COLUMN photos TEXT NOT NULL DEFAULT '[]'")
             columns = {row["name"] for row in connection.execute("PRAGMA table_info(appointments)")}
             additions = {
                 "staffId": "TEXT NOT NULL DEFAULT 'owner'",
@@ -371,6 +393,8 @@ class Store:
     @staticmethod
     def master_from_row(row):
         result = dict(row)
+        if "photos" in result:
+            result["photos"] = json.loads(result["photos"])
         for field in ("neutered", "archived"):
             if field in result and result[field] is not None:
                 result[field] = bool(result[field])
@@ -397,10 +421,10 @@ class Store:
                     raise APIError("예약 내역이 있는 반려견의 보호자는 변경할 수 없습니다.", 409)
             if record_id is None:
                 values.update({"id": uuid4().hex, "createdAt": timestamp()})
-                connection.execute(f"INSERT INTO {table} ({', '.join(values)}) VALUES ({', '.join('?' for _ in values)})", tuple(values.values()))
+                connection.execute(f"INSERT INTO {table} ({', '.join(values)}) VALUES ({', '.join('?' for _ in values)})", tuple(json.dumps(value, ensure_ascii=False) if key == "photos" else value for key, value in values.items()))
                 return values
             assignments = ", ".join(f"{key} = ?" for key in values)
-            connection.execute(f"UPDATE {table} SET {assignments} WHERE id = ?", (*values.values(), record_id))
+            connection.execute(f"UPDATE {table} SET {assignments} WHERE id = ?", (*(json.dumps(value, ensure_ascii=False) if key == "photos" else value for key, value in values.items()), record_id))
             return self.find_master(connection, table, record_id)
 
     def create_customer(self, data):
@@ -651,7 +675,7 @@ def make_handler(store: Store, static_dir: Path):
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 raise APIError("요청 크기가 올바르지 않습니다.") from None
-            if length <= 0 or length > 65_536:
+            if length <= 0 or length > 2_200_000:
                 raise APIError("요청 내용이 없거나 너무 큽니다.", 413)
             try:
                 data = json.loads(self.rfile.read(length))

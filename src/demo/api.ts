@@ -7,7 +7,7 @@ type Input = Record<string, unknown>;
 const KEY = 'mongle-demo-v1';
 const MAX_MONEY = 100_000_000;
 const customerFields = ['name', 'phone', 'notes'];
-const petFields = ['customerId', 'name', 'breed', 'weight', 'birthDate', 'sex', 'neutered', 'allergies', 'healthNotes', 'behaviorNotes', 'preferredStyle', 'visitIntervalWeeks'];
+const petFields = ['photos', 'customerId', 'name', 'breed', 'weight', 'birthDate', 'sex', 'neutered', 'allergies', 'healthNotes', 'behaviorNotes', 'preferredStyle', 'visitIntervalWeeks'];
 const shampooFields = ['name', 'purchasePrice', 'volumeMl', 'dilutionWaterRatio', 'notes', 'archived'];
 const breakdownFields = ['basePrice', 'breedSurcharge', 'weightSurcharge', 'extraCharges', 'shampooUsage'];
 const appointmentFields = ['dogName', 'guardianName', 'phone', 'breed', 'weight', 'service', 'date', 'time', 'duration', 'price', 'notes', 'status', 'staffId', 'customerId', 'petId', 'shampooUsage', 'shampooSurcharge', 'shampooCost', 'basePrice', 'breedSurcharge', 'weightSurcharge', 'extraCharges'];
@@ -76,6 +76,7 @@ function pet(input: Input, today: string): Omit<Pet, 'id' | 'createdAt'> {
   if (birthDate > today) fail('생일은 오늘 이후로 지정할 수 없습니다.');
   if (input.neutered !== undefined && input.neutered !== null && typeof input.neutered !== 'boolean') fail('중성화 여부를 확인해 주세요.');
   return {
+    photos: list(input.photos ?? [], 6, '사진').map(value => { const photo = object(value); only(photo, ['id', 'src', 'caption', 'date']); const src = text(photo, 'src', '사진', 350000, true); if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(src)) fail('JPEG 사진을 선택해 주세요.'); let decoded = ''; try { decoded = atob(src.split(',')[1]); } catch { fail('사진 데이터를 읽을 수 없습니다.'); } if (!decoded.startsWith('\xff\xd8') || !decoded.endsWith('\xff\xd9')) fail('JPEG 사진을 선택해 주세요.'); return { id: text(photo, 'id', '사진 ID', 80, true), src, caption: text(photo, 'caption', '사진 설명', 120), date: day(photo.date, '촬영일') }; }),
     customerId: text(input, 'customerId', '보호자', 80, true), name: text(input, 'name', '반려견 이름', 80, true), breed: text(input, 'breed', '견종', 80),
     weight: input.weight === undefined || input.weight === null ? null : measure(input.weight, '몸무게', 150), birthDate,
     sex: choice(input.sex ?? 'unknown', ['unknown', 'male', 'female'] as const, '성별'), neutered: (input.neutered ?? null) as boolean | null,

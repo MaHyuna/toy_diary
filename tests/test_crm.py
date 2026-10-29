@@ -62,6 +62,21 @@ class CRMTest(unittest.TestCase):
         self.assertEqual(saved_pet["behaviorNotes"], "드라이어 소리에 민감")
         self.assertIs(saved_pet["neutered"], True)
 
+    def test_photos_persist_across_edits_reopen_and_reject_invalid_inputs(self):
+        owner = self.customer()
+        pet = self.pet(owner["id"])
+        photo = {"id": "test-photo", "src": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD0+iiiuI5z/9k=", "caption": "미용 후 · 곰돌이 컷", "date": "2026-01-15"}
+        saved = self.store.update_pet(pet["id"], {"photos": [photo]})
+        self.assertEqual(saved["photos"], [photo])
+        self.store.update_pet(pet["id"], {"preferredStyle": "둥근 얼굴"})
+        reopened = Store(self.database).state("2026-01")["pets"][0]
+        self.assertEqual(reopened["photos"], [photo])
+        for invalid in [[photo] * 7, [{**photo, "src": "data:image/svg+xml;base64,AAAA"}], [{**photo, "src": "data:image/jpeg;base64,AAAA"}], [{**photo, "date": "invalid"}]]:
+            self.assert_bad_request(self.store.update_pet, pet["id"], {"photos": invalid})
+        self.assertEqual(Store(self.database).state("2026-01")["pets"][0]["photos"], [photo])
+        self.store.update_pet(pet["id"], {"photos": []})
+        self.assertEqual(Store(self.database).state("2026-01")["pets"][0]["photos"], [])
+
     def test_customer_pet_validation_rejects_bad_records(self):
         with self.assertRaises(APIError) as raised:
             self.customer(name=" ")

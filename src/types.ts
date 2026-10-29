@@ -34,7 +34,8 @@ export type Appointment = {
 };
 export type Pricing = { services: { id: string; name: string; basePrice: number; duration: number }[]; breedRules: { id: string; breed: string; amount: number }[]; weightRules: { id: string; minWeight: number; maxWeight: number; amount: number }[] };
 export type Customer = { id: string; name: string; phone: string; notes: string; createdAt: string };
-export type Pet = { id: string; customerId: string; name: string; breed: string; weight: number | null; birthDate: string; sex: 'unknown' | 'male' | 'female'; neutered: boolean | null; allergies: string; healthNotes: string; behaviorNotes: string; preferredStyle: string; visitIntervalWeeks: number | null; createdAt: string };
+export type PetPhoto = { id: string; src: string; caption: string; date: string };
+export type Pet = { photos?: PetPhoto[]; id: string; customerId: string; name: string; breed: string; weight: number | null; birthDate: string; sex: 'unknown' | 'male' | 'female'; neutered: boolean | null; allergies: string; healthNotes: string; behaviorNotes: string; preferredStyle: string; visitIntervalWeeks: number | null; createdAt: string };
 export type Shampoo = { id: string; name: string; purchasePrice: number; volumeMl: number; dilutionWaterRatio: number; notes: string; archived: boolean; createdAt: string };
 export type ShampooUsage = { shampooId: string; name: string; usedMl: number; purchasePrice: number; volumeMl: number; cost: number; customerCharge: number };
 export type Expense = { id: string; date: string; category: string; amount: number; memo: string; createdAt: string };

@@ -333,3 +333,22 @@ test('a failed sample upgrade never replaces the existing stored records', async
   storage.failWrites = false;
   assert.ok((await setup(storage).api.request<State>('/state')).appointments.length > 140);
 });
+
+
+test('pet photos persist, survive unrelated edits, reject invalid files and roll back storage failures', async () => {
+  const { storage, api } = setup();
+  const state = await api.request<State>('/state?month=2030-01');
+  const pet = state.pets[0];
+  const photo = { id: 'photo-test', src: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD0+iiiuI5z/9k=", caption: '미용 후', date: '2030-01-19' };
+  await api.request(`/pets/${pet.id}`, 'PATCH', { photos: [photo] });
+  await api.request(`/pets/${pet.id}`, 'PATCH', { preferredStyle: '둥근 얼굴' });
+  const reopened = createDemoApi(storage, { today: () => TODAY });
+  assert.deepEqual((await reopened.request<State>('/state?month=2030-01')).pets.find(p => p.id === pet.id)?.photos, [photo]);
+  for (const photos of [[photo, photo, photo, photo, photo, photo, photo], [{ ...photo, src: 'data:image/svg+xml;base64,AAAA' }], [{ ...photo, src: 'data:image/jpeg;base64,AAAA' }]]) {
+    await assert.rejects(api.request(`/pets/${pet.id}`, 'PATCH', { photos }));
+  }
+  storage.failWrites = true;
+  await assert.rejects(api.request(`/pets/${pet.id}`, 'PATCH', { photos: [] }));
+  storage.failWrites = false;
+  assert.deepEqual((await api.request<State>('/state?month=2030-01')).pets.find(p => p.id === pet.id)?.photos, [photo]);
+});

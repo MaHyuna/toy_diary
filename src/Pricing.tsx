@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Check, Dog, LoaderCircle, Plus, Scissors, Scale, Trash2 } from 'lucide-react';
+import { PricePreview } from './ShareCard';
 import { api, money } from './types';
 import type { Pricing } from './types';
 
@@ -112,4 +113,9 @@ export function PricingPanel({ pricing, onSaved }: { pricing: Pricing; onSaved: 
     </div>
     {error && <p className="form-error" role="alert">{error}</p>}
   </form>;
+}
+
+export function PricingPage({ pricing, onSaved }: { pricing: Pricing; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  return <div className="pricing-page"><div className="pricing-mode"><button className={!editing ? 'active' : ''} onClick={() => setEditing(false)}>고객에게 보여주기</button><button className={editing ? 'active' : ''} onClick={() => setEditing(true)}>요금 편집</button></div>{editing ? <PricingPanel pricing={pricing} onSaved={() => { setEditing(false); onSaved(); }} /> : <PricePreview pricing={pricing} />}</div>;
 }
