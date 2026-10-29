@@ -1,7 +1,7 @@
-import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=pages-4';
-import {createCanvasEditor} from './price-studio-canvas.js?v=pages-4';
-import {renderPagedPoster,zipFiles,A4_HEIGHT} from './price-studio-pages.js?v=pages-4';
-import {renderPoster} from './price-studio-render.js?v=pages-4';
+import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=select-5';
+import {createCanvasEditor} from './price-studio-canvas.js?v=select-5';
+import {renderPagedPoster,zipFiles,A4_HEIGHT} from './price-studio-pages.js?v=select-5';
+import {renderPoster} from './price-studio-render.js?v=select-5';
 const $=id=>document.getElementById(id),KEY='mongle-price-studio-v2';
 const clone=x=>JSON.parse(JSON.stringify(x)),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let currentPage=0;
