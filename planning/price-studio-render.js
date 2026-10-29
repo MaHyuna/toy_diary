@@ -13,6 +13,7 @@ export function renderPoster(canvas,p,logo,options={}){
  if(logo){const logoStart=ops.length;const scale=Math.min(d.logoSize/logo.width,d.logoSize/logo.height),w=logo.width*scale,h=logo.height*scale;ops.push(()=>ctx.drawImage(logo,(W-w)/2,36,w,h));mark('brand:logo',rect((W-w)/2,36,w,h),{type:'logo'},logoStart,'매장 로고','image');y+=h+18;}else y+=32;
  {const start=ops.length;text(p.brand.name||'우리 가게',W/2,y+18,`400 26px ${d.font}`,c.heading,'center',B);mark('brand:name',rect(m,y-10,B,37),{type:'brand',key:'name'},start,'매장 이름');}y+=39;
  if(p.brand.title){const start=ops.length;text(p.brand.title,W/2,y+4,`16px sans-serif`,c.heading,'center',B);mark('brand:title',rect(m,y-15,B,25),{type:'brand',key:'title'},start,'요금표 제목');y+=26;}y+=22;
+ {const top=Math.min(...elements.map(e=>e.y)),bottom=Math.max(...elements.map(e=>e.y+e.height));mark('brand:header',rect(m,top,B,bottom-top),{type:'brandGroup'},0,'매장 정보','group');}
  function section(s,x,top,width){const start=ops.length,style=s.style||{},sc={heading:style.heading||c.category,body:style.body||c.body,price:style.price||c.price,note:style.note||c.note,line:style.line||c.line,tableHeader:style.tableHeader||c.tableHeader||c.body};let yy=top+15;const pad=22,inner=width-pad*2,xx=x+pad;
   if(!s.title.trim())error='섹션 제목을 입력해 주세요.';flower(x+8,yy-5);const headingFont=`400 ${d.headingSize}px ${d.font}`;{const start=ops.length,top=yy-d.headingSize,hh=lines(s.title,xx,yy,inner,headingFont,d.headingSize+7,sc.heading);mark('sec:'+s.id+':title',rect(xx,top,inner,hh),{type:'section',sectionId:s.id,key:'title'},start,s.title+' 제목');yy+=hh;}yy+=2;
   if(s.breeds){const start=ops.length,top=yy-d.bodySize,hh=lines(s.breeds,xx,yy,inner,`${d.bodySize-1}px sans-serif`,d.bodySize+6,sc.body);mark('sec:'+s.id+':breeds',rect(xx,top,inner,hh),{type:'section',sectionId:s.id,key:'breeds'},start,s.title+' 견종 설명');yy+=hh;}
@@ -29,8 +30,10 @@ export function renderPoster(canvas,p,logo,options={}){
  }
  const visible=p.sections.filter(s=>s.visible);for(let i=0;i<visible.length;i++){const s=visible[i];if(s.span==='half'&&s.kind!=='matrix'&&visible[i+1]?.span==='half'&&visible[i+1].kind!=='matrix'){const width=(B-24)/2;y=Math.max(section(s,m,y,width),section(visible[++i],m+width+24,y,width))+d.gap;}else y=section(s,m,y,B)+d.gap;}
  if(!visible.length)error='표시할 섹션을 하나 이상 선택해 주세요.';
+ const footerStart=ops.length,footerElementStart=elements.length;
  if(p.brand.footer){const start=ops.length,top=y-14,hh=lines(p.brand.footer,m,y,B,'12px sans-serif',20,c.note);mark('brand:footer',rect(m,top,B,hh),{type:'brand',key:'footer'},start,'하단 안내');y+=hh;}
  if(p.brand.contact){y+=16;const start=ops.length,top=y-15,hh=lines(p.brand.contact,W/2,y,B,'13px sans-serif',21,c.body,'center');mark('brand:contact',rect(m,top,B,hh),{type:'brand',key:'contact'},start,'매장 연락처');y+=hh;}
+ if(elements.length>footerElementStart){const items=elements.slice(footerElementStart),top=Math.min(...items.map(e=>e.y)),bottom=Math.max(...items.map(e=>e.y+e.height));mark('brand:footerGroup',rect(m,top,B,bottom-top),{type:'brandGroup'},footerStart,'하단 안내','group');}
  const byId=new Map(elements.map(e=>[e.id,e]));
  const chains=new Map();for(const e of elements){const op=ops.find(op=>op.owners?.includes(e.id));const chain=op?.owners?.slice(0,op.owners.indexOf(e.id)+1)||[e.id];chains.set(e.id,chain);}
  const matrixFor=chain=>{let scale=1,dx=0,dy=0;for(const id of chain){const e=byId.get(id),tr=p.canvas?.transforms?.[id];if(!e||!tr)continue;dx+=scale*(e.x+tr.x-e.x*tr.scale);dy+=scale*(e.y+tr.y-e.y*tr.scale);scale*=tr.scale;}return {scale,dx,dy};};
