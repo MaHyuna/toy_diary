@@ -12,13 +12,20 @@ with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);ctx=b.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.goto(f'http://127.0.0.1:{server.server_address[1]}/planning/pricelist.html',wait_until='networkidle')
  expect(page.locator('#download-mobile')).to_be_enabled();assert page.locator('.canvas-shell').bounding_box()['height']>450
  name=page.locator('[data-element="brand:name"]');name.tap();expect(page.locator('#mobile-sheet')).to_be_hidden();expect(page.locator('.canvas-edit-handle')).to_be_visible();assert page.locator('.canvas-input').count()==0
- # Drag the selected text itself using actual touch events, without a move-mode switch.
+ # Dragging a header field moves the whole shop header.
  box=name.bounding_box();x=box['x']+box['width']/2;y=box['y']+box['height']/2;cdp=ctx.new_cdp_session(page)
  cdp.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':x,'y':y}]})
  for dy in [8,16,24]:cdp.send('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':x,'y':y+dy}]})
- cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});expect(page.locator('#save-status')).to_contain_text('자동 저장됨');assert page.evaluate('JSON.parse(localStorage.getItem("mongle-price-studio-v2")).canvas.transforms["brand:name"].y')>0;expect(page.locator('#mobile-sheet')).to_be_hidden()
+ cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});expect(page.locator('#save-status')).to_contain_text('자동 저장됨');assert page.evaluate('JSON.parse(localStorage.getItem("mongle-price-studio-v2")).canvas.transforms["brand:header"].y')>0;expect(page.locator('#mobile-sheet')).to_be_hidden()
  # Double-tap opens editing; ordinary subsequent single taps leave it closed.
  page.wait_for_timeout(420);name.tap();name.tap();expect(page.locator('#mobile-sheet')).to_be_visible();page.locator('#sheet-close').tap();expect(page.locator('#mobile-sheet')).to_be_hidden()
+ # Drag a price cell: title, description, and every price move as one section.
+ cell=page.locator('[data-element="sec:group-0:cell:row-0-0:col-0"]');cell.tap();expect(page.locator('.canvas-selection')).to_have_attribute('data-move-target','sec:group-0');expect(page.locator('#mobile-sheet')).to_be_hidden()
+ title=page.locator('[data-element="sec:group-0:title"]');neighbor=page.locator('[data-element="sec:group-1:title"]');title_y=title.bounding_box()['y'];neighbor_y=neighbor.bounding_box()['y'];box=cell.bounding_box();cell_y=box['y'];x=box['x']+box['width']/2;y=box['y']+box['height']/2
+ cdp.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':x,'y':y}]})
+ for dy in [6,9,12]:cdp.send('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':x,'y':y+dy}]})
+ cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});expect(page.locator('#save-status')).to_contain_text('자동 저장됨')
+ transforms=page.evaluate('JSON.parse(localStorage.getItem("mongle-price-studio-v2")).canvas.transforms');assert transforms['sec:group-0']['y']>0;assert 'sec:group-0:cell:row-0-0:col-0' not in transforms;assert abs((title.bounding_box()['y']-title_y)-(cell.bounding_box()['y']-cell_y))<.1;assert abs(neighbor.bounding_box()['y']-neighbor_y)<.1
  page.screenshot(path='/tmp/mobile-ux-home.png')
  page.locator('#show-preview').tap();expect(page.locator('#mobile-sheet')).to_be_visible();page.locator('#sheet-items button').filter(has_text='4kg 미만 목욕 가격').first.tap();page.locator('.canvas-edit-handle').tap();expect(page.locator('#sheet-value')).to_have_value('15000');assert page.locator('.canvas-move').count()==1
  page.locator('#sheet-value').fill('17500');page.locator('#sheet-next').tap();expect(page.locator('#sheet-value')).to_have_value('15000');page.locator('#sheet-value').fill('18500');page.locator('#sheet-prev').tap();expect(page.locator('#sheet-value')).to_have_value('17500');page.locator('#sheet-value').blur()
