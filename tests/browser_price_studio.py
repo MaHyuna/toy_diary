@@ -3,7 +3,8 @@ from pathlib import Path
 from functools import partial
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 from playwright.sync_api import sync_playwright,expect
-import threading,json
+import threading,json,zipfile,base64,io
+from PIL import Image
 class H(SimpleHTTPRequestHandler):
  def log_message(self,*a):pass
 server=ThreadingHTTPServer(('127.0.0.1',0),partial(H,directory=str(Path(__file__).resolve().parents[1]/'public')));threading.Thread(target=server.serve_forever,daemon=True).start()
@@ -26,6 +27,22 @@ with sync_playwright() as p:
  page.reload(wait_until='networkidle');assert page.evaluate('JSON.parse(localStorage.getItem("mongle-price-studio-v2"))')==data
  page.emulate_media(reduced_motion='reduce');page.locator('#canvas-add').tap();page.locator('#add-menu-close').tap();expect(page.locator('#canvas-add-menu')).not_to_be_visible();page.locator('#show-preview').tap();page.locator('#sheet-close').tap();expect(page.locator('#mobile-sheet')).to_be_hidden()
  page.set_viewport_size({'width':1440,'height':1000});page.locator('[data-element="brand:name"]').click();expect(page.locator('.canvas-input')).to_have_value('모바일 미용실');page.locator('.canvas-input').press('Enter');page.locator('[data-element="sec:group-0:cell:row-0-0:col-0"]').click();page.locator('#canvas-add').click();page.locator('[data-canvas-add="row"]').click();expect(page.locator('.canvas-input')).to_have_value('새 구간');page.locator('.canvas-input').press('Enter');page.locator('#undo').click();expect(page.locator('#save-status')).to_contain_text('자동 저장됨');assert len(page.evaluate('JSON.parse(localStorage.getItem("mongle-price-studio-v2")).sections[0].rows'))==4;assert not errors,errors
+ page.locator('#format').select_option('portrait');expect(page.locator('#render-error')).to_be_empty();expect(page.locator('#page-controls')).to_be_visible();images=[]
+ while True:
+  assert page.locator('#preview').evaluate('c=>[c.width,c.height]')==[1800,2546]
+  images.append(base64.b64decode(page.locator('#preview').evaluate('c=>c.toDataURL().split(",")[1]')))
+  if page.locator('#page-next').is_disabled():break
+  page.locator('#page-next').click()
+ assert len(images)>=2
+ page.screenshot(path='/tmp/a4-last-page.png')
+ with page.expect_download() as dl:page.locator('#download-pages').click()
+ path=dl.value.path()
+ with zipfile.ZipFile(path) as archive:
+  assert len(archive.namelist())==len(images)
+  for i,name in enumerate(archive.namelist()):
+   raw=archive.read(name);assert raw==images[i];assert Image.open(io.BytesIO(raw)).size==(1800,2546)
+ page.reload(wait_until='networkidle');expect(page.locator('#format')).to_have_value('portrait');expect(page.locator('#render-error')).to_be_empty();page.locator('#format').select_option('content');expect(page.locator('#page-controls')).to_be_hidden();assert not errors,errors
+ print('PASS A4 automatic pagination, fixed page dimensions, page navigation, ZIP pixel equality and restored format')
  print('PASS mobile picker, sequential prices, styles, refresh, form section navigation, desktop inline edit, 320–1440 overflow')
  b.close()
 server.shutdown()
