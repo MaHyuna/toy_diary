@@ -11,7 +11,8 @@
     "test:calendar": "node --experimental-strip-types --test --test-isolation=none --test-timeout=10000 tests/calendar.test.ts",
     "package:demo": "npm run build:demo && python scripts/package_demo.py",
     "start": "python -m server.app --host 127.0.0.1 --port 3000",
-    "test": "python -m unittest discover -s tests -v"
+    "test": "python -m unittest discover -s tests -v",
+    "test:studio": "node --test --test-isolation=none tests/price-studio.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -24,5 +25,7 @@
     "typescript": "~5.9.3",
     "vite": "^7.2.2"
   },
-  "engines": { "node": "^20.19.0 || >=22.12.0" }
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
 }
