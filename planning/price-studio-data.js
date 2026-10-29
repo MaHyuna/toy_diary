@@ -29,7 +29,9 @@ export function validateProject(input){
   if(s.kind==='text')out.content=text(s.content,5000);
   return out;
  });
- if(new Set(p.sections.map(s=>s.id)).size!==p.sections.length)fail('섹션 ID가 중복됐어요.');return p;
+ if(new Set(p.sections.map(s=>s.id)).size!==p.sections.length)fail('섹션 ID가 중복됐어요.');
+ if(input.canvas){const c=input.canvas;p.canvas={transforms:{},styles:{}};for(const [key,v] of Object.entries(c.transforms||{})){if((!/^[a-zA-Z0-9_:-]{1,300}$/.test(key)||!key.startsWith('brand:')&&!key.startsWith('sec:')))fail('캔버스 요소 ID 오류');p.canvas.transforms[key]={x:num(v.x,-3000,6000),y:num(v.y,-6000,6000),scale:num(v.scale,.25,4)};}for(const [key,v] of Object.entries(c.styles||{})){if((!/^[a-zA-Z0-9_:-]{1,300}$/.test(key)||!key.startsWith('brand:')&&!key.startsWith('sec:')))fail('캔버스 스타일 ID 오류');const st={};if(v.color!==undefined)st.color=color(v.color);if(v.fontSize!==undefined)st.fontSize=num(v.fontSize,8,60);for(const k of ['bold','italic','underline'])if(v[k]!==undefined){if(typeof v[k]!=='boolean')fail('글자 스타일 오류');st[k]=v[k];}if(v.align!==undefined){if(!['left','center','right'].includes(v.align))fail('글자 정렬 오류');st.align=v.align;}p.canvas.styles[key]=st;}if(Object.keys(p.canvas.transforms).length>10000||Object.keys(p.canvas.styles).length>10000)fail('캔버스 요소가 너무 많아요.');}
+ return p;
 }
 export function moveColumn(p,from,to){if(!Number.isInteger(from)||!Number.isInteger(to)||Math.min(from,to)<0||Math.max(from,to)>=p.columns.length)return;const [c]=p.columns.splice(from,1);p.columns.splice(to,0,c);for(const s of p.sections)if(s.kind==='matrix')for(const r of s.rows){const [v]=r.prices.splice(from,1);r.prices.splice(to,0,v);}}
 export function moveSection(p,from,to){if(Math.min(from,to)<0||Math.max(from,to)>=p.sections.length)return;const [s]=p.sections.splice(from,1);p.sections.splice(to,0,s);}
