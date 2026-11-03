@@ -41,3 +41,14 @@ test('A4 pagination preserves complete rows, repeats headings, and keeps list in
  const q=createDefaultProject();q.sections=[q.sections.find(s=>s.kind==='list')];q.sections[0].items=Array.from({length:40},(_,i)=>({label:'관리 메뉴 '+i,value:String(i)}));
  const lists=paginateProject(q,measure);assert.ok(lists.pages.length>1);const indices=lists.pages.flatMap(page=>renderPoster(canvas,page,null,{measureOnly:true}).elements.filter(e=>e.binding.type==='item'&&e.binding.key==='label').map(e=>e.binding.index));assert.deepEqual(indices,Array.from({length:40},(_,i)=>i));
 });
+
+test('A4 balances whole sections across pages without changing their order', async () => {
+ const {paginateProject}=await import('../public/planning/price-studio-pages.js');
+ const {renderPoster}=await import('../public/planning/price-studio-render.js');
+ const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx};
+ const p=createDefaultProject(),measure=x=>renderPoster(canvas,x,null,{measureOnly:true}).requiredHeight;
+ const {pages,error}=paginateProject(p,measure);assert.equal(error,'');assert.equal(pages.length,2);
+ assert.deepEqual(pages.flatMap(page=>page.sections.map(s=>s.id)),p.sections.map(s=>s.id));
+ assert.ok(Math.abs(measure(pages[0])-measure(pages[1]))<400);
+ assert.ok(pages.every(page=>measure(page)<=1273));
+});
