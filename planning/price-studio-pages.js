@@ -1,4 +1,4 @@
-import {renderPoster} from './price-studio-render.js?v=fixed-7';
+import {renderPoster} from './price-studio-render.js?v=workflow-8';
 export const A4_HEIGHT=1273;
 // Pack whole sections first. Oversized tables split only between rows.
 export function paginateProject(project,measure){
@@ -20,7 +20,10 @@ export function paginateProject(project,measure){
    current=[part(best)];remaining=remaining.slice(best);offset+=best;if(remaining.length)flush();
   }
  }
- flush();return {pages,error:pages.length?'':'표시할 섹션을 하나 이상 선택해 주세요.'};
+ flush();
+ // Move whole trailing sections to the next sheet when it reduces excess blank space.
+ for(let i=pages.length-2;i>=0;i--){const left=pages[i],right=pages[i+1];while(left.sections.length>1){let count=1;const tail=left.sections.slice(-2);if(tail.length===2&&tail.every(s=>s.span==='half'&&s.kind!=='matrix'))count=2;if(left.sections.length<=count)break;const a=left.sections.slice(0,-count),b=[...left.sections.slice(-count),...right.sections];const before=Math.abs(measure(left)-measure(right)),ha=measure({...left,sections:a}),hb=measure({...right,sections:b});if(ha>A4_HEIGHT||hb>A4_HEIGHT||Math.abs(ha-hb)>=before)break;left.sections=a;right.sections=b;}}
+ return {pages,error:pages.length?'':'표시할 섹션을 하나 이상 선택해 주세요.'};
 }
 export function renderPagedPoster(canvas,project,logo,pageIndex=0){
  if(project.design.format!=='portrait')return {...renderPoster(canvas,project,logo),pageIndex:0,pages:[project]};
