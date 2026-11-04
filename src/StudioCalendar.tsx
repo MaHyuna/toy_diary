@@ -52,7 +52,7 @@ export function StudioCalendar(props: Props) {
           <span className="month-day-heading"><span className="month-day-number">{Number(day.date.slice(8))}</span></span>
           {(day.appointments.length > 0 || day.income > 0) && <>
             <span className="month-day-bookings"><span className={`month-booking-count ${day.completedCount === day.appointments.length ? 'all-complete' : ''}`}>{day.appointments.length}건</span></span>
-            <span className="month-revenue" title={`${money(day[amountView])}원`}><small>{amountView==='income'?'매출':'예상'}</small>{day[amountView]>=1_000_000?compactMoney.format(day[amountView]):money(day[amountView])}</span>
+            <span className="month-revenue" title={`${money(day[amountView])}원`}>{amountView==='bookingAmount'&&<small>예상</small>}{day[amountView]>=1_000_000?compactMoney.format(day[amountView]):money(day[amountView])}</span>
           </>}
         </button>)}
         {Array.from({ length: padding }, (_, index) => <div className="month-blank" key={`after-${index}`} />)}
