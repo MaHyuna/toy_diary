@@ -52,7 +52,7 @@ button, input, select, textarea { font-family: inherit; }
 .calendar-screen main { max-width: 1020px; margin: 0 auto; padding-top: 22px; }
 .calendar-screen .studio-calendar.grooming-calendar { flex: 0 1 auto; min-height: 0; margin: 0; }
 .calendar-screen .grooming-calendar .month-calendar { flex: none; min-height: 0; overflow: hidden; border-radius: 18px; border: 1px solid var(--line); box-shadow: none; }
-.calendar-screen .grooming-calendar .month-cells { flex: none; grid-auto-rows: 88px; min-height: 0; }
+.calendar-screen .grooming-calendar .month-cells { flex: none; grid-auto-rows: 76px; min-height: 0; }
 .grooming-calendar .month-day, .grooming-calendar .month-blank { border-right: 0; border-bottom: 1px solid var(--line); background: #fff; }
 .grooming-calendar .month-blank { background: #fcfdfc; }
 .grooming-calendar .month-day { padding: 7px 6px; align-items: center; text-align: center; gap: 3px; color: var(--ink); }
@@ -146,8 +146,8 @@ button, input, select, textarea { font-family: inherit; }
   .month-title small { font-size: 13px; }
   .month-title strong { font-size: 29px; }
   .calendar-screen .grooming-calendar .month-calendar { border: 0; border-radius: 0; background: #fff; }
-  .calendar-screen .grooming-calendar .month-cells { grid-auto-rows: clamp(62px,9.3dvh,78px); }
-  .calendar-screen .grooming-calendar .month-cells[data-weeks="6"] { grid-auto-rows: clamp(52px,calc((100dvh - 370px) / 6),78px); }
+  .calendar-screen .grooming-calendar .month-cells { grid-auto-rows: clamp(58px,7.6dvh,64px); }
+  .calendar-screen .grooming-calendar .month-cells[data-weeks="6"] { grid-auto-rows: clamp(52px,calc((100dvh - 370px) / 6),64px); }
   .grooming-calendar .month-weekdays span { padding: 10px 0 12px; font-size: 12px; }
   .grooming-calendar .month-day { padding: 5px 2px 7px; gap: 1px; }
   .grooming-calendar .month-day-number { width: 26px; height: 26px; min-width: 26px; font-size: 14px; }
@@ -194,7 +194,7 @@ button, input, select, textarea { font-family: inherit; }
   .calendar-period-bar:has(.calendar-view-switch) { flex-wrap: wrap; }
   .calendar-period-bar:has(.calendar-view-switch) .period-picker { width: 100%; }
   .calendar-period-bar:has(.calendar-view-switch) .calendar-period-actions { display: flex; }
-  .calendar-screen:has(.calendar-view-switch) .grooming-calendar .month-cells[data-weeks="6"] { grid-auto-rows: clamp(52px,calc((100dvh - 414px) / 6),78px); }
+  .calendar-screen:has(.calendar-view-switch) .grooming-calendar .month-cells[data-weeks="6"] { grid-auto-rows: clamp(52px,calc((100dvh - 414px) / 6),64px); }
 }
 @media (max-width: 370px) {
   .calendar-screen main { padding-left: 6px; padding-right: 6px; }
@@ -222,7 +222,7 @@ button, input, select, textarea { font-family: inherit; }
   .quick-add { height: 48px; bottom: calc(var(--mobile-nav-height) + 10px); }
 }
 @media (min-width: 761px) and (max-height: 800px) {
-  .calendar-screen .grooming-calendar .month-cells { grid-auto-rows: 72px; }
+  .calendar-screen .grooming-calendar .month-cells { grid-auto-rows: 64px; }
   .grooming-calendar .month-day { padding: 3px 6px; gap: 1px; }
   .grooming-calendar-caption { padding: 12px 18px; }
 }
