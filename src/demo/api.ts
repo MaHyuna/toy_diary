@@ -1,4 +1,4 @@
-import type { Appointment, Customer, Expense, PaymentMethod, Pet, Pricing, Shampoo, ShampooUsage, State } from '../types.ts';
+import type { Appointment, BookingRequest, Customer, Expense, PaymentMethod, Pet, Pricing, Shampoo, ShampooUsage, State } from '../types.ts';
 import { addExpandedDemoData, createDemoData, DEMO_SEED_REVISION } from './seed.ts';
 import type { DemoData } from './seed.ts';
 
@@ -255,6 +255,10 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
     }
     return data;
   }
+  type RequestRecord = BookingRequest & { booking: Appointment };
+  const requestRows=(data: DemoData)=> (data.bookingRequests??=[]) as RequestRecord[];
+  function publicDay(value: unknown){const date=day(value),current=day(getToday()),last=new Date(`${current}T12:00:00Z`);last.setUTCDate(last.getUTCDate()+90);if(date<current||date>last.toISOString().slice(0,10))fail('예약은 오늘부터 90일 이내로 선택해 주세요.');return date;}
+  function slots(data:DemoData,date:string,duration:number,exclude=''){const occupied=[...data.appointments.filter(a=>a.status!=='cancelled'),...requestRows(data).filter(r=>r.status==='pending'&&r.id!==exclude)].filter(a=>a.date===date);const now=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());const times:string[]=[];for(let start=540;start+duration<=1140;start+=30){const time=`${String(Math.floor(start/60)).padStart(2,'0')}:${String(start%60).padStart(2,'0')}`;if(date===day(getToday())&&time<=now)continue;if(!occupied.some(a=>start<minutes(a.time)+a.duration&&start+duration>minutes(a.time)))times.push(time);}return times;}
   function locked<T>(operation: () => T): Promise<T> {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.locks) return navigator.locks.request(KEY, operation);
     return Promise.resolve().then(operation);
@@ -267,10 +271,19 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         if (method === 'GET' && route === '/health') return { status: 'ok', mode: 'demo' } as T;
         const data = clone(read()), today = day(getToday());
         if (method === 'GET' && route === '/state') return clone(summary(data, url.searchParams.get('month') ?? today.slice(0, 7))) as T;
+        if(method==='GET'&&route==='/public/catalog')return clone({pricing:data.pricing,name:'몽글 미용실',hours:'09:00–19:00'}) as T;
+        if(method==='GET'&&route==='/booking-requests')return clone(requestRows(data).map(({booking:_,...row})=>row)) as T;
+        if(method==='GET'&&route==='/public/availability'){const date=publicDay(url.searchParams.get('date')),service=existing(data.pricing.services,url.searchParams.get('serviceId'),'서비스');return {slots:slots(data,date,service.duration)} as T;}
         const input = method === 'DELETE' ? {} : object(body);
         let result: unknown;
         const parts = route.split('/').filter(Boolean), [resource, id, action] = parts;
-        if (method === 'PUT' && route === '/pricing') { data.pricing = pricing(input); result = data.pricing; }
+        if(method==='POST'&&route==='/public/requests'){
+          only(input,['serviceId','date','time','dogName','guardianName','phone','breed','weight','notes','consent']);if(input.consent!==true)fail('개인정보 수집에 동의해 주세요.');const date=publicDay(input.date),service=existing(data.pricing.services,input.serviceId,'서비스'),phone=text(input,'phone','연락처',40,true);if(!/^[0-9]{10,11}$/.test(phone.replace(/\D/g,'')))fail('연락 가능한 전화번호를 입력해 주세요.');const breed=text(input,'breed','견종',80),weight=measure(input.weight,'몸무게',150),breedFee=data.pricing.breedRules.find(r=>r.breed===breed)?.amount??0,weightFee=data.pricing.weightRules.find(r=>weight>=r.minWeight&&(weight<r.maxWeight||weight===r.maxWeight&&weight===150))?.amount??0;
+          if(!slots(data,date,service.duration).includes(String(input.time)))fail('선택한 시간이 마감됐어요. 다른 시간을 선택해 주세요.');
+          const booking=appointment(data,{date,time:input.time,dogName:input.dogName,guardianName:input.guardianName,phone,breed,weight,notes:input.notes,service:service.name,duration:service.duration,basePrice:service.basePrice,breedSurcharge:breedFee,weightSurcharge:weightFee,extraCharges:[],price:service.basePrice+breedFee+weightFee});
+          const id=uid();requestRows(data).push({...booking,id,status:'pending',booking});result={id,status:'pending',date,time:booking.time,price:booking.price};
+        } else if(method==='POST'&&resource==='booking-requests'&&id){only(input,['decision']);const row=existing(requestRows(data),id,'예약 신청');if(row.status!=='pending')fail('이미 처리한 신청입니다.');if(input.decision==='accept'){publicDay(row.date);if(!slots(data,row.date,row.duration,row.id).includes(row.time))fail('다른 예약과 겹칩니다. 시간을 확인해 주세요.');const booking={...row.booking,id:uid(),source:'website',externalId:row.id};data.appointments.push(booking);row.status='accepted';}else if(input.decision==='reject')row.status='rejected';else fail('확정 또는 거절을 선택해 주세요.');result={status:row.status};
+        } else if (method === 'PUT' && route === '/pricing') { data.pricing = pricing(input); result = data.pricing; }
         else if (method === 'POST' && route === '/appointments') { result = appointment(data, input); data.appointments.push(result as Appointment); }
         else if (resource === 'appointments' && id && parts.length <= 3) {
           const current = existing(data.appointments, id, '예약');

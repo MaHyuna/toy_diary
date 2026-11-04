@@ -63,3 +63,9 @@ test('a future quote is visible before payment and cancellation removes it from 
   assert.equal(cancelled.bookingAmount, 0);
   assert.equal(cancelled.appointments.length, 0);
 });
+
+test('ICS exports Korea times in UTC, escapes user text and folds long UTF-8 lines', async()=>{
+ const {calendarIcs}=await import('../src/calendarExport.ts');const row={...createDemoData('2030-02-20').appointments[0],phone:'010-9999-8888',dogName:'한글'.repeat(40)+'\r\nBEGIN:VEVENT',date:'2030-02-21',time:'09:00',duration:120};
+ const ics=calendarIcs([row,{...row,id:'cancelled',status:'cancelled'}],new Date('2030-02-20T00:00:00Z'));
+ assert.equal(ics.match(/^BEGIN:VEVENT$/gm)?.length,1);assert.match(ics,/DTSTART:20300221T000000Z/);assert.match(ics,/DTEND:20300221T020000Z/);assert.ok(ics.replaceAll('\r\n ','').includes('\\nBEGIN:VEVENT'));assert.ok(ics.split('\r\n').every(line=>new TextEncoder().encode(line).length<=75));assert.ok(!ics.includes(row.phone));
+});

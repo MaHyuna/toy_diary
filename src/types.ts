@@ -32,6 +32,7 @@ export type Appointment = {
   paidDate: string | null;
   createdAt: string;
 };
+export type BookingRequest = { id: string; status: 'pending' | 'accepted' | 'rejected'; date: string; time: string; dogName: string; guardianName: string; phone: string; breed: string; weight: number | null; service: string; price: number; duration: number; createdAt: string };
 export type Pricing = { services: { id: string; name: string; basePrice: number; duration: number }[]; breedRules: { id: string; breed: string; amount: number }[]; weightRules: { id: string; minWeight: number; maxWeight: number; amount: number }[] };
 export type Customer = { id: string; name: string; phone: string; notes: string; createdAt: string };
 export type PetPhoto = { id: string; src: string; caption: string; date: string };
@@ -39,7 +40,7 @@ export type Pet = { photos?: PetPhoto[]; id: string; customerId: string; name: s
 export type Shampoo = { id: string; name: string; purchasePrice: number; volumeMl: number; dilutionWaterRatio: number; notes: string; archived: boolean; createdAt: string };
 export type ShampooUsage = { shampooId: string; name: string; usedMl: number; purchasePrice: number; volumeMl: number; cost: number; customerCharge: number };
 export type Expense = { id: string; date: string; category: string; amount: number; memo: string; createdAt: string };
-export type State = { appointments: Appointment[]; expenses: Expense[]; pricing: Pricing; customers: Customer[]; pets: Pet[]; shampoos: Shampoo[]; summary: { revenue: number; totalExpenses: number; profit: number; unpaidAmount: number; paidCount: number; shampooCost: number } };
+export type State = { bookingRequests?: BookingRequest[]; appointments: Appointment[]; expenses: Expense[]; pricing: Pricing; customers: Customer[]; pets: Pet[]; shampoos: Shampoo[]; summary: { revenue: number; totalExpenses: number; profit: number; unpaidAmount: number; paidCount: number; shampooCost: number } };
 export const money = (value: number) => new Intl.NumberFormat('ko-KR').format(value);
 export const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 export const paymentLabels: Record<PaymentMethod, string> = { card: '카드', cash: '현금', transfer: '계좌이체' };

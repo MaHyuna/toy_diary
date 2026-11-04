@@ -352,3 +352,16 @@ test('pet photos persist, survive unrelated edits, reject invalid files and roll
   storage.failWrites = false;
   assert.deepEqual((await api.request<State>('/state?month=2030-01')).pets.find(p => p.id === pet.id)?.photos, [photo]);
 });
+
+test('customer request holds a slot, stays outside sales, and owner approval creates one unpaid website visit', async()=>{
+ const {api}=setup();const catalog=await api.request<{pricing:Pricing}>('/public/catalog');const service=catalog.pricing.services[0];
+ const payload={serviceId:service.id,date:'2030-02-10',time:'09:00',dogName:'예약 신청 테스트',guardianName:'체험 보호자',phone:'010-0000-0000',breed:'말티즈',weight:3.2,notes:'',consent:true};
+ const before=await api.request<State>('/state?month=2030-02');
+ const receipt=await api.request<{id:string}>('/public/requests','POST',payload);
+ const slots=await api.request<{slots:string[]}>(`/public/availability?date=${payload.date}&serviceId=${service.id}`);assert.ok(!slots.slots.includes('09:00'));
+ await assert.rejects(api.request('/public/requests','POST',payload));
+ const pending=await api.request<State>('/state?month=2030-02');assert.equal(pending.appointments.length,before.appointments.length);assert.equal(pending.summary.revenue,before.summary.revenue);
+ await api.request(`/booking-requests/${receipt.id}`,'POST',{decision:'accept'});
+ const approved=await api.request<State>('/state?month=2030-02'),visit=approved.appointments.find(a=>a.externalId===receipt.id)!;assert.equal(visit.source,'website');assert.equal(visit.paymentStatus,'unpaid');assert.equal(approved.summary.revenue,before.summary.revenue);
+ await assert.rejects(api.request(`/booking-requests/${receipt.id}`,'POST',{decision:'accept'}));
+});

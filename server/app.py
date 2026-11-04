@@ -6,7 +6,7 @@ import argparse
 import base64
 import binascii
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -313,6 +313,7 @@ class Store:
                     amount INTEGER NOT NULL, memo TEXT NOT NULL, createdAt TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS expense_date ON expenses(date);
+                CREATE TABLE IF NOT EXISTS booking_requests (id TEXT PRIMARY KEY, payload TEXT NOT NULL, status TEXT NOT NULL, createdAt TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS settings (
                     key TEXT PRIMARY KEY, value TEXT NOT NULL
                 );
@@ -515,6 +516,85 @@ class Store:
             if start < other_start + row["duration"] and end > other_start:
                 raise APIError("같은 시간에 다른 예약이 있습니다. 예약 시간을 확인해 주세요.", 409)
 
+    def public_catalog(self):
+        with self.connect() as connection:
+            pricing = json.loads(connection.execute("SELECT value FROM settings WHERE key='pricing'").fetchone()[0])
+        return {"pricing": pricing, "hours": "09:00–19:00", "name": "몽글 미용실"}
+
+    def booking_requests(self):
+        with self.connect() as connection:
+            rows = connection.execute("SELECT * FROM booking_requests ORDER BY createdAt")
+            return [{**json.loads(row["payload"]), "id": row["id"], "status": row["status"], "createdAt": row["createdAt"]} for row in rows]
+
+    @staticmethod
+    def public_day(value):
+        value = valid_date(value, "예약 날짜")
+        if not today() <= value <= (date.fromisoformat(today()) + timedelta(days=90)).isoformat():
+            raise APIError("예약은 오늘부터 90일 이내로 선택해 주세요.")
+        return value
+
+    @staticmethod
+    def booking_slots(connection, day, duration, exclude=""):
+        occupied = [(row["time"], row["duration"]) for row in connection.execute("SELECT time,duration FROM appointments WHERE date=? AND status!='cancelled'", (day,))]
+        for row in connection.execute("SELECT id,payload FROM booking_requests WHERE status='pending'"):
+            item = json.loads(row["payload"])
+            if item["date"] == day and row["id"] != exclude:
+                occupied.append((item["time"], item["duration"]))
+        now = datetime.now(SEOUL).strftime("%H:%M")
+        return [f"{start//60:02d}:{start%60:02d}" for start in range(540, 1140-duration+1, 30)
+                if (day != today() or f"{start//60:02d}:{start%60:02d}" > now)
+                and all(not (start < minutes(time)+length and start+duration > minutes(time)) for time,length in occupied)]
+
+    def public_availability(self, day, service_id):
+        day = self.public_day(day)
+        with self.connect() as connection:
+            pricing = json.loads(connection.execute("SELECT value FROM settings WHERE key='pricing'").fetchone()[0])
+            service = next((s for s in pricing["services"] if s["id"] == service_id), None)
+            if service is None:
+                raise APIError("서비스를 다시 선택해 주세요.")
+            return {"slots": self.booking_slots(connection, day, service["duration"])}
+
+    def request_booking(self, data):
+        if set(data) - {"serviceId","date","time","dogName","guardianName","phone","breed","weight","notes","consent"} or data.get("consent") is not True:
+            raise APIError("예약 정보와 개인정보 수집 동의를 확인해 주세요.")
+        day = self.public_day(data.get("date"))
+        with self.connect(write=True) as connection:
+            pricing = json.loads(connection.execute("SELECT value FROM settings WHERE key='pricing'").fetchone()[0])
+            service = next((s for s in pricing["services"] if s["id"] == data.get("serviceId")), None)
+            if service is None:
+                raise APIError("서비스를 다시 선택해 주세요.")
+            breed = text_field(data,"breed","견종", maximum=80)
+            weight = number(data.get("weight"), "몸무게", maximum=150)
+            phone = text_field(data,"phone","연락처",required=True,maximum=40)
+            if len(re.sub(r"\D", "", phone)) not in {10,11}:
+                raise APIError("연락 가능한 전화번호를 입력해 주세요.")
+            breed_fee = next((r["amount"] for r in pricing["breedRules"] if r["breed"] == breed),0)
+            weight_fee = next((r["amount"] for r in pricing["weightRules"] if weight >= r["minWeight"] and (weight < r["maxWeight"] or weight == r["maxWeight"] == 150)),0)
+            booking = validate_appointment({**data,"date":day,"service":service["name"],"duration":service["duration"],"basePrice":service["basePrice"],"breedSurcharge":breed_fee,"weightSurcharge":weight_fee,"extraCharges":[],"price":service["basePrice"]+breed_fee+weight_fee,"breed":breed,"weight":weight,"phone":phone})
+            if booking["time"] not in self.booking_slots(connection, day, booking["duration"]):
+                raise APIError("방금 선택한 시간이 마감됐어요. 다른 시간을 선택해 주세요.",409)
+            request_id = uuid4().hex
+            connection.execute("INSERT INTO booking_requests VALUES(?,?,?,?)",(request_id,json.dumps(booking,ensure_ascii=False),"pending",timestamp()))
+        return {"id":request_id,"status":"pending","date":day,"time":booking["time"],"price":booking["price"]}
+
+    def decide_booking(self, request_id, data):
+        if set(data) != {"decision"} or data["decision"] not in {"accept","reject"}:
+            raise APIError("확정 또는 거절을 선택해 주세요.")
+        with self.connect(write=True) as connection:
+            row = connection.execute("SELECT * FROM booking_requests WHERE id=?",(request_id,)).fetchone()
+            if row is None or row["status"] != "pending":
+                raise APIError("이미 처리했거나 찾을 수 없는 신청입니다.",409)
+            item = json.loads(row["payload"])
+            if data["decision"] == "accept":
+                self.public_day(item["date"])
+                if item["time"] not in self.booking_slots(connection,item["date"],item["duration"],request_id):
+                    raise APIError("다른 예약과 겹칩니다. 시간을 확인해 주세요.",409)
+                item.update({"id":uuid4().hex,"source":"website","externalId":request_id,"paymentStatus":"unpaid","paymentMethod":None,"paidDate":None,"createdAt":timestamp()})
+                columns=", ".join(item);values=", ".join("?" for _ in item)
+                connection.execute(f"INSERT INTO appointments ({columns}) VALUES ({values})",self.appointment_values(item))
+            connection.execute("UPDATE booking_requests SET status=? WHERE id=?",("accepted" if data["decision"] == "accept" else "rejected",request_id))
+        return {"status":"accepted" if data["decision"] == "accept" else "rejected"}
+
     def create_appointment(self, data):
         unknown = set(data) - EDITABLE_FIELDS - {"source", "externalId"}
         if unknown:
@@ -708,6 +788,18 @@ def make_handler(store: Store, static_dir: Path):
                     with store.connect() as connection:
                         connection.execute("SELECT 1").fetchone()
                     return self.send_json({"status": "ok"})
+                if method == "GET" and path == "/api/public/catalog":
+                    return self.send_json(store.public_catalog())
+                if method == "GET" and path == "/api/public/availability":
+                    query = parse_qs(parsed.query)
+                    return self.send_json(store.public_availability(query.get("date",[""])[0],query.get("serviceId",[""])[0]))
+                if method == "POST" and path == "/api/public/requests":
+                    return self.send_json(store.request_booking(self.read_json()),201)
+                if method == "GET" and path == "/api/booking-requests":
+                    return self.send_json(store.booking_requests())
+                booking_match = re.fullmatch(r"/api/booking-requests/([a-f0-9]{32})",path)
+                if method == "POST" and booking_match:
+                    return self.send_json(store.decide_booking(booking_match.group(1), self.read_json()))
                 if method == "GET" and path == "/api/state":
                     month = parse_qs(parsed.query, keep_blank_values=True).get("month", [today()[:7]])[0]
                     return self.send_json(store.state(month))
