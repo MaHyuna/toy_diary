@@ -1,3 +1,4 @@
+import './pricing-table.css';
 import { appUrl } from './routes';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -71,39 +72,39 @@ export function PricingPanel({ pricing, onSaved }: { pricing: Pricing; onSaved: 
 
     <section className="panel">
       <div className="panel-heading"><div><div className="section-eyebrow">SERVICE PRICING</div><h2><Scissors size={20} /> 서비스 기본 요금</h2></div><button type="button" className="btn btn-secondary btn-small" disabled={busy || draft.services.length >= 30} onClick={() => setDraft((current) => ({ ...current, services: [...current.services, { id: crypto.randomUUID(), name: '', basePrice: '', duration: '60' }] }))}><Plus size={15} />서비스 추가</button></div>
-      <div className="pricing-rows">
-        {draft.services.map((row, index) => <div className="pricing-row pricing-service-row" key={row.id}>
-          <div className="field"><label htmlFor={`${formId}-service-${row.id}-name`}>서비스 이름</label><input id={`${formId}-service-${row.id}-name`} aria-label={`${index + 1}번째 서비스 이름`} value={row.name} onChange={(e) => updateService(row.id, 'name', e.target.value)} maxLength={100} required disabled={busy} placeholder="예: 전체 미용" /></div>
-          <div className="field"><label htmlFor={`${formId}-service-${row.id}-price`}>기본 금액 (원)</label><input id={`${formId}-service-${row.id}-price`} aria-label={`${index + 1}번째 서비스 기본 금액`} type="number" min="0" max="100000000" step="1" value={row.basePrice} onChange={(e) => updateService(row.id, 'basePrice', e.target.value)} required disabled={busy} placeholder="0" /></div>
-          <div className="field"><label htmlFor={`${formId}-service-${row.id}-duration`}>소요 시간 (분)</label><input id={`${formId}-service-${row.id}-duration`} aria-label={`${index + 1}번째 서비스 소요 시간`} type="number" min="1" max="480" step="1" value={row.duration} onChange={(e) => updateService(row.id, 'duration', e.target.value)} required disabled={busy} /></div>
-          <button type="button" className="icon-button subtle-danger" aria-label={`${row.name || `${index + 1}번째 서비스`} 삭제`} title={draft.services.length === 1 ? '서비스는 하나 이상 필요해요' : '서비스 삭제'} disabled={busy || draft.services.length === 1} onClick={() => setDraft((current) => ({ ...current, services: current.services.filter((service) => service.id !== row.id) }))}><Trash2 size={17} /></button>
-        </div>)}
-      </div>
+      <div className="pricing-table-wrap"><table className="pricing-edit-table services-edit-table"><caption className="sr-only">서비스 기본 요금</caption><thead><tr><th scope="col">서비스</th><th scope="col">기본금액 (원)</th><th scope="col">시간 (분)</th><th scope="col">관리</th></tr></thead><tbody>
+        {draft.services.map((row, index) => <tr key={row.id}>
+          <td className="field"><label htmlFor={`${formId}-service-${row.id}-name`}>서비스 이름</label><input id={`${formId}-service-${row.id}-name`} aria-label={`${index + 1}번째 서비스 이름`} value={row.name} onChange={(e) => updateService(row.id, 'name', e.target.value)} maxLength={100} required disabled={busy} placeholder="예: 전체 미용" /></td>
+          <td className="field"><label htmlFor={`${formId}-service-${row.id}-price`}>기본 금액 (원)</label><input id={`${formId}-service-${row.id}-price`} aria-label={`${index + 1}번째 서비스 기본 금액`} type="number" min="0" max="100000000" step="1" value={row.basePrice} onChange={(e) => updateService(row.id, 'basePrice', e.target.value)} required disabled={busy} placeholder="0" /></td>
+          <td className="field"><label htmlFor={`${formId}-service-${row.id}-duration`}>소요 시간 (분)</label><input id={`${formId}-service-${row.id}-duration`} aria-label={`${index + 1}번째 서비스 소요 시간`} type="number" min="1" max="480" step="1" value={row.duration} onChange={(e) => updateService(row.id, 'duration', e.target.value)} required disabled={busy} /></td>
+          <td className="pricing-delete-cell"><button type="button" className="icon-button subtle-danger" aria-label={`${row.name || `${index + 1}번째 서비스`} 삭제`} title={draft.services.length === 1 ? '서비스는 하나 이상 필요해요' : '서비스 삭제'} disabled={busy || draft.services.length === 1} onClick={() => setDraft((current) => ({ ...current, services: current.services.filter((service) => service.id !== row.id) }))}><Trash2 size={17} /></button></td>
+        </tr>)}
+      </tbody></table></div>
       <p className="panel-footnote">예약에서 서비스를 고르면 기본 금액과 소요 시간이 입력돼요. 개별 예약에 맞춰 조정할 수 있어요.</p>
     </section>
 
     <section className="panel">
       <div className="panel-heading"><div><div className="section-eyebrow">BREED ADJUSTMENTS</div><h2><Dog size={20} /> 견종별 추가 요금</h2></div><button type="button" className="btn btn-secondary btn-small" disabled={busy || draft.breedRules.length >= 100} onClick={() => setDraft((current) => ({ ...current, breedRules: [...current.breedRules, { id: crypto.randomUUID(), breed: '', amount: '' }] }))}><Plus size={15} />견종 추가</button></div>
-      <div className="pricing-rows">
-        {draft.breedRules.length ? draft.breedRules.map((row, index) => <div className="pricing-row pricing-rule-row" key={row.id}>
-          <div className="field"><label htmlFor={`${formId}-breed-${row.id}-name`}>견종</label><input id={`${formId}-breed-${row.id}-name`} aria-label={`${index + 1}번째 요금표 견종`} value={row.breed} onChange={(e) => updateBreed(row.id, 'breed', e.target.value)} maxLength={80} required disabled={busy} placeholder="예: 비숑 프리제" /></div>
-          <div className="field"><label htmlFor={`${formId}-breed-${row.id}-amount`}>추가 금액 (원)</label><input id={`${formId}-breed-${row.id}-amount`} aria-label={`${index + 1}번째 견종 추가 금액`} type="number" min="0" max="100000000" step="1" value={row.amount} onChange={(e) => updateBreed(row.id, 'amount', e.target.value)} required disabled={busy} placeholder="0" /></div>
-          <button type="button" className="icon-button subtle-danger" aria-label={`${row.breed || `${index + 1}번째 견종`} 요금 삭제`} disabled={busy} onClick={() => setDraft((current) => ({ ...current, breedRules: current.breedRules.filter((rule) => rule.id !== row.id) }))}><Trash2 size={17} /></button>
-        </div>) : <div className="pricing-empty"><Dog size={23} /><p>견종에 따라 달라지는 요금이 있다면 추가해 주세요.</p><span>등록하지 않으면 기본 서비스 요금만 적용돼요.</span></div>}
-      </div>
+      <div className="pricing-table-wrap"><table className="pricing-edit-table breedRules-edit-table"><caption className="sr-only">견종별 추가 요금</caption><thead><tr><th scope="col">견종</th><th scope="col">추가금액 (원)</th><th scope="col">관리</th></tr></thead><tbody>
+        {draft.breedRules.length ? draft.breedRules.map((row, index) => <tr key={row.id}>
+          <td className="field"><label htmlFor={`${formId}-breed-${row.id}-name`}>견종</label><input id={`${formId}-breed-${row.id}-name`} aria-label={`${index + 1}번째 요금표 견종`} value={row.breed} onChange={(e) => updateBreed(row.id, 'breed', e.target.value)} maxLength={80} required disabled={busy} placeholder="예: 비숑 프리제" /></td>
+          <td className="field"><label htmlFor={`${formId}-breed-${row.id}-amount`}>추가 금액 (원)</label><input id={`${formId}-breed-${row.id}-amount`} aria-label={`${index + 1}번째 견종 추가 금액`} type="number" min="0" max="100000000" step="1" value={row.amount} onChange={(e) => updateBreed(row.id, 'amount', e.target.value)} required disabled={busy} placeholder="0" /></td>
+          <td className="pricing-delete-cell"><button type="button" className="icon-button subtle-danger" aria-label={`${row.breed || `${index + 1}번째 견종`} 요금 삭제`} disabled={busy} onClick={() => setDraft((current) => ({ ...current, breedRules: current.breedRules.filter((rule) => rule.id !== row.id) }))}><Trash2 size={17} /></button></td>
+        </tr>) : <tr><td colSpan={3}><div className="pricing-empty"><Dog size={23} /><p>견종에 따라 달라지는 요금이 있다면 추가해 주세요.</p><span>등록하지 않으면 기본 서비스 요금만 적용돼요.</span></div></td></tr>}
+      </tbody></table></div>
       <p className="panel-footnote">예약에 입력한 견종 이름과 일치하면 적용돼요. 몸무게별 추가 요금과 함께 더해져요.</p>
     </section>
 
     <section className="panel">
       <div className="panel-heading"><div><div className="section-eyebrow">WEIGHT ADJUSTMENTS</div><h2><Scale size={20} /> 몸무게별 추가 요금</h2></div><button type="button" className="btn btn-secondary btn-small" disabled={busy || draft.weightRules.length >= 100} onClick={() => setDraft((current) => ({ ...current, weightRules: [...current.weightRules, { id: crypto.randomUUID(), minWeight: '', maxWeight: '', amount: '' }] }))}><Plus size={15} />구간 추가</button></div>
-      <div className="pricing-rows">
-        {draft.weightRules.length ? draft.weightRules.map((row, index) => <div className="pricing-row pricing-weight-row" key={row.id}>
-          <div className="field"><label htmlFor={`${formId}-weight-${row.id}-min`}>최소 몸무게 (kg 이상)</label><input id={`${formId}-weight-${row.id}-min`} aria-label={`${index + 1}번째 구간 최소 몸무게`} type="number" min="0" max="150" step="0.1" value={row.minWeight} onChange={(e) => updateWeight(row.id, 'minWeight', e.target.value)} required disabled={busy} placeholder="예: 5" /></div>
-          <div className="field"><label htmlFor={`${formId}-weight-${row.id}-max`}>최대 몸무게 (kg 미만)</label><input id={`${formId}-weight-${row.id}-max`} aria-label={`${index + 1}번째 구간 최대 몸무게`} type="number" min="0.1" max="150" step="0.1" value={row.maxWeight} onChange={(e) => updateWeight(row.id, 'maxWeight', e.target.value)} required disabled={busy} placeholder="예: 10" /></div>
-          <div className="field"><label htmlFor={`${formId}-weight-${row.id}-amount`}>추가 금액 (원)</label><input id={`${formId}-weight-${row.id}-amount`} aria-label={`${index + 1}번째 몸무게 구간 추가 금액`} type="number" min="0" max="100000000" step="1" value={row.amount} onChange={(e) => updateWeight(row.id, 'amount', e.target.value)} required disabled={busy} placeholder="0" /></div>
-          <button type="button" className="icon-button subtle-danger" aria-label={`${index + 1}번째 몸무게 구간 삭제`} disabled={busy} onClick={() => setDraft((current) => ({ ...current, weightRules: current.weightRules.filter((rule) => rule.id !== row.id) }))}><Trash2 size={17} /></button>
-        </div>) : <div className="pricing-empty"><Scale size={23} /><p>몸무게에 따른 요금 구간을 설정할 수 있어요.</p><span>예: 5kg 이상 10kg 미만 · 추가 {money(10000)}원</span></div>}
-      </div>
+      <div className="pricing-table-wrap"><table className="pricing-edit-table weightRules-edit-table"><caption className="sr-only">몸무게별 추가 요금</caption><thead><tr><th scope="col">최소 (kg 이상)</th><th scope="col">최대 (kg 미만)</th><th scope="col">추가금액 (원)</th><th scope="col">관리</th></tr></thead><tbody>
+        {draft.weightRules.length ? draft.weightRules.map((row, index) => <tr key={row.id}>
+          <td className="field"><label htmlFor={`${formId}-weight-${row.id}-min`}>최소 몸무게 (kg 이상)</label><input id={`${formId}-weight-${row.id}-min`} aria-label={`${index + 1}번째 구간 최소 몸무게`} type="number" min="0" max="150" step="0.1" value={row.minWeight} onChange={(e) => updateWeight(row.id, 'minWeight', e.target.value)} required disabled={busy} placeholder="예: 5" /></td>
+          <td className="field"><label htmlFor={`${formId}-weight-${row.id}-max`}>최대 몸무게 (kg 미만)</label><input id={`${formId}-weight-${row.id}-max`} aria-label={`${index + 1}번째 구간 최대 몸무게`} type="number" min="0.1" max="150" step="0.1" value={row.maxWeight} onChange={(e) => updateWeight(row.id, 'maxWeight', e.target.value)} required disabled={busy} placeholder="예: 10" /></td>
+          <td className="field"><label htmlFor={`${formId}-weight-${row.id}-amount`}>추가 금액 (원)</label><input id={`${formId}-weight-${row.id}-amount`} aria-label={`${index + 1}번째 몸무게 구간 추가 금액`} type="number" min="0" max="100000000" step="1" value={row.amount} onChange={(e) => updateWeight(row.id, 'amount', e.target.value)} required disabled={busy} placeholder="0" /></td>
+          <td className="pricing-delete-cell"><button type="button" className="icon-button subtle-danger" aria-label={`${index + 1}번째 몸무게 구간 삭제`} disabled={busy} onClick={() => setDraft((current) => ({ ...current, weightRules: current.weightRules.filter((rule) => rule.id !== row.id) }))}><Trash2 size={17} /></button></td>
+        </tr>) : <tr><td colSpan={4}><div className="pricing-empty"><Scale size={23} /><p>몸무게에 따른 요금 구간을 설정할 수 있어요.</p><span>예: 5kg 이상 10kg 미만 · 추가 {money(10000)}원</span></div></td></tr>}
+      </tbody></table></div>
       <p className="panel-footnote">구간은 겹치지 않게 등록해 주세요. 최소 이상·최대 미만 기준이며, 최대가 150kg이면 150kg도 포함해요.</p>
     </section>
 

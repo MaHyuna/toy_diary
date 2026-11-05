@@ -45,7 +45,7 @@ function Empty({ title, detail, onAdd, label = '첫 예약 등록하기' }: { ti
 }
 
 export default function App() {
-  const [view, setView] = useState<View>('overview');
+  const [view, setView] = useState<View>(()=>new URLSearchParams(window.location.search).get('view')==='pricing'?'pricing':'overview');
   const [selectedDate, setSelectedDate] = useState(today());
   const [dayAgendaOpen, setDayAgendaOpen] = useState(false);
   const month = selectedDate.slice(0, 7);
