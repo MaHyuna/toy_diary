@@ -1,6 +1,7 @@
-export type AppScreen = 'owner' | 'booking' | 'prices' | 'care';
+export type AppScreen = 'home' | 'owner' | 'booking' | 'prices' | 'care';
 
 const paths: Record<AppScreen, string> = {
+  home: 'customer/',
   owner: 'owner/',
   booking: 'customer/booking/',
   prices: 'customer/prices/',
@@ -13,7 +14,7 @@ export function parseEntry(source: URL): { screen: AppScreen; basePath: string }
   const pathname = source.pathname;
   const route = /\/(owner|customer(?:\/(booking|prices|care))?)(?:\/index\.html)?\/?$/.exec(pathname);
   if (route) {
-    return { screen: route[1] === 'owner' ? 'owner' : (route[2] as Exclude<AppScreen, 'owner'> | undefined) ?? 'booking', basePath: pathname.slice(0, route.index + 1) };
+    return { screen: route[1] === 'owner' ? 'owner' : (route[2] as Exclude<AppScreen, 'owner'> | undefined) ?? 'home', basePath: pathname.slice(0, route.index + 1) };
   }
   // Unknown children of a public namespace stay public, including forged queries.
   const publicNamespace = /\/customer\//.exec(pathname);
@@ -22,7 +23,7 @@ export function parseEntry(source: URL): { screen: AppScreen; basePath: string }
     : pathname.endsWith('/') ? pathname
       : /\.[^/]+$/.test(pathname) ? new URL('.', source).pathname : `${pathname}/`;
   const legacy = source.searchParams.get('screen');
-  return { screen: isScreen(legacy) ? legacy : 'booking', basePath };
+  return { screen: isScreen(legacy) ? legacy : 'home', basePath };
 }
 
 export function resolveScreen(source: URL = new URL(window.location.href)): AppScreen {

@@ -10,7 +10,7 @@ test('canonical paths select their own screen before any legacy query', () => {
       assert.deepEqual(parseEntry(new URL(`${root}/customer/${screen}/?screen=owner`)), { screen, basePath: `${prefix}/` });
       assert.equal(resolveScreen(new URL(`${root}/customer/${screen}/index.html`)), screen);
     }
-    assert.equal(resolveScreen(new URL(`${root}/customer/?screen=owner`)), 'booking');
+    assert.equal(resolveScreen(new URL(`${root}/customer/?screen=owner`)), 'home');
     assert.equal(resolveScreen(new URL(`${root}/customer/unknown/?screen=owner`)), 'booking');
   }
 });
@@ -20,9 +20,9 @@ test('legacy entries and directory mounts retain their deployment base', () => {
   assert.deepEqual(parseEntry(new URL('https://example.test/toy_diary/index.html?screen=care&token=abc')), { screen: 'care', basePath: '/toy_diary/' });
   assert.deepEqual(parseEntry(new URL('https://example.test/owner')), { screen: 'owner', basePath: '/' });
   assert.deepEqual(parseEntry(new URL('https://example.test/toy_diary/owner/index.html')), { screen: 'owner', basePath: '/toy_diary/' });
-  assert.equal(resolveScreen(new URL('https://example.test/')), 'booking');
-  assert.equal(resolveScreen(new URL('https://example.test/toy_diary/?screen=unknown')), 'booking');
-  assert.equal(resolveScreen(new URL('https://example.test/unrecognized/')), 'booking');
+  assert.equal(resolveScreen(new URL('https://example.test/')), 'home');
+  assert.equal(resolveScreen(new URL('https://example.test/toy_diary/?screen=unknown')), 'home');
+  assert.equal(resolveScreen(new URL('https://example.test/unrecognized/')), 'home');
 });
 
 test('cross-screen links stay inside the same deployment and encode token values', () => {
