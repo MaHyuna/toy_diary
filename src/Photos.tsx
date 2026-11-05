@@ -1,3 +1,4 @@
+import { compressPhoto } from './imageUpload';
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Modal } from './Forms';
@@ -5,19 +6,6 @@ import { Camera, ImagePlus, Trash2 } from 'lucide-react';
 import { api, today } from './types';
 import type { Pet, PetPhoto } from './types';
 
-async function compress(file: File): Promise<string> {
-  if (!file.type.startsWith('image/') || file.size > 20_000_000) throw new Error('20MB 이하의 사진을 선택해 주세요.');
-  const bitmap = await createImageBitmap(file).catch(() => { throw new Error('이 사진을 읽을 수 없어요. JPG·PNG·WebP 사진으로 다시 선택해 주세요.'); });
-  try {
-    const scale = Math.min(1, 1200 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas'); canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
-    const ctx = canvas.getContext('2d')!; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    let src = canvas.toDataURL('image/jpeg', .78);
-    if (src.length > 350000) src = canvas.toDataURL('image/jpeg', .45);
-    if (src.length > 350000) throw new Error('사진이 너무 복잡해요. 작은 사진으로 다시 선택해 주세요.');
-    return src;
-  } finally { bitmap.close(); }
-}
 export function PetAvatar({ pet }: { pet: Pet }) {
   return <img className="pet-photo-avatar" loading="lazy" decoding="async" src={pet.photos?.[0]?.src || './images/studio-art.webp'} alt={`${pet.name} ${pet.photos?.length ? '사진' : '기본 일러스트'}`} />;
 }
@@ -34,7 +22,7 @@ export function PhotoAlbum({ pet, onChange }: { pet: Pet; onChange: (photos: Pet
   async function add(file?: File) {
     if (!file || lock.current) return;
     lock.current = true; setBusy(true); setError('');
-    try { if (photos.length >= 6) throw new Error('사진은 아이당 6장까지 저장할 수 있어요.'); const src = await compress(file); await save([...photos, { id: crypto.randomUUID(), src, caption: caption.trim(), date }]); setCaption(''); }
+    try { if (photos.length >= 6) throw new Error('사진은 아이당 6장까지 저장할 수 있어요.'); const src = await compressPhoto(file); await save([...photos, { id: crypto.randomUUID(), src, caption: caption.trim(), date }]); setCaption(''); }
     catch (cause) { setError(cause instanceof Error ? cause.message : '사진을 저장하지 못했어요. 저장 공간을 확인해 주세요.'); }
     finally { lock.current = false; setBusy(false); if (upload.current) upload.current.value = ''; if (camera.current) camera.current.value = ''; }
   }

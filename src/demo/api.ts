@@ -8,7 +8,7 @@ const KEY = 'mongle-demo-v1';
 const MAX_MONEY = 100_000_000;
 const customerFields = ['name', 'phone', 'notes'];
 const petFields = ['photos', 'customerId', 'name', 'breed', 'weight', 'birthDate', 'sex', 'neutered', 'allergies', 'healthNotes', 'behaviorNotes', 'preferredStyle', 'visitIntervalWeeks'];
-const shampooFields = ['name', 'purchasePrice', 'volumeMl', 'dilutionWaterRatio', 'notes', 'archived'];
+const shampooFields = ['photo', 'name', 'purchasePrice', 'volumeMl', 'dilutionWaterRatio', 'notes', 'archived'];
 const breakdownFields = ['basePrice', 'breedSurcharge', 'weightSurcharge', 'extraCharges', 'shampooUsage'];
 const appointmentFields = ['dogName', 'guardianName', 'phone', 'breed', 'weight', 'service', 'date', 'time', 'duration', 'price', 'notes', 'status', 'staffId', 'customerId', 'petId', 'shampooUsage', 'shampooSurcharge', 'shampooCost', 'basePrice', 'breedSurcharge', 'weightSurcharge', 'extraCharges'];
 const fail = (message: string): never => { throw new Error(message); };
@@ -85,9 +85,11 @@ function pet(input: Input, today: string): Omit<Pet, 'id' | 'createdAt'> {
   };
 }
 function shampoo(input: Input): Omit<Shampoo, 'id' | 'createdAt'> {
+  const photo=text(input,'photo','제품 사진',350000);if(photo){if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(photo))fail('제품 사진은 JPEG 형식이어야 해요.');let raw='';try{raw=atob(photo.split(',')[1]);}catch{fail('제품 사진을 읽을 수 없어요.');}if(!raw.startsWith('\xff\xd8')||!raw.endsWith('\xff\xd9'))fail('제품 사진은 JPEG 형식이어야 해요.');}
+
   if (input.archived !== undefined && typeof input.archived !== 'boolean') fail('샴푸 사용 중지 여부를 확인해 주세요.');
   return {
-    name: text(input, 'name', '샴푸 이름', 100, true), purchasePrice: amount(input.purchasePrice, '구매 금액'), volumeMl: measure(input.volumeMl, '제품 용량'),
+    photo, name: text(input, 'name', '샴푸 이름', 100, true), purchasePrice: amount(input.purchasePrice, '구매 금액'), volumeMl: measure(input.volumeMl, '제품 용량'),
     dilutionWaterRatio: measure(input.dilutionWaterRatio ?? 0, '물 희석비', 1000, true), notes: text(input, 'notes', '샴푸 메모'), archived: input.archived === true,
   };
 }

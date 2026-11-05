@@ -1,0 +1,29 @@
+"""Mobile visit cards, searchable customer picker, and photographed shampoo grid."""
+from pathlib import Path
+from functools import partial
+from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+from playwright.sync_api import sync_playwright,expect
+from PIL import Image
+import threading,tempfile
+class H(SimpleHTTPRequestHandler):
+ def log_message(self,*a):pass
+server=ThreadingHTTPServer(('127.0.0.1',0),partial(H,directory=str(Path(__file__).resolve().parents[1]/'demo-dist')));threading.Thread(target=server.serve_forever,daemon=True).start()
+with sync_playwright() as p, tempfile.TemporaryDirectory() as folder:
+ photo=Path(folder)/'product.jpg';Image.new('RGB',(200,300),(170,194,170)).save(photo)
+ b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);ctx=b.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));url=f'http://127.0.0.1:{server.server_address[1]}/?screen=owner';page.goto(url,wait_until='networkidle');expect(page.locator('.month-day')).to_have_count(30)
+ day=page.locator('.month-day').filter(has=page.locator('.month-revenue')).first;day.tap();expect(page.locator('.day-money-summary')).to_be_visible();summary=page.locator('.day-money-summary').bounding_box();modal=page.locator('.modal').bounding_box();assert summary['x']>=modal['x'];assert page.locator('.day-money-summary>div').first.bounding_box()['x']>=modal['x']+12
+ # Price and time areas open the same details as the title; actions remain independent.
+ card=page.locator('.visit-open').first;card.locator('.visit-open-price b').tap();expect(page.locator('.detail-summary')).to_be_visible();page.locator('.modal-close').tap();day.tap();page.locator('.visit-open time').first.tap();expect(page.locator('.detail-summary')).to_be_visible();page.locator('.modal-close').tap();day.tap();page.wait_for_timeout(350);page.screenshot(path='/tmp/visit-cards.png');page.locator('.modal-close').tap();page.locator('.month-day.is-current').tap();page.get_by_role('button',name='예약·요금 수정',exact=False).first.tap();expect(page.get_by_role('heading',name='예약 수정',exact=True)).to_be_visible();assert page.locator('.detail-summary').count()==0;page.locator('.modal-close').tap()
+ # Seed a distinct phone for lookup in this isolated demo browser.
+ page.evaluate('''()=>{const k='mongle-demo-v1',w=JSON.parse(localStorage.getItem(k));w.data.customers[0].phone='010-1234-5678';localStorage.setItem(k,JSON.stringify(w));}''');page.reload(wait_until='networkidle');page.get_by_role('button',name='예약 등록',exact=True).tap()
+ search=page.get_by_label('고객 · 반려견 찾기',exact=True);search.fill('12345678');expect(page.locator('.pet-search-result')).to_have_count(2);search.press('ArrowDown');expect(page.locator('.pet-search-result').first).to_be_focused();page.locator('.pet-search-result').first.press('Escape');expect(page.locator('.pet-search-results')).not_to_be_visible();search.click();expect(page.locator('.pet-search-result')).to_have_count(2);page.wait_for_timeout(350);page.screenshot(path='/tmp/customer-search-results.png');page.locator('.pet-search-result').first.tap();expect(page.get_by_label('반려견 이름',exact=False)).to_have_value('몽이 (체험)');expect(page.get_by_label('보호자 연락처',exact=True)).to_have_value('010-1234-5678');page.screenshot(path='/tmp/customer-search-selected.png')
+ search.fill('존재하지않는검색어');expect(page.locator('.pet-search-empty')).to_contain_text('일치하는 고객이 없어요');search.fill('콩이');expect(page.locator('.pet-search-result')).to_have_count(1);search.press('Enter');expect(page.get_by_label('반려견 이름',exact=False)).to_have_value('콩이 (체험)');page.locator('.modal-close').tap()
+ page.get_by_role('button',name='더보기',exact=True).tap();page.get_by_role('button',name='샴푸 · 사용 원가',exact=True).tap();expect(page.locator('.shampoo-grid')).to_be_visible();assert page.locator('.shampoo-grid').evaluate('e=>getComputedStyle(e).gridTemplateColumns.split(" ").length')==2
+ page.get_by_role('button',name='제품 등록',exact=True).tap();page.get_by_label('제품명',exact=True).fill('사진 테스트 샴푸');page.get_by_label('한 병 구매금액 (원)',exact=True).fill('30000');page.get_by_label('한 병 원액 용량 (mL)',exact=True).fill('1000');page.get_by_label('샴푸 제품 사진 파일',exact=True).set_input_files(str(photo));expect(page.locator('.product-upload img')).to_be_visible();page.get_by_role('button',name='제품 저장',exact=True).tap();expect(page.locator('.shampoo-grid img[alt="사진 테스트 샴푸 제품 사진"]')).to_be_visible();page.locator('.shampoo-grid').evaluate('e=>e.scrollIntoView({block:"start"})');page.wait_for_timeout(350);page.screenshot(path='/tmp/shampoo-grid.png')
+ page.reload(wait_until='networkidle');page.get_by_role('button',name='예약 등록',exact=True).tap();page.locator('details').filter(has=page.get_by_text('샴푸 사용 기록',exact=False)).locator('summary').tap();grid=page.locator('.shampoo-picker-grid');expect(grid).to_be_visible();expect(grid.locator('img[alt="사진 테스트 샴푸 제품 사진"]')).to_be_visible();page.get_by_label('샴푸 제품 검색',exact=True).fill('사진 테스트');expect(grid.locator('button')).to_have_count(1);grid.locator('button').tap();expect(grid.locator('button')).to_have_attribute('aria-pressed','true');expect(page.locator('.selected-shampoo')).to_contain_text('사진 테스트 샴푸');page.get_by_label('샴푸 1 원액 사용량 (mL)',exact=True).fill('10');expect(page.locator('.shampoo-usage-meta')).to_contain_text('사용 원가 300원');page.screenshot(path='/tmp/shampoo-chooser.png')
+ page.get_by_label('사용 샴푸 1 삭제',exact=True).tap();expect(grid.locator('button')).to_have_attribute('aria-pressed','false')
+ page.set_viewport_size({'width':320,'height':667});assert page.locator('.modal').evaluate('e=>e.scrollWidth<=e.clientWidth')
+ assert not errors,errors
+ print('PASS inset amounts, card price/time open detail, customer name/phone search and autofill, shampoo image persistence and photo-grid selection with cost')
+ b.close()
+server.shutdown()

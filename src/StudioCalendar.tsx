@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Plus, Settings2, X } from 'lucide-react';
+import { Check, ChevronRight, Plus, Settings2, X } from 'lucide-react';
 import { monthDays } from './calendar';
 import type { Appointment } from './types';
 import { money, paymentLabels, today } from './types';
@@ -62,12 +62,12 @@ export function StudioCalendar(props: Props) {
 
     {props.detailsOpen && <Modal title={dateLabel(selected)} description={`예약 ${selectedDay.appointments.length}건 · 미용 완료 ${selectedDay.completedCount}건`} onClose={props.onCloseDetails} className="grooming-day-sheet">
       <section className="grooming-day" aria-label="선택한 날의 미용 예약">
-        <div className="day-money-summary"><div><span>결제 매출 · 결제일 기준</span><strong>{money(selectedDay.income)}원</strong></div><div><span>예약 예상 · 방문일 기준</span><strong>{money(selectedDay.bookingAmount)}원</strong></div></div><div className="grooming-day-total"><span>예약 금액</span><strong>{money(selectedDay.bookingAmount)}원</strong><button className="btn btn-soft btn-small" onClick={props.onAdd}><Plus size={16} />예약 추가</button></div>
+        <div className="day-money-summary"><div><span>결제 금액<small>결제일 기준</small></span><strong>{money(selectedDay.income)}원</strong></div><div><span>예약 예상<small>방문일 기준</small></span><strong>{money(selectedDay.bookingAmount)}원</strong></div></div><div className="grooming-day-total"><span>시간순 예약 {selectedDay.appointments.length}건</span><button className="btn btn-soft btn-small" onClick={props.onAdd}><Plus size={16} />예약 추가</button></div>
         {selectedDay.appointments.length ? <div className="grooming-visits">{selectedDay.appointments.map(appointment => <article className={`grooming-visit ${appointment.status === 'completed' ? 'is-complete' : ''}`} key={appointment.id}>
-          <time>{appointment.time}</time>
-          <div className="grooming-visit-info"><button className="pet-name" onClick={() => props.onDetails(appointment)}>{appointment.dogName}</button><p>{appointment.service}{appointment.weight ? ` · ${appointment.weight}kg` : ''}</p><small>{appointment.guardianName} · {appointment.duration}분 <span className="source-tag">{appointment.source === 'website' ? '고객 예약' : appointment.source === 'naver' ? '네이버' : '직접 등록'}</span></small></div>
-          <div className="grooming-visit-result"><strong>{money(appointment.price)}원</strong>{appointment.paymentStatus === 'paid' ? <span className="grooming-done"><Check size={12} />완료 · {paymentLabels[appointment.paymentMethod!]}</span> : <button className="btn btn-primary btn-small" onClick={() => props.onSettle(appointment)}>미용 완료</button>}</div>
-          {appointment.paymentStatus === 'unpaid' && <div className="grooming-visit-tools"><button className="text-button" onClick={() => props.onEdit(appointment)} aria-label={`${appointment.dogName} 예약·요금 수정`}><Settings2 size={13} />예약·요금 수정</button><button className="text-button" onClick={() => props.onCancel(appointment)} aria-label={`${appointment.dogName} 예약 취소`}><X size={13} />취소</button></div>}
+          <button type="button" className="visit-open" aria-label={`${appointment.dogName} 예약 상세 보기`} onClick={()=>props.onDetails(appointment)}>
+            <time>{appointment.time}</time><span className="visit-open-info"><strong>{appointment.dogName}</strong><span>{appointment.service}{appointment.weight?` · ${appointment.weight}kg`:''}</span><small>{appointment.guardianName} · {appointment.duration}분</small><span className="source-tag">{appointment.source==='website'?'고객 예약':appointment.source==='naver'?'네이버':'직접 등록'}</span></span><span className="visit-open-price"><b>{money(appointment.price)}원</b><small>상세 보기 <ChevronRight size={13}/></small></span>
+          </button><div className="visit-card-actions">{appointment.paymentStatus==='paid'?<span className="grooming-done"><Check size={12}/>완료 · {paymentLabels[appointment.paymentMethod!]}</span>:<><button className="text-button" onClick={()=>props.onEdit(appointment)} aria-label={`${appointment.dogName} 예약·요금 수정`}><Settings2 size={13}/>수정</button><button className="text-button" onClick={()=>props.onCancel(appointment)} aria-label={`${appointment.dogName} 예약 취소`}><X size={13}/>취소</button><button className="btn btn-primary btn-small" onClick={()=>props.onSettle(appointment)}>미용 완료</button></>}</div>
+
         </article>)}</div> : <div className="grooming-empty"><p>아직 예약이 없어요.</p><button className="btn btn-primary" onClick={props.onAdd}><Plus size={17} />이날 예약 잡기</button></div>}
       </section>
     </Modal>}

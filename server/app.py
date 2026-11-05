@@ -33,7 +33,7 @@ PAYMENT_METHODS = {"card", "cash", "transfer"}
 BREAKDOWN_FIELDS = {"basePrice", "breedSurcharge", "weightSurcharge", "extraCharges"}
 CUSTOMER_FIELDS = {"name", "phone", "notes"}
 PET_FIELDS = {"photos", "customerId", "name", "breed", "weight", "birthDate", "sex", "neutered", "allergies", "healthNotes", "behaviorNotes", "preferredStyle", "visitIntervalWeeks"}
-SHAMPOO_FIELDS = {"name", "purchasePrice", "volumeMl", "dilutionWaterRatio", "notes", "archived"}
+SHAMPOO_FIELDS = {"photo", "name", "purchasePrice", "volumeMl", "dilutionWaterRatio", "notes", "archived"}
 DEFAULT_PRICING = {
     "services": [
         {"id": "full", "name": "전체 미용", "basePrice": 65000, "duration": 120},
@@ -155,7 +155,19 @@ def validate_pet(data):
 
 
 def validate_shampoo(data):
-    result = {
+    photo = data.get("photo", "")
+    if not isinstance(photo,str) or len(photo)>350000:
+        raise APIError("제품 사진 크기를 확인해 주세요.")
+    if photo:
+        if not re.fullmatch(r"data:image/jpeg;base64,[A-Za-z0-9+/]+=*", photo):
+            raise APIError("제품 사진은 JPEG 형식이어야 합니다.")
+        try:
+            raw = base64.b64decode(photo.split(",",1)[1], validate=True)
+        except (ValueError,binascii.Error):
+            raise APIError("제품 사진을 읽을 수 없습니다.") from None
+        if not raw.startswith(b"\xff\xd8") or not raw.endswith(b"\xff\xd9"):
+            raise APIError("제품 사진은 JPEG 형식이어야 합니다.")
+    result = {"photo":photo,
         "name": text_field(data, "name", "샴푸 이름", required=True, maximum=100),
         "purchasePrice": integer(data.get("purchasePrice"), "구매 금액"),
         "volumeMl": number(data.get("volumeMl"), "제품 용량"),
@@ -338,6 +350,9 @@ class Store:
             """)
             # executescript commits its surrounding transaction. Keep all migrations atomic.
             connection.execute("BEGIN IMMEDIATE")
+            shampoo_columns = {row["name"] for row in connection.execute("PRAGMA table_info(shampoos)")}
+            if "photo" not in shampoo_columns:
+                connection.execute("ALTER TABLE shampoos ADD COLUMN photo TEXT NOT NULL DEFAULT ''")
             pet_columns = {row["name"] for row in connection.execute("PRAGMA table_info(pets)")}
             if "photos" not in pet_columns:
                 connection.execute("ALTER TABLE pets ADD COLUMN photos TEXT NOT NULL DEFAULT '[]'")

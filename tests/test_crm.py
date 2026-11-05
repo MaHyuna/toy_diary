@@ -343,5 +343,17 @@ class CRMTest(unittest.TestCase):
         self.assertEqual(Store(old_database).state("2026-01"), state)
 
 
+    def test_shampoo_photo_preserved_on_edit_reopen_and_invalid_photo_rejected(self):
+        photo = "data:image/jpeg;base64,/9j/2Q=="
+        product = self.shampoo(photo=photo)
+        self.assertEqual(product["photo"],photo)
+        edited=self.store.update_shampoo(product["id"],{"name":"사진 있는 제품"})
+        self.assertEqual(edited["photo"],photo)
+        for invalid in ["https://invalid.test/photo.jpg","data:image/jpeg;base64,aGVsbG8=","data:image/svg+xml;base64,PHN2Zz4="]:
+            self.assert_bad_request(self.store.update_shampoo,product["id"],{"photo":invalid})
+        reopened=Store(self.database)
+        self.assertEqual(next(p for p in reopened.state("2026-01")["shampoos"] if p["id"]==product["id"])["photo"],photo)
+        self.assertEqual(reopened.update_shampoo(product["id"],{"photo":""})["photo"],"")
+
 if __name__ == "__main__":
     unittest.main()

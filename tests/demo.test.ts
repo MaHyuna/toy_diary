@@ -365,3 +365,12 @@ test('customer request holds a slot, stays outside sales, and owner approval cre
  const approved=await api.request<State>('/state?month=2030-02'),visit=approved.appointments.find(a=>a.externalId===receipt.id)!;assert.equal(visit.source,'website');assert.equal(visit.paymentStatus,'unpaid');assert.equal(approved.summary.revenue,before.summary.revenue);
  await assert.rejects(api.request(`/booking-requests/${receipt.id}`,'POST',{decision:'accept'}));
 });
+
+test('shampoo photos persist through edits and bad images do not replace the stored photo',async()=>{
+ const {api,storage}=setup(),photo='data:image/jpeg;base64,/9j/2Q==';
+ const product=await api.request<Shampoo>('/shampoos','POST',shampooData({photo}));assert.equal(product.photo,photo);
+ const edited=await api.request<Shampoo>(`/shampoos/${product.id}`,'PATCH',{name:'사진 있는 제품'});assert.equal(edited.photo,photo);
+ for(const bad of ['https://invalid.test/photo.jpg','data:image/svg+xml;base64,PHN2Zz4=', 'data:image/jpeg;base64,aGVsbG8='])await assert.rejects(api.request(`/shampoos/${product.id}`,'PATCH',{photo:bad}));
+ const reopened=createDemoApi(storage,{today:()=>TODAY});const state=await reopened.request<State>('/state');assert.equal(state.shampoos.find(s=>s.id===product.id)?.photo,photo);
+ await api.request(`/shampoos/${product.id}`,'PATCH',{photo:''});const cleared=await api.request<State>('/state');assert.equal(cleared.shampoos.find(s=>s.id===product.id)?.photo,'');
+});

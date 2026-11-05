@@ -1,3 +1,5 @@
+import { PetPicker } from './PetPicker';
+import { ProductImage } from './ProductImage';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { ArrowRightLeft, Banknote, Check, CreditCard, LoaderCircle, Plus, Trash2, X } from 'lucide-react';
@@ -165,7 +167,9 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
   const nextUsageId = useRef(usage.length);
   const selectedPet = pets.find((pet) => pet.id === petId);
   const availableShampoos = shampoos.filter((shampoo) => !shampoo.archived);
-  const nextShampoo = availableShampoos.find((shampoo) => !usage.some((row) => row.shampooId === shampoo.id));
+  const [shampooQuery,setShampooQuery]=useState('');
+  const [showShampoos,setShowShampoos]=useState(true);
+  const filteredShampoos=availableShampoos.filter(s=>s.name.toLowerCase().includes(shampooQuery.trim().toLowerCase()));
   const usagePreviews = usage.map((row) => {
     const snapshot = initial?.shampooUsage.find((saved) => saved.shampooId === row.shampooId
       && saved.usedMl === Number(row.usedMl));
@@ -230,17 +234,7 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
     <form onSubmit={submit}>
       <div className="modal-body">
         <div className="form-grid">
-          <div className="field field-full"><label htmlFor={`${formId}-pet`}>등록된 반려견</label>
-            <select id={`${formId}-pet`} value={petId} onChange={(event) => choosePet(event.target.value)} disabled={busy}>
-              <option value="">직접 입력 · 고객 기록에 연결하지 않음</option>
-              {petId && !selectedPet && <option value={petId}>기존 반려견 연결 유지</option>}
-              {pets.map((pet) => {
-                const customer = customers.find((item) => item.id === pet.customerId);
-                return <option value={pet.id} key={pet.id}>{pet.name} · {customer?.name ?? '보호자 미등록'}{customer?.phone ? ` · ${customer.phone}` : ''}</option>;
-              })}
-            </select>
-            <p className="field-hint">새 고객과 반려견은 고객 관리에서 등록할 수 있어요.{petId && ' 아래 정보를 수정해도 이번 방문 기록만 변경돼요.'}</p>
-          </div>
+          <div className="field-full"><PetPicker pets={pets} customers={customers} value={petId} onChange={choosePet} disabled={busy}/><p className="field-hint">새 고객과 반려견은 고객 관리에서 등록할 수 있어요.{petId&&' 입력한 수정사항은 이번 방문에만 반영됩니다.'}</p></div>
           {selectedPet && (selectedPet.allergies || selectedPet.behaviorNotes || selectedPet.healthNotes || selectedPet.preferredStyle) && <div className="pet-visit-notes field-full">
             <strong>기억해 둘 반려견 메모</strong>
             {selectedPet.allergies && <p><span>알레르기</span>{selectedPet.allergies}</p>}
@@ -295,19 +289,11 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
           </details>
           <details className="form-disclosure field-full" open={!!initial?.shampooUsage.length}><summary>샴푸 사용 기록<span>{usage.length ? `${usage.length}개 제품` : "제품 · 사용량"}</span></summary>
           <div className="field field-full shampoo-usage">
-            <div className="extra-charges-header"><span>사용한 샴푸</span><button type="button" className="btn btn-secondary" disabled={busy || usage.length >= 10 || !nextShampoo} onClick={() => {
-              if (!nextShampoo) return;
-              const rowId = String(nextUsageId.current++);
-              setUsage((current) => [...current, { rowId, shampooId: nextShampoo.id, usedMl: '', customerCharge: '0' }]);
-            }}><Plus size={15} />샴푸 사용 추가</button></div>
-            {!usage.length && <p className="field-hint">{availableShampoos.length ? '실제로 사용한 원액량을 입력하면 이번 미용의 샴푸 원가를 확인할 수 있어요.' : '샴푸 관리에 제품과 구입 금액을 등록하면 사용 원가를 계산할 수 있어요.'}</p>}
+            <div className="extra-charges-header"><span>제품 사진을 눌러 선택</span><button type="button" className="text-button" onClick={()=>setShowShampoos(v=>!v)}>{showShampoos?'제품 목록 접기':'샴푸 더 고르기'}</button></div>
+            {showShampoos&&<><input type="search" className="shampoo-search" aria-label="샴푸 제품 검색" placeholder="제품명 검색" value={shampooQuery} disabled={busy} onChange={e=>setShampooQuery(e.target.value)}/><div className="shampoo-picker-grid">{filteredShampoos.map(product=>{const checked=usage.some(row=>row.shampooId===product.id);return <button key={product.id} type="button" className="shampoo-pick" disabled={busy||checked||usage.length>=10} aria-pressed={checked} aria-label={`${product.name} ${checked?'선택됨':'선택'}`} onClick={()=>{const rowId=String(nextUsageId.current++);setUsage(rows=>[...rows,{rowId,shampooId:product.id,usedMl:'',customerCharge:'0'}]);}}><ProductImage product={product}/><strong>{product.name}</strong><small>{checked?'✓ 선택됨':`${product.volumeMl.toLocaleString('ko-KR')}mL`}</small></button>;})}</div>{!filteredShampoos.length&&<p className="field-hint">{availableShampoos.length?'일치하는 제품이 없어요. 검색어를 바꿔 주세요.':'샴푸 관리에서 사진과 제품을 등록해 주세요.'}</p>}</>}
+            {!usage.length&&<p className="field-hint">제품 선택 후 원액 사용량을 입력하면 원가를 계산합니다.</p>}
             {usagePreviews.map((row, index) => <div className="shampoo-usage-row" key={row.rowId}>
-              <div className="field field-full"><label htmlFor={`${formId}-shampoo-${row.rowId}`}>사용 샴푸 {index + 1}</label>
-                <select id={`${formId}-shampoo-${row.rowId}`} value={row.shampooId} onChange={(event) => updateUsage(row.rowId, 'shampooId', event.target.value)} disabled={busy} required>
-                  {row.shampooId && !row.shampoo && <option value={row.shampooId}>{row.snapshot?.name ?? '기존 샴푸'} · 저장된 사용 기록</option>}
-                  {shampoos.filter((shampoo) => !shampoo.archived || shampoo.id === row.shampooId).map((shampoo) => <option key={shampoo.id} value={shampoo.id} disabled={usage.some((item) => item.rowId !== row.rowId && item.shampooId === shampoo.id)}>{shampoo.id === row.shampooId && row.snapshot ? row.snapshot.name : shampoo.name}{shampoo.archived ? ' · 사용 중지' : ''}</option>)}
-                </select>
-              </div>
+              <div className="selected-shampoo field-full">{row.shampoo&&<ProductImage product={row.shampoo}/>}<div><strong>{row.snapshot?.name??row.shampoo?.name??'저장된 샴푸 기록'}</strong><small>사용 제품 {index+1}{row.shampoo?.archived?' · 사용 중지':''}</small></div></div>
               <div className="field"><label htmlFor={`${formId}-used-${row.rowId}`}>샴푸 {index + 1} 원액 사용량 (mL)</label>
                 <input id={`${formId}-used-${row.rowId}`} type="number" min="0.01" max="1000000" step="any" value={row.usedMl} onChange={(event) => updateUsage(row.rowId, 'usedMl', event.target.value)} required disabled={busy || !!row.shampoo?.archived} placeholder="예: 20" /></div>
               <div className="field"><label htmlFor={`${formId}-charge-${row.rowId}`}>샴푸 {index + 1} 고객 추가요금 (원)</label>
