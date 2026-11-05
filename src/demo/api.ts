@@ -336,7 +336,7 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
           const active=typeof sessionStorage!=='undefined'&&sessionStorage.getItem('mongle-demo-guardian')==='active';
           if(route==='/guardian/session'&&method==='GET')return {authenticated:active} as T;
           if(route==='/guardian/demo'&&method==='POST'){sessionStorage.setItem('mongle-demo-guardian','active');return {authenticated:true} as T;}
-          if(route==='/guardian/logout'&&method==='POST'){sessionStorage.removeItem('mongle-demo-guardian');return {authenticated:false} as T;}
+          if(route==='/guardian/logout'&&method==='POST'){sessionStorage.setItem('mongle-demo-guardian','signedout');return {authenticated:false} as T;}
           if(route==='/guardian/notebook'&&method==='GET'){
             if(!active)fail('체험 보호자로 시작해 주세요.');
             const customer=data.customers[0],pets=data.pets.filter(p=>p.customerId===customer?.id);
