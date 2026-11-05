@@ -71,11 +71,18 @@ document.addEventListener('keydown',ev=>{if(ev.key!=='Enter'||ev.isComposing||!e
 const canvasEditor=createCanvasEditor({getProject:()=>project,onReveal:revealPage,onAdd:addOnCanvas,getResult:()=>result,change:changed,refreshForm:renderEditor,onSection:id=>{if(id){active=id;tab='content';}else tab='brand';renderLayers();renderEditor();}});
 $('view-form').addEventListener('click',()=>{tab='content';renderEditor();});
 $('show-editor').textContent='꾸미기';$('show-editor').onclick=()=>{$('sheet-close').click();$('view-form').click();tab='design';renderEditor();};
-init();
+init().then(()=>{if(window.parent!==window)window.parent.postMessage({type:'mongle-price-ready'},location.origin);});
 
 // Only the owning application frame can request a public snapshot. Editing stays local.
 window.addEventListener('message',event=>{
- if(window.parent===window||event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='mongle-export-price-poster')return;
+ if(window.parent===window||event.origin!==location.origin||event.source!==window.parent)return;
+ if(event.data?.type==='mongle-price-source'){
+  const menu=event.data.menu;if(!menu||!Array.isArray(menu.columns)||!Array.isArray(menu.sections))return;
+  project.columns=menu.columns.map((name,i)=>({id:'source-col-'+i,name,note:''}));
+  project.sections=menu.sections.map((s,i)=>({...s,id:'source-group-'+i,kind:s.rows.length?'matrix':s.items.length?'list':'text',span:'full',visible:true,style:{},rows:s.rows.map((r,j)=>({...r,id:'source-row-'+i+'-'+j}))}));
+  project.brand.footer='최종 금액은 상담 후 안내합니다.';active=project.sections[0]?.id;renderAll();message('요금 관리에 저장된 기준입니다. 금액을 바꾸려면 사장님 요금 관리에서 수정해 주세요.');return;
+ }
+ if(event.data?.type!=='mongle-export-price-poster')return;
  if(!fontReady||result.error){message(result.error||'글꼴을 준비하고 있어요. 잠시 후 다시 게시해 주세요.');return;}
  try{
   const canvas=document.createElement('canvas');const rendered=renderPoster(canvas,project,logo);
