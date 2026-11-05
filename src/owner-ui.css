@@ -1,0 +1,491 @@
+/* Owner workspace: warm paper, ink hierarchy, and a single muted rose accent. */
+.app-shell {
+  --owner-ink: #352b32;
+  --owner-subtle: #927f8a;
+  --owner-accent: #8b5e76;
+  --owner-accent-dark: #70445c;
+  --owner-wash: #f5eaf0;
+  --owner-border: #e9dfe4;
+  --green: #8b5e76;
+  --green-dark: #70445c;
+  --ink: #352b32;
+  --secondary-ink: #897982;
+  --line: #eee5ea;
+  --border: #e9dfe4;
+  --muted: #897982;
+  color: var(--owner-ink);
+  background: #f8f5f4;
+  letter-spacing: -.18px;
+}
+.app-shell .workspace { background: #f8f5f4; }
+.app-shell button, .app-shell input, .app-shell select, .app-shell textarea { -webkit-tap-highlight-color: transparent; }
+.app-shell button { transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease; }
+.app-shell button:focus-visible, .app-shell a:focus-visible { outline: 3px solid #cdaabd; outline-offset: 3px; }
+.app-shell .btn { border-radius: 10px; letter-spacing: -.2px; font-weight: 600; }
+.app-shell .btn-primary { color: #fff; background: var(--owner-accent); box-shadow: 0 3px 10px #75435d14; }
+.app-shell .btn-primary:hover:not(:disabled) { background: var(--owner-accent-dark); box-shadow: 0 5px 15px #75435d20; }
+.app-shell .btn-primary:active:not(:disabled) { background: #62374e; }
+.app-shell .btn-secondary { background: #fff; color: #77616e; border-color: #e5d8e0; }
+.app-shell .btn-secondary:hover:not(:disabled) { background: #fcf6f9; border-color: #ceb1c1; }
+.app-shell .btn-soft { background: #f4e9f0; color: #875a72; }
+.app-shell .text-button, .app-shell .pet-name { color: #80566d; }
+.app-shell .icon-button { color: #8a7380; background: transparent; border-radius: 9px; }
+.app-shell .icon-button:hover:not(:disabled) { background: #f3e9ef; color: #754a62; }
+.app-shell .panel { border-color: var(--owner-border); box-shadow: 0 4px 18px #57374503; background: #fff; }
+.app-shell .topbar { background: #fffdfc; border-color: var(--owner-border); }
+.app-shell .app-brand, .app-shell .brand { color: #694c5e; }
+.app-shell .app-brand-mark, .app-shell .brand-icon { color: #966b83; background: #f4e9ef; transform: none; }
+.app-shell .app-brand small, .app-shell .brand small { color: #ac949f; }
+.app-shell .owner-context { color: #a18897; }
+.app-shell .owner-context strong { font-size: 10px; font-weight: 600; color: #936f83; background: #f5edf2; border-radius: 5px; padding: 4px 7px; }
+.app-shell .owner-context a { color: #977487; }
+.app-shell .topbar-context { color: #ac96a2; }
+.app-shell .demo-status { background: #f5f0e8; color: #a58c67; border-radius: 8px; }
+.app-shell .demo-status > span { background: #c3a77d; }
+.app-shell .page-heading h1, .app-shell .modal-header h2 { color: var(--owner-ink); }
+.app-shell .page-heading p { color: #99838f; }
+.app-shell .heading-dot { color: #b7839e; }
+.app-shell .sidebar { background: #fffdfc; border-color: var(--owner-border); }
+.app-shell .nav-item { color: #9a8591; border-radius: 10px; }
+.app-shell .nav-item:hover { background: #faf3f7; color: #815c72; }
+.app-shell .nav-item.active { color: #81546d; background: #f4e8f0; font-weight: 700; }
+.app-shell .nav-item.active i { background: #a87994; }
+.app-shell .store-profile strong { color: #6a5361; }
+.app-shell .store-profile span:not(.profile-paw) { color: #ae96a3; }
+.app-shell .profile-paw, .app-shell .store-avatar { color: #a88398; background: #f4edf1; }
+.app-shell .sidebar-note { display: none; }
+.app-shell .sidebar-label { color: #b7a1ad; }
+.app-shell .calendar-period-bar .period-picker > .btn { color: #896b7d; border-color: #e7dce3; background: #fff; }
+.app-shell .month-title small { color: #a28c99; }
+.app-shell .month-title strong { color: #49333f; }
+.app-shell .month-control:focus-within { outline-color: #c494af; }
+.app-shell .owner-requests { background: #fff; border-color: #e7dce3; color: #997b8c; border-radius: 9px; }
+.app-shell .owner-requests strong { color: #87566f; }
+.app-shell .owner-requests:hover { border-color: #cdaebe; background: #fcf6f9; }
+.app-shell .calendar-amount-toolbar { border-color: #ede4ea; }
+.app-shell .calendar-amount-toolbar > div { background: #f5f0f3; border-radius: 9px; }
+.app-shell .calendar-amount-toolbar button { color: #b09aa6; border-radius: 6px; }
+.app-shell .calendar-amount-toolbar button[aria-pressed=true] { color: #865b73; box-shadow: 0 2px 5px #6740560c; }
+.app-shell .calendar-amount-toolbar > span { color: #b29aa9; }
+.app-shell .calendar-amount-toolbar strong { color: #80546d; }
+.app-shell .grooming-calendar .month-day { color: #5b4653; background: #fff; }
+.app-shell .grooming-calendar .month-day:hover { background: #fcf6f9; }
+.app-shell .grooming-calendar .month-day.is-selected { background: #faf0f5; box-shadow: inset 0 0 0 1.5px #c494af; }
+.app-shell .grooming-calendar .month-day-number { color: #6d5965; }
+.app-shell .grooming-calendar .month-day:nth-child(7n+1) .month-day-number { color: #ba7c7b; }
+.app-shell .grooming-calendar .month-day:nth-child(7n) .month-day-number { color: #8597b5; }
+.app-shell .grooming-calendar .month-day.is-current .month-day-number { color: #fff; background: #9a6c86; }
+.app-shell .grooming-calendar .month-booking-count { color: #aa8f9d; }
+.app-shell .grooming-calendar .month-revenue { color: #885d75; }
+.app-shell .grooming-calendar .month-weekdays { border-color: #eee6eb; }
+.app-shell .grooming-calendar .month-weekdays span { color: #b2a0ab; }
+.app-shell .grooming-calendar .month-weekdays span:first-child { color: #c18583; }
+.app-shell .grooming-calendar .month-weekdays span:last-child { color: #8b9ab5; }
+.app-shell .grooming-calendar-caption { color: #ad96a3; border-top: 1px solid #f0e9ed; }
+.app-shell .grooming-calendar-caption strong { color: #8b6b7d; }
+.app-shell .source-tag { background: #f6edf3; color: #a17f93; }
+.app-shell .grooming-done { background: #eef3ee; color: #7c927c; }
+.app-shell .day-money-summary > div { background: #faf5f8; border-color: #eee1e9; }
+.app-shell .day-money-summary strong { color: #865b73; }
+.app-shell .day-money-summary span { color: #a38798; }
+.app-shell .grooming-day-total { border-color: #efe6ec; color: #ab96a2; }
+.app-shell .grooming-visit { border-color: #eee3e9; }
+.app-shell .visit-open { color: #604652; }
+.app-shell .visit-open:hover { background: #fcf7fa; }
+.app-shell .visit-open:focus-visible { outline-color: #c99ab4; }
+.app-shell .visit-open > time { color: #af96a5; }
+.app-shell .visit-open-info > strong { color: #5e4052; }
+.app-shell .visit-open-info > span:not(.source-tag) { color: #9d8393; }
+.app-shell .visit-open-info > small { color: #b09aa7; }
+.app-shell .visit-open-price > b { color: #80556e; }
+.app-shell .visit-open-price > small { color: #b69eae; }
+.app-shell .visit-card-actions { background: #fffcfd; border-color: #f1e8ed; }
+.app-shell .visit-card-actions .text-button { color: #79566b; }
+.app-shell .visit-card-actions .text-button:hover { color: #7e4c68; }
+.app-shell .modal-backdrop { background: #46303e44; backdrop-filter: blur(4px); }
+.app-shell .modal { border-color: #e8dbe3; box-shadow: 0 24px 100px #4f30422b; }
+.app-shell .modal-header { border-color: #eee5eb; }
+.app-shell .modal-header h2 { letter-spacing: -.7px; }
+.app-shell .modal-header p { color: #ac90a1; }
+.app-shell .modal-close { color: #a08094; background: #f8f1f5; border-radius: 12px; }
+.app-shell .modal-footer { border-color: #eee4eb; background: #fffcfdf5; }
+.app-shell .field label, .app-shell .field > span { color: #8b7181; }
+.app-shell .field input, .app-shell .field select, .app-shell .field textarea { color: #634758; border-color: #e9dce4; background: #fff; }
+.app-shell .field input::placeholder, .app-shell .field textarea::placeholder { color: #b9a2b0; }
+.app-shell .field input:focus, .app-shell .field select:focus, .app-shell .field textarea:focus { border-color: #bc8ba6; box-shadow: 0 0 0 3px #aa76950c; }
+.app-shell .pet-search-input { border-color: #e5d8e1; color: #b190a5; }
+.app-shell .pet-search-input input { color: #735567; }
+.app-shell .pet-search-result { color: #8b6b7f; border-color: #f2e8ee; }
+.app-shell .pet-search-result[aria-pressed=true], .app-shell .selected-pet { background: #faf2f7; border-color: #ebdce6; }
+.app-shell .customer-match .match-owner { color: #a18495; }
+.app-shell .customer-match .match-pet { color: #79536b; }
+.app-shell .customer-match .match-phone { color: #a58b9b; }
+.app-shell .form-disclosure { border-color: #ecdee7; }
+.app-shell .form-disclosure > summary { color: #936e84; }
+.app-shell .toast { background: #7b526b; color: #fff; border: 1px solid #986e87; box-shadow: 0 8px 30px #6a3d581f; }
+.app-shell .quick-add { background: #8b5e76; box-shadow: 0 6px 18px #74405e30; }
+.app-shell .quick-add:hover:not(:disabled) { background: #70445c; }
+.app-shell .mobile-navigation > button[aria-current] { color: #92637f; }
+.app-shell .mobile-navigation { border-color: #ebdfe6; background: #fffcfdfa; }
+.app-shell .mobile-navigation > button { color: #b09ba7; }
+.app-shell .calendar-cell-preview { display: none; }
+.app-shell .calendar-cell-today { color: #b0879e; font-size: 9px; }
+.app-shell .calendar-day-panel { display: none; }
+
+@media (min-width: 761px) {
+  .app-shell .sidebar { width: 204px; padding: 28px 14px 0; }
+  .app-shell .sidebar .brand { margin: 0 10px 32px; }
+  .app-shell .sidebar .brand > span:last-child { font-size: 24px; letter-spacing: -1.3px; }
+  .app-shell .brand-icon { width: 42px; height: 42px; border-radius: 14px; }
+  .app-shell .sidebar .brand small { font-size: 9px; letter-spacing: -.2px; margin-top: 5px; }
+  .app-shell .sidebar-label { margin: 0 15px 13px; font-size: 9px; letter-spacing: .8px; }
+  .app-shell .sidebar nav { gap: 6px; }
+  .app-shell .nav-item { padding: 13px 14px; font-size: 12px; min-height: 45px; }
+  .app-shell .sidebar-bottom { margin-top: auto; }
+  .app-shell .store-profile { margin-top: 18px; }
+  .app-shell .workspace { margin-left: 204px; }
+  .app-shell .topbar { height: 64px; padding: 0 28px; gap: 18px; }
+  .app-shell .topbar .app-brand { display: none; }
+  .app-shell .topbar .owner-context { gap: 12px; }
+  .app-shell .topbar .owner-context strong { font-size: 10px; }
+  .app-shell .topbar .owner-context a { font-size: 11px; }
+  .app-shell .calendar-period-bar { margin-bottom: 11px; min-height: 43px; }
+  .app-shell .calendar-period-bar .month-control { min-width: 144px; }
+  .app-shell .calendar-period-bar .period-picker { gap: 5px; }
+  .app-shell .calendar-period-bar .period-picker > .icon-button { height: 36px; width: 36px; background: #fff; border: 1px solid #e7dce3; }
+  .app-shell .calendar-period-bar .period-picker > .btn { height: 36px; min-height: 36px; margin-left: 4px; font-size: 11px; padding: 8px 13px; }
+  .app-shell .month-title strong { font-size: 24px; letter-spacing: -.9px; }
+  .app-shell .month-title small { font-size: 12px; }
+  .app-shell.calendar-screen main { width: 100%; max-width: 1800px; margin: 0 auto; padding: 20px 26px 22px; }
+  .app-shell.calendar-screen .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-shrink: 0; margin-bottom: 18px; }
+  .app-shell.calendar-screen .page-heading .eyebrow, .app-shell.calendar-screen .page-heading .heading-dot { display: none; }
+  .app-shell.calendar-screen .page-heading h1 { font-size: 22px; line-height: 1.45; letter-spacing: -.9px; font-weight: 750; margin: 0; }
+  .app-shell.calendar-screen .page-heading p { font-size: 11px; margin-top: 4px; line-height: 1.6; }
+  .app-shell.calendar-screen .heading-actions .btn { height: 42px; min-height: 42px; font-size: 12px; padding: 10px 16px; border-radius: 11px; }
+  .app-shell.calendar-screen > .quick-add { display: none; }
+  .app-shell .booking-owner-actions { gap: 8px; margin-bottom: 10px; padding: 0; }
+  .app-shell .owner-requests { min-height: 33px; padding: 7px 11px; font-size: 10px; }
+  .app-shell .calendar-amount-toolbar { padding: 12px 16px; min-height: 56px; gap: 10px; flex-shrink: 0; }
+  .app-shell .calendar-amount-toolbar > div { padding: 3px; }
+  .app-shell .calendar-amount-toolbar button { font-size: 10px; min-height: 29px; padding: 6px 11px; }
+  .app-shell .calendar-amount-toolbar > span { font-size: 10px; }
+  .app-shell .calendar-amount-toolbar strong { font-size: 15px; margin-left: 4px; font-weight: 700; }
+}
+
+@media (min-width: 1100px) {
+  .app-shell.calendar-screen .studio-calendar.calendar-workspace { display: grid; grid-template-columns: minmax(0,1fr) 330px; gap: 18px; flex: 1; min-height: 0; height: 100%; align-items: stretch; }
+  .app-shell.calendar-screen .calendar-workspace > .month-calendar { display: flex; flex-direction: column; min-height: 0; min-width: 0; flex: 1; height: 100%; border: 1px solid #e7dce3; border-radius: 17px; box-shadow: 0 4px 24px #57374504; overflow: hidden; }
+  .app-shell.calendar-screen .calendar-workspace .month-cells { flex: 1; min-height: 0; grid-auto-rows: minmax(0,1fr); }
+  .app-shell .calendar-workspace .month-weekdays span { font-size: 10px; text-align: left; padding: 11px 12px; background: #fdfbfc; }
+  .app-shell.calendar-screen .calendar-workspace .month-day, .app-shell.calendar-screen .calendar-workspace .month-blank { border-right: 1px solid #f0e8ed; border-bottom: 1px solid #f0e8ed; min-height: 0; padding: 9px 10px 7px; border-radius: 0; }
+  .app-shell.calendar-screen .calendar-workspace .month-day:nth-child(7n), .app-shell.calendar-screen .calendar-workspace .month-blank:nth-child(7n) { border-right: 0; }
+  .app-shell.calendar-screen .calendar-workspace .month-day { display: flex; align-items: stretch; text-align: left; gap: 3px; overflow: hidden; }
+  .app-shell .calendar-workspace .month-day.is-current { background: #fdf9fb; }
+  .app-shell .calendar-workspace .month-day.is-selected { background: #f9edf4; box-shadow: inset 0 0 0 1.5px #c18ca9; z-index: 1; }
+  .app-shell .calendar-workspace .month-day:focus-visible { outline: 3px solid #b37f9d; outline-offset: -3px; z-index: 2; }
+  .app-shell .calendar-workspace .month-day-heading { display: flex; align-items: center; gap: 6px; margin: 0 0 2px; flex-shrink: 0; }
+  .app-shell.calendar-screen .calendar-workspace .month-day-number { width: 23px; min-width: 23px; height: 23px; min-height: 23px; font-size: 12px; font-weight: 650; justify-content: center; }
+  .app-shell .calendar-workspace .month-day-bookings { position: static; margin: 0; display: inline-flex; flex-shrink: 0; }
+  .app-shell.calendar-screen .calendar-workspace .month-booking-count { font-size: 9px; line-height: 1.3; font-weight: 500; color: #a48b99; }
+  .app-shell.calendar-screen .calendar-workspace .month-revenue { font-size: 12px; font-weight: 750; letter-spacing: -.45px; line-height: 1.3; margin: 0; flex-shrink: 0; }
+  .app-shell .calendar-workspace .month-revenue > small { display: inline; margin-right: 3px; font-size: 8px; font-weight: 400; }
+  .app-shell .calendar-cell-preview { display: grid; gap: 3px; min-height: 0; margin-top: auto; padding-top: 5px; overflow: hidden; }
+  .app-shell .calendar-cell-event { display: flex; align-items: center; gap: 5px; min-width: 0; padding: 3px 5px; background: #f7f0f5; border-left: 2px solid #d4b0c4; border-radius: 4px; font-size: 10px; color: #96758a; line-height: 1.3; }
+  .app-shell .calendar-cell-event time { font-size: 8px; color: #b295a6; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .app-shell .calendar-cell-event > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .app-shell .month-day.is-selected .calendar-cell-event { background: #fff7fc; border-color: #bd87a7; }
+  .app-shell .calendar-cell-more { font-size: 8px; color: #b493a6; padding-left: 5px; line-height: 1.2; }
+  .app-shell .calendar-workspace .grooming-calendar-caption { flex-shrink: 0; min-height: 39px; padding: 10px 15px; font-size: 10px; gap: 6px; }
+  .app-shell .calendar-workspace .grooming-calendar-caption > span:last-child { font-size: 9px; }
+  .app-shell .calendar-day-panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; border: 1px solid #e8dce3; border-radius: 17px; background: #fff; overflow: hidden; box-shadow: 0 4px 24px #57374504; }
+  .app-shell .calendar-day-panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 18px 16px; background: #fffcfe; flex-shrink: 0; }
+  .app-shell .calendar-day-title { min-width: 0; }
+  .app-shell .calendar-day-eyebrow { display: block; font-size: 9px; color: #b59aa9; line-height: 1.5; margin-bottom: 7px; letter-spacing: .35px; }
+  .app-shell .calendar-day-title h2 { font-size: 19px; font-weight: 750; letter-spacing: -.6px; line-height: 1.5; color: #614254; margin: 0; }
+  .app-shell .calendar-day-title h2:focus { outline: none; }
+  .app-shell .calendar-day-title p { font-size: 10px; color: #ad92a2; margin: 6px 0 0; line-height: 1.5; }
+  .app-shell .calendar-day-nav { display: flex; align-items: center; gap: 3px; padding-top: 2px; }
+  .app-shell .calendar-day-nav .icon-button { width: 29px; height: 29px; min-height: 29px; border: 1px solid #e9dce5; background: #fff; border-radius: 8px; }
+  .app-shell .calendar-day-nav svg { width: 14px; height: 14px; }
+  .app-shell .calendar-day-panel-meta { display: flex; flex-direction: column; gap: 11px; padding: 0 18px 16px; border-bottom: 1px solid #eee4eb; flex-shrink: 0; }
+  .app-shell .calendar-day-add { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 39px; width: 100%; border-radius: 10px; background: #8b5e76; color: #fff; font-size: 11px; font-weight: 650; border: 0; }
+  .app-shell .calendar-day-add:hover { background: #70445c; }
+  .app-shell .calendar-day-progress { font-size: 10px; color: #b09aaa; line-height: 1.5; }
+  .app-shell .calendar-day-panel-body { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #e4cfdc transparent; background: #fff; }
+  .app-shell .calendar-day-panel-body .day-money-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 16px 14px 12px; }
+  .app-shell .calendar-day-panel-body .day-money-summary > div { min-width: 0; padding: 10px 11px; border-radius: 10px; border-color: #f0e2eb; background: #faf5f8; }
+  .app-shell .calendar-day-panel-body .day-money-summary span { font-size: 9px; line-height: 1.5; color: #ac8d9f; }
+  .app-shell .calendar-day-panel-body .day-money-summary span small { font-size: 8px; color: #bea5b3; }
+  .app-shell .calendar-day-panel-body .day-money-summary strong { font-size: 16px; line-height: 1.5; color: #865b73; letter-spacing: -.5px; }
+  .app-shell .calendar-day-panel-body .grooming-day-total { padding: 3px 16px 11px; border: 0; background: #fff; font-size: 10px; color: #b09aaa; }
+  .app-shell .calendar-day-panel-body .grooming-day-total > .btn { display: none; }
+  .app-shell .calendar-day-panel-body .grooming-visits { padding: 0 12px 12px; }
+  .app-shell .calendar-day-panel-body .grooming-visit { display: block; margin: 0 0 10px; padding: 0; border: 1px solid #eee0e9; border-radius: 12px; background: #fff; overflow: hidden; }
+  .app-shell .calendar-day-panel-body .visit-open { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 7px; min-height: 100px; padding: 13px 12px; }
+  .app-shell .calendar-day-panel-body .visit-open > time { font-size: 9px; padding-top: 4px; color: #af91a3; }
+  .app-shell .calendar-day-panel-body .visit-open-info { display: grid; gap: 4px; min-width: 0; }
+  .app-shell .calendar-day-panel-body .visit-open-info > strong { font-size: 12px; line-height: 1.6; font-weight: 700; }
+  .app-shell .calendar-day-panel-body .visit-open-info > span:not(.source-tag) { font-size: 10px; line-height: 1.5; }
+  .app-shell .calendar-day-panel-body .visit-open-info > small { font-size: 9px; line-height: 1.5; }
+  .app-shell .calendar-day-panel-body .visit-open-price { padding-top: 4px; gap: 8px; }
+  .app-shell .calendar-day-panel-body .visit-open-price > b { font-size: 11px; font-weight: 700; letter-spacing: -.35px; }
+  .app-shell .calendar-day-panel-body .visit-open-price > small { font-size: 8px; }
+  .app-shell .calendar-day-panel-body .visit-card-actions { display: flex; align-items: center; gap: 9px; min-height: 43px; padding: 7px 11px; background: #fffcfe; }
+  .app-shell .calendar-day-panel-body .visit-card-actions .text-button { font-size: 9px; min-height: 28px; gap: 3px; }
+  .app-shell .calendar-day-panel-body .visit-card-actions .text-button svg { width: 11px; height: 11px; }
+  .app-shell .calendar-day-panel-body .visit-card-actions .btn { min-height: 30px; font-size: 9px; padding: 7px 9px; border-radius: 8px; }
+  .app-shell .calendar-day-panel-body .grooming-done { font-size: 9px; }
+  .app-shell .calendar-day-panel-body .source-tag { font-size: 8px; padding: 2px 5px; }
+  .app-shell .calendar-day-panel-body .grooming-empty { margin: 4px 14px 16px; padding: 32px 14px; border: 1px dashed #e8d5e1; border-radius: 12px; text-align: center; color: #ae8c9f; background: #fdf9fc; }
+  .app-shell .calendar-day-panel-body .grooming-empty p { font-size: 12px; line-height: 1.8; }
+  .app-shell .calendar-day-panel-body .grooming-empty .btn { margin-top: 13px; font-size: 10px; min-height: 35px; }
+  .app-shell .day-payment-records { margin: 0 14px 16px; padding: 13px 12px; border-radius: 11px; border: 1px solid #e9dce4; background: #fcf9fb; }
+  .app-shell .day-payment-heading { font-size: 10px; color: #a17c91; margin-bottom: 8px; }
+  .app-shell .day-payment-row { display: flex; justify-content: space-between; gap: 9px; padding: 7px 0; font-size: 10px; color: #a88d9e; }
+  .app-shell .day-payment-row strong { color: #855b72; font-weight: 650; }
+  .app-shell .calendar-agenda-enter { animation: owner-agenda-appear 180ms cubic-bezier(.2,.8,.2,1); }
+}
+
+@media (min-width: 1100px) and (max-width: 1279px) {
+  .app-shell .sidebar { width: 182px; padding-left: 10px; padding-right: 10px; }
+  .app-shell .workspace { margin-left: 182px; }
+  .app-shell .sidebar .brand { margin-left: 8px; margin-right: 8px; }
+  .app-shell .sidebar .brand > span:last-child { font-size: 22px; }
+  .app-shell .brand-icon { width: 36px; height: 36px; }
+  .app-shell .nav-item { font-size: 11px; padding: 12px; }
+  .app-shell.calendar-screen main { padding-left: 20px; padding-right: 20px; }
+  .app-shell.calendar-screen .studio-calendar.calendar-workspace { grid-template-columns: minmax(0,1fr) 286px; gap: 14px; }
+  .app-shell .calendar-workspace .month-weekdays span { padding-left: 8px; }
+  .app-shell.calendar-screen .calendar-workspace .month-day { padding-left: 7px; padding-right: 7px; }
+  .app-shell .calendar-cell-event { padding: 3px; gap: 3px; font-size: 9px; }
+  .app-shell .calendar-cell-event time { font-size: 7px; }
+  .app-shell .calendar-day-panel-header { padding-left: 14px; padding-right: 14px; }
+  .app-shell .calendar-day-title h2 { font-size: 17px; }
+  .app-shell .calendar-day-panel-meta { padding-left: 14px; padding-right: 14px; }
+  .app-shell .calendar-day-panel-body .visit-open { grid-template-columns: 29px minmax(0,1fr) auto; gap: 6px; padding-left: 10px; padding-right: 10px; }
+  .app-shell .calendar-day-panel-body .visit-open-info > strong { font-size: 11px; }
+  .app-shell .calendar-day-panel-body .visit-open-price > b { font-size: 10px; }
+}
+
+@media (min-width: 761px) and (max-width: 1099px) {
+  .app-shell .sidebar { width: 182px; padding-left: 10px; padding-right: 10px; }
+  .app-shell .workspace { margin-left: 182px; }
+  .app-shell.calendar-screen main { max-width: none; padding-left: 20px; padding-right: 20px; }
+  .app-shell.calendar-screen .studio-calendar.grooming-calendar { flex: 1; }
+  .app-shell.calendar-screen .studio-calendar.grooming-calendar > .month-calendar { flex: 1; }
+  .app-shell.calendar-screen .studio-calendar.grooming-calendar .month-cells { flex: 1; grid-auto-rows: minmax(0,1fr); }
+  .app-shell .calendar-workspace .month-day { align-items: center; }
+}
+
+@media (min-width: 1100px) and (max-height: 850px) {
+  .app-shell.calendar-screen main { padding-top: 15px; padding-bottom: 15px; }
+  .app-shell.calendar-screen .page-heading { margin-bottom: 12px; }
+  .app-shell.calendar-screen .page-heading p { display: none; }
+  .app-shell.calendar-screen .page-heading h1 { font-size: 20px; }
+  .app-shell .calendar-period-bar { margin-bottom: 8px; }
+  .app-shell .booking-owner-actions { margin-bottom: 8px; }
+  .app-shell .calendar-amount-toolbar { min-height: 47px; padding-top: 8px; padding-bottom: 8px; }
+  .app-shell .calendar-workspace .month-weekdays span { padding-top: 8px; padding-bottom: 8px; }
+  .app-shell.calendar-screen .calendar-workspace .month-day { padding-top: 5px; padding-bottom: 5px; gap: 1px; }
+  .app-shell.calendar-screen .calendar-workspace .month-day-number { width: 21px; min-width: 21px; height: 21px; min-height: 21px; font-size: 11px; }
+  .app-shell.calendar-screen .calendar-workspace .month-revenue { font-size: 11px; }
+  .app-shell .calendar-cell-preview { padding-top: 3px; gap: 2px; }
+  .app-shell .calendar-cell-event { font-size: 9px; padding-top: 2px; padding-bottom: 2px; }
+  .app-shell .calendar-cell-more { font-size: 8px; }
+  .app-shell .calendar-workspace .grooming-calendar-caption { min-height: 31px; padding-top: 7px; padding-bottom: 7px; font-size: 9px; }
+  .app-shell .calendar-workspace .grooming-calendar-caption > span:last-child { font-size: 8px; }
+  .app-shell .calendar-day-panel-header { padding-top: 16px; padding-bottom: 12px; }
+  .app-shell .calendar-day-panel-meta { padding-bottom: 12px; }
+}
+
+@media (max-width: 760px) {
+  .app-shell { background: #fffdfc; }
+  .app-shell .workspace { background: #fffdfc; }
+  .app-shell .topbar { background: #fffdfc; }
+  .app-shell .topbar .app-brand > span:last-child { font-size: 22px; }
+  .app-shell .topbar .app-brand-mark { width: 32px; height: 32px; }
+  .app-shell .topbar .owner-context strong { padding: 3px 6px; font-size: 9px; }
+  .app-shell .calendar-amount-toolbar { background: #fff; }
+  .app-shell .calendar-amount-toolbar strong { color: #8b5e76; }
+  .app-shell .calendar-period-bar .month-title strong { font-size: 27px; }
+  .app-shell .grooming-calendar .month-day.is-selected { border-radius: 8px; }
+  .app-shell .grooming-calendar .month-revenue { font-size: 10px; }
+  .app-shell .mobile-navigation { background: #fffdfcf5; }
+  .app-shell .quick-add { background: #8b5e76; box-shadow: 0 5px 18px #72405c24; }
+  .app-shell .quick-add:hover:not(:disabled) { background: #70445c; }
+  .app-shell .modal { background: #fff; }
+  .app-shell .modal-close { width: 42px; height: 42px; }
+  .app-shell .day-money-summary strong { font-size: clamp(16px,5vw,20px); }
+  .app-shell .calendar-day-panel { display: none; }
+  .app-shell .calendar-workspace { display: flex; }
+  .app-shell .calendar-cell-preview, .app-shell .calendar-cell-today { display: none; }
+  .app-shell .grooming-calendar-caption { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 10px 138px 10px 5px; }
+  .app-shell .grooming-calendar-caption > span:last-child { font-size: 9px; white-space: nowrap; }
+}
+
+@keyframes owner-agenda-appear {
+  from { opacity: .3; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *, .app-shell *::before, .app-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+/* Keep secondary copy readable; pale tints are surfaces, not body-text colors. */
+.app-shell .page-heading p,
+.app-shell .modal-header p,
+.app-shell .field-hint,
+.app-shell .panel-footnote,
+.app-shell .table-footer,
+.app-shell .calendar-day-title p,
+.app-shell .calendar-day-progress,
+.app-shell .calendar-day-panel-body .day-money-summary span,
+.app-shell .calendar-day-panel-body .day-money-summary span small,
+.app-shell .visit-open-info > span:not(.source-tag),
+.app-shell .visit-open-info > small,
+.app-shell .visit-open-price > small,
+.app-shell .calendar-day-panel-body .visit-open > time,
+.app-shell .calendar-day-panel-body .grooming-day-total,
+.app-shell .calendar-day-panel-body .grooming-empty,
+.app-shell .day-payment-row { color: #75606e; }
+.app-shell .calendar-workspace .month-booking-count,
+.app-shell .calendar-workspace .calendar-cell-event time,
+.app-shell .calendar-workspace .calendar-cell-more,
+.app-shell .grooming-calendar-caption,
+.app-shell .calendar-day-eyebrow { color: #927b89; }
+.app-shell .calendar-cell-event { color: #896079; }
+.app-shell .calendar-amount-toolbar button { color: #937b8a; }
+.app-shell .customer-match .match-owner,
+.app-shell .customer-match .match-phone { color: #8a6e7f; }
+.app-shell .customer-match .match-pet { color: #6f455f; }
+.app-shell .customer-toolbar strong,
+.app-shell .shampoo-card h2,
+.app-shell .customer-pet-open h3,
+.app-shell .customer-owner-info h2,
+.app-shell .detail-summary strong,
+.app-shell .quote-breakdown h3,
+.app-shell .detail-notes h3 { color: #715168; }
+.app-shell .customer-toolbar p,
+.app-shell .customer-owner-info p,
+.app-shell .customer-owner-note,
+.app-shell .customer-pet-open p,
+.app-shell .customer-pet-visits > span,
+.app-shell .customer-pet-visits strong,
+.app-shell .shampoo-card-heading > div > span,
+.app-shell .shampoo-note,
+.app-shell .shampoo-facts dt,
+.app-shell .shampoo-facts dd,
+.app-shell .detail-info dt,
+.app-shell .detail-info dd,
+.app-shell .detail-summary p,
+.app-shell .quote-breakdown > div,
+.app-shell .detail-notes p { color: #927b89; }
+.app-shell .customer-card-header,
+.app-shell .customer-owner-note,
+.app-shell .detail-notes,
+.app-shell .shampoo-price,
+.app-shell .shampoo-pick[aria-pressed=true] { background: #fbf5f9; border-color: #efdee9; }
+.app-shell .shampoo-price > strong,
+.app-shell .shampoo-usage-meta strong,
+.app-shell .shampoo-cost-summary strong { color: #8b5e76; }
+.app-shell .product-photo-empty { background: #f7f1f5; color: #b395a8; }
+.app-shell .shampoo-pick { color: #866279; border-color: #e9dce4; }
+.app-shell .shampoo-pick[aria-pressed=true] { border-color: #c390ad; }
+.app-shell .selected-shampoo strong { color: #7c536b; }
+.app-shell .calendar-no-visits { padding: 18px 16px; margin: 0; font-size: 11px; line-height: 1.8; color: #9a7d8e; }
+.app-shell .calendar-sync-status { color: #a28596; font-size: 10px; min-height: 15px; line-height: 1.5; }
+@keyframes owner-page-appear {
+  from { opacity: .35; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Desktop is a working calendar: comfortable type, with scrolling for longer days. */
+@media (min-width: 1100px) {
+  .app-shell .calendar-day-title h2 { font-size: 20px; color: #573c4b; }
+  .app-shell .calendar-day-eyebrow { font-size: 11px; }
+  .app-shell .calendar-day-title p { font-size: 12px; color: #88717e; }
+  .app-shell .calendar-day-progress { font-size: 11px; color: #8b7180; }
+  .app-shell .calendar-day-add { min-height: 43px; font-size: 12px; }
+  .app-shell .calendar-day-panel-body .day-money-summary > div { padding: 12px 11px; }
+  .app-shell .calendar-day-panel-body .day-money-summary span { font-size: 11px; color: #7d6474; }
+  .app-shell .calendar-day-panel-body .day-money-summary span small { font-size: 9px; color: #856c7b; }
+  .app-shell .calendar-day-panel-body .day-money-summary strong { font-size: 18px; color: #7e526b; }
+  .app-shell .calendar-day-panel-body .grooming-visits { padding: 0 12px 14px; }
+  .app-shell .calendar-day-panel-body .visit-open { grid-template-columns: 35px minmax(0,1fr) auto; gap: 8px; min-height: 126px; padding: 16px 12px; }
+  .app-shell .calendar-day-panel-body .visit-open > time { font-size: 11px; color: #796170; }
+  .app-shell .calendar-day-panel-body .visit-open-info { gap: 6px; }
+  .app-shell .calendar-day-panel-body .visit-open-info > strong { font-size: 14px; line-height: 1.55; color: #624052; }
+  .app-shell .calendar-day-panel-body .visit-open-info > span:not(.source-tag) { font-size: 12px; line-height: 1.6; color: #795e6e; }
+  .app-shell .calendar-day-panel-body .visit-open-info > small { font-size: 11px; line-height: 1.6; color: #806877; }
+  .app-shell .calendar-day-panel-body .visit-open-price > b { font-size: 13px; color: #7e526b; }
+  .app-shell .calendar-day-panel-body .visit-open-price > small { font-size: 10px; color: #806877; }
+  .app-shell .calendar-day-panel-body .visit-card-actions { gap: 10px; min-height: 49px; padding: 8px 11px; }
+  .app-shell .calendar-day-panel-body .visit-card-actions .text-button { font-size: 11px; min-height: 33px; gap: 4px; }
+  .app-shell .calendar-day-panel-body .visit-card-actions .text-button svg { width: 12px; height: 12px; }
+  .app-shell .calendar-day-panel-body .visit-card-actions .btn { min-height: 34px; font-size: 11px; padding: 8px 10px; }
+  .app-shell .calendar-day-panel-body .source-tag { font-size: 9px; }
+  .app-shell .calendar-day-panel-body .grooming-done { font-size: 10px; }
+  .app-shell .calendar-day-panel-body .grooming-empty p { font-size: 13px; }
+  .app-shell .calendar-day-panel-body .grooming-empty .btn { font-size: 12px; min-height: 40px; }
+  .app-shell .calendar-no-visits { font-size: 12px; }
+  .app-shell .day-payment-heading { font-size: 12px; color: #8f6b80; }
+  .app-shell .day-payment-row { font-size: 12px; line-height: 1.6; }
+  .app-shell .calendar-cell-event { font-size: 11px; line-height: 1.4; }
+  .app-shell .calendar-cell-event time { font-size: 9px; }
+  .app-shell .calendar-cell-more { font-size: 9px; }
+  .app-shell.calendar-screen .calendar-workspace .month-booking-count { font-size: 10px; color: #957486; }
+  .app-shell.calendar-screen .calendar-workspace .month-revenue { font-size: 13px; }
+}
+@media (min-width: 1100px) and (max-width: 1279px) {
+  .app-shell .calendar-day-title h2 { font-size: 18px; }
+  .app-shell .calendar-day-panel-body .visit-open { grid-template-columns: 31px minmax(0,1fr); }
+  .app-shell .calendar-day-panel-body .visit-open-price { grid-column: 2; display: flex; align-items: center; justify-content: space-between; padding: 0; }
+  .app-shell .calendar-day-panel-body .visit-open-info > strong { font-size: 14px; }
+  .app-shell .calendar-day-panel-body .visit-open-price > b { font-size: 13px; }
+  .app-shell .calendar-cell-event { font-size: 10px; }
+  .app-shell .calendar-cell-event time { font-size: 8px; }
+}
+@media (min-width: 1100px) {
+  .app-shell.calendar-screen .calendar-workspace .month-day {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    grid-template-rows: auto auto minmax(0,1fr);
+    align-content: stretch;
+    align-items: start;
+    column-gap: 5px;
+    row-gap: 4px;
+  }
+  .app-shell .calendar-workspace .month-day-heading { grid-column: 1 / -1; grid-row: 1; }
+  .app-shell .calendar-workspace .month-day-bookings { grid-column: 1; grid-row: 2; padding-top: 2px; }
+  .app-shell .calendar-workspace .month-revenue { grid-column: 2; grid-row: 2; justify-self: end; }
+  .app-shell .calendar-workspace .calendar-cell-preview { grid-column: 1 / -1; grid-row: 3; align-self: end; margin-top: 0; padding-top: 3px; gap: 3px; }
+  .app-shell .calendar-cell-event { min-height: 19px; padding: 2px 4px; }
+}
+@media (min-width: 1100px) {
+  .app-shell .calendar-workspace .calendar-cell-preview { position: static; gap: 2px; padding-top: 2px; }
+  .app-shell .calendar-workspace .calendar-cell-event { min-height: 16px; padding: 1px 4px; line-height: 1.3; font-size: 10px; color: #7e596f; }
+  .app-shell .calendar-workspace .calendar-cell-event time { font-size: 9px; color: #806776; }
+  .app-shell .calendar-workspace .calendar-cell-more { position: absolute; top: 12px; right: 9px; line-height: 1.2; padding: 0; font-size: 8px; color: #826273; }
+  .app-shell .calendar-workspace .month-day-heading { padding-right: 35px; }
+}
+@media (min-width: 1100px) and (max-width: 1279px) {
+  .app-shell .calendar-workspace .calendar-cell-today { display: none; }
+  .app-shell .calendar-workspace .calendar-cell-event { font-size: 9px; gap: 3px; padding-left: 3px; padding-right: 3px; }
+  .app-shell .calendar-workspace .calendar-cell-event time { font-size: 8px; }
+  .app-shell .calendar-workspace .calendar-cell-more { font-size: 7px; right: 7px; }
+}
+@media (min-width: 1100px) and (max-height: 850px) {
+  .app-shell.calendar-screen .calendar-workspace .month-day { padding-top: 5px; padding-bottom: 5px; row-gap: 2px; }
+  .app-shell.calendar-screen .calendar-workspace .month-day-number { width: 19px; min-width: 19px; height: 19px; min-height: 19px; }
+  .app-shell.calendar-screen .calendar-workspace .month-booking-count { font-size: 9px; }
+  .app-shell.calendar-screen .calendar-workspace .month-revenue { font-size: 11px; }
+  .app-shell .calendar-workspace .calendar-cell-event { min-height: 14px; font-size: 9px; line-height: 1.2; }
+  .app-shell .calendar-workspace .calendar-cell-event time { font-size: 8px; }
+  .app-shell .calendar-workspace .calendar-cell-more { top: 10px; }
+}
+.app-shell .workspace > main { animation: owner-page-appear 180ms ease-out; }
+@media (min-width: 1100px) {
+  .app-shell .calendar-workspace .calendar-cell-event > .calendar-cell-more { flex-shrink: 0; white-space: nowrap; overflow: visible; }
+  .app-shell .calendar-workspace .calendar-cell-event > .calendar-cell-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .workspace > main { animation: none !important; }
+}
