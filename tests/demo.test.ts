@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createDemoApi } from '../src/demo/api.ts';
 import { createDemoData, DEMO_SEED_REVISION } from '../src/demo/seed.ts';
-import type { Appointment, Customer, Pet, Pricing, Shampoo, State } from '../src/types.ts';
+import type { Appointment, Customer, GroomingRecord, Pet, Pricing, PublicCareHistoryItem, PublicCareReport, Shampoo, State } from '../src/types.ts';
 
 const KEY = 'mongle-demo-v1';
 const TODAY = '2030-01-20';
@@ -398,4 +398,114 @@ test('shampoo photos persist through edits and bad images do not replace the sto
  for(const bad of ['https://invalid.test/photo.jpg','data:image/svg+xml;base64,PHN2Zz4=', 'data:image/jpeg;base64,aGVsbG8='])await assert.rejects(api.request(`/shampoos/${product.id}`,'PATCH',{photo:bad}));
  const reopened=createDemoApi(storage,{today:()=>TODAY});const state=await reopened.request<State>('/state');assert.equal(state.shampoos.find(s=>s.id===product.id)?.photo,photo);
  await api.request(`/shampoos/${product.id}`,'PATCH',{photo:''});const cleared=await api.request<State>('/state');assert.equal(cleared.shampoos.find(s=>s.id===product.id)?.photo,'');
+});
+
+const carePayload = () => ({
+  beforeNotes: '눈 주변과 발끝 상태 확인', afterNotes: '발끝 정리와 목욕을 마쳤어요.',
+  groomerOpinion: '중간에 쉬면서 진행했어요.', homeCare: '발이 젖으면 충분히 말려 주세요.', nextVisitDate: '',
+  photos: [
+    { id: 'before-photo', src: 'data:image/jpeg;base64,/9j/2Q==', caption: '미용 전', stage: 'before' },
+    { id: 'after-photo', src: 'data:image/jpeg;base64,/9j/2Q==', caption: '미용 후', stage: 'after' },
+  ],
+});
+type PublicCareResult = { report: PublicCareReport; history: PublicCareHistoryItem[] };
+
+test('care drafts survive reopening and publishing uses an explicit safe snapshot without financial changes', async () => {
+  const { api, storage } = setup();
+  const before = await api.request<State>('/state');
+  const visit = before.appointments.find(a => a.paymentStatus === 'paid')!;
+  const path = `/appointments/${visit.id}/care`;
+  assert.equal(await api.request(path), null);
+  await api.request(path, 'POST', carePayload());
+  const published = await api.request<GroomingRecord>(path + '/publish', 'POST', {});
+  assert.match(published.shareToken!, /^[a-f0-9]{32}$/);
+  const link = `/public/care/${published.shareToken}`;
+  const original = await api.request<PublicCareResult>(link);
+  assert.deepEqual(Object.keys(original.report).sort(), ['id', 'petId', 'dogName', 'breed', 'weight', 'date', 'service', 'beforeNotes', 'afterNotes', 'groomerOpinion', 'homeCare', 'nextVisitDate', 'photos', 'publishedAt'].sort());
+  await api.request(path, 'PATCH', { homeCare: '아직 고객에게 공유하지 않은 새 초안' });
+  assert.deepEqual((await api.request<PublicCareResult>(link)).report, original.report);
+  const reopened = createDemoApi(storage, { today: () => TODAY });
+  assert.equal((await reopened.request<GroomingRecord>(path)).homeCare, '아직 고객에게 공유하지 않은 새 초안');
+  assert.deepEqual((await reopened.request<PublicCareResult>(link)).report, original.report);
+  const republished = await reopened.request<GroomingRecord>(path + '/publish', 'POST', {});
+  assert.equal(republished.shareToken, published.shareToken);
+  assert.equal((await reopened.request<PublicCareResult>(link)).report.homeCare, '아직 고객에게 공유하지 않은 새 초안');
+  const after = await reopened.request<State>('/state');
+  for (const key of ['appointments', 'pets', 'customers', 'expenses', 'summary'] as const) assert.deepEqual(after[key], before[key]);
+});
+
+test('care history lists only same-pet published summaries and revoked links stay invalid after resharing', async () => {
+  const { api } = setup();
+  const state = await api.request<State>('/state');
+  const petId = state.pets.find(pet => state.appointments.filter(a => a.petId === pet.id).length >= 3)!.id;
+  const samePet = state.appointments.filter(a => a.petId === petId).slice(0, 3);
+  assert.equal(samePet.length, 3);
+  const other = state.appointments.find(a => a.petId && a.petId !== petId)!;
+  const shares: GroomingRecord[] = [];
+  for (const visit of [...samePet.slice(0, 2), other]) {
+    await api.request(`/appointments/${visit.id}/care`, 'POST', carePayload());
+    shares.push(await api.request<GroomingRecord>(`/appointments/${visit.id}/care/publish`, 'POST', {}));
+  }
+  await api.request(`/appointments/${samePet[2].id}/care`, 'POST', carePayload());
+  const result = await api.request<PublicCareResult>(`/public/care/${shares[0].shareToken}`);
+  assert.deepEqual(new Set(result.history.map(item => item.id)), new Set(samePet.slice(0, 2).map(a => a.id)));
+  for (const item of result.history) {
+    assert.deepEqual(Object.keys(item).sort(), ['id', 'petId', 'dogName', 'date', 'service', 'shareToken'].sort());
+    assert.equal((await api.request<PublicCareResult>(`/public/care/${item.shareToken}`)).report.id, item.id);
+  }
+  const path = `/appointments/${samePet[0].id}/care/publish`;
+  const ended = await api.request<GroomingRecord>(path, 'DELETE');
+  assert.equal(ended.shareToken, null);
+  assert.equal(ended.publishedSnapshot, null);
+  await assert.rejects(api.request(`/public/care/${shares[0].shareToken}`));
+  const again = await api.request<GroomingRecord>(path, 'POST', {});
+  assert.notEqual(again.shareToken, shares[0].shareToken);
+  await assert.rejects(api.request(`/public/care/${shares[0].shareToken}`));
+  assert.equal((await api.request<PublicCareResult>(`/public/care/${again.shareToken}`)).report.id, samePet[0].id);
+});
+
+test('care validation and storage failure preserve both private draft and published snapshot', async () => {
+  const { api, storage } = setup();
+  const visit = (await api.request<State>('/state')).appointments[0];
+  const path = `/appointments/${visit.id}/care`;
+  await api.request(path, 'POST', carePayload());
+  await api.request(path + '/publish', 'POST', {});
+  const before = storage.getItem(KEY);
+  const photo = carePayload().photos[0];
+  for (const changes of [{ homeCare: 'x'.repeat(2001) }, { price: 0 }, { published: true }, { nextVisitDate: '1900-01-01' },
+    { photos: [photo, photo] }, { photos: [{ ...photo, src: 'https://invalid.test/photo.jpg' }] },
+    { photos: [{ ...photo, stage: 'other' }] }, { photos: Array.from({ length: 5 }, (_, i) => ({ ...photo, id: String(i) })) }]) {
+    await assert.rejects(api.request(path, 'PATCH', changes));
+    assert.equal(storage.getItem(KEY), before);
+  }
+  storage.failWrites = true;
+  await assert.rejects(api.request(path, 'PATCH', { homeCare: '저장 실패 때 보존' }));
+  await assert.rejects(api.request(path + '/publish', 'DELETE'));
+  assert.equal(storage.getItem(KEY), before);
+  storage.failWrites = false;
+  const wrapper = JSON.parse(before!);
+  wrapper.data.careRecords[0].publishedSnapshot.guardianName = 'leak';
+  storage.setItem(KEY, JSON.stringify(wrapper));
+  await assert.rejects(createDemoApi(storage, { today: () => TODAY }).request('/state'));
+});
+
+test('opt-in state care summaries omit large record payloads without changing storage or totals', async () => {
+  const { api, storage } = setup();
+  const visit = (await api.request<State>('/state')).appointments[0];
+  const path = `/appointments/${visit.id}/care`;
+  await api.request(path, 'POST', carePayload());
+  const record = await api.request<GroomingRecord>(path + '/publish', 'POST', {});
+  const persisted = storage.getItem(KEY);
+  const full = await api.request<State>('/state?month=2030-01');
+  const lean = await api.request<State>('/state?month=2030-01&care=summary');
+  assert.equal('careRecords' in lean, false);
+  assert.equal('careRecordSummaries' in full, false);
+  assert.deepEqual(lean.careRecordSummaries, [{ appointmentId: visit.id, published: true, photoCount: 2, updatedAt: record.updatedAt }]);
+  assert.ok(!JSON.stringify(lean).includes(record.shareToken!));
+  assert.ok(!JSON.stringify(lean).includes('data:image/jpeg;base64,'));
+  const { careRecords: _records, ...fullBase } = full;
+  const { careRecordSummaries: _summaries, ...leanBase } = lean;
+  assert.deepEqual(fullBase, leanBase);
+  assert.equal(storage.getItem(KEY), persisted);
+  assert.deepEqual(await api.request<GroomingRecord>(path), record);
 });

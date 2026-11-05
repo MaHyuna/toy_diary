@@ -2,7 +2,6 @@ import { useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ArrowRight, CalendarDays, Check, Dog, Heart, Link, LoaderCircle, PawPrint, Pencil, Plus, Search, ShieldAlert, UserRound, Users, X } from 'lucide-react';
 import { PhotoAlbum, PetAvatar } from './Photos';
-import { VisitReport } from './ShareCard';
 import { Modal } from './Forms';
 import { api, money, today } from './types';
 import type { Appointment, Customer, Pet } from './types';
@@ -121,7 +120,7 @@ function visitInfo(pet: Pet, appointments: Appointment[]) {
   return { history, latest, next, recommended, visited, paidTotal: history.filter((appointment) => appointment.paymentStatus === 'paid' && appointment.status !== 'cancelled').reduce((sum, appointment) => sum + appointment.price, 0) };
 }
 
-function PetDetail({ pet, customer, appointments, onEdit, onBook, onSaved, onClose }: Callbacks & { pet: Pet; customer?: Customer; appointments: Appointment[]; onEdit: () => void; onBook: () => void }) {
+function PetDetail({ pet, customer, appointments, onCare, onEdit, onBook, onSaved, onClose }: Callbacks & { pet: Pet; customer?: Customer; appointments: Appointment[]; onCare: (appointment: Appointment) => void; onEdit: () => void; onBook: () => void }) {
   const id = useId();
   const [photoPet, setPhotoPet] = useState(pet);
   const { history, latest, next, recommended, visited, paidTotal } = visitInfo(pet, appointments);
@@ -133,17 +132,17 @@ function PetDetail({ pet, customer, appointments, onEdit, onBook, onSaved, onClo
     <div className="modal-body customer-detail">
       <div className="customer-pet-profile"><PetAvatar pet={photoPet} /><div><h3>{pet.name}</h3><p>{[pet.breed || '견종 미등록', pet.weight ? `${pet.weight}kg` : '몸무게 미등록', sexLabels[pet.sex]].join(' · ')}</p></div></div>
       <PhotoAlbum pet={photoPet} onChange={photos => setPhotoPet({ ...photoPet, photos })} />
-      {(latest || history[0]) && <div className="pet-report-action"><VisitReport appointment={latest || history[0]} photos={photoPet.photos} /></div>}
+      {(latest || history[0]) && <div className="pet-report-action"><button type="button" className="btn btn-secondary" onClick={() => onCare(latest || history[0])}>최근 방문 전후 · 케어 기록</button></div>}
       <dl className="customer-pet-facts"><div><dt>생일</dt><dd>{pet.birthDate ? displayDate(pet.birthDate) : '미등록'}</dd></div><div><dt>중성화</dt><dd>{pet.neutered === null ? '미등록' : pet.neutered ? '완료' : '하지 않음'}</dd></div><div><dt>미용 주기</dt><dd>{pet.visitIntervalWeeks ? `${pet.visitIntervalWeeks}주` : '미등록'}</dd></div></dl>
       <div className="customer-visit-stats"><div><span>최근 미용</span><strong>{latest ? shortDate(latest.date) : '아직 없음'}</strong><small>{visited.length}회 방문 완료</small></div><div><span>다음 예약</span><strong>{next ? shortDate(next.date) : '예약 없음'}</strong><small>{next ? `${next.time} · ${next.service}` : recommended ? `권장 방문 ${displayDate(recommended)}` : '다음 만남을 예약해 주세요'}</small></div><div><span>누적 정산 금액</span><strong>{money(paidTotal)}<small>원</small></strong><small>정산 완료 내역 기준</small></div></div>
       <div className="customer-pet-notes">{notes.map((note) => <section className={note.value && note.warning ? 'has-note' : ''} key={note.title}><h4>{note.warning ? <ShieldAlert size={15} /> : <Heart size={15} />}{note.title}</h4><p>{note.value || '아직 기록된 내용이 없어요.'}</p></section>)}</div>
-      <section className="customer-history"><h3><CalendarDays size={17} /> 예약 · 미용 이력 <span className="count-pill">{history.length}</span></h3>{history.length ? <div className="customer-history-list">{history.map((appointment) => <article key={appointment.id} className={appointment.status === 'cancelled' ? 'is-cancelled' : ''}><div><strong>{displayDate(appointment.date)} <span>{appointment.time}</span></strong><p>{appointment.service} · {money(appointment.price)}원</p>{appointment.notes && <p className="customer-history-note">{appointment.notes}</p>}</div><span className={`badge ${appointment.status === 'cancelled' ? 'cancelled' : appointment.paymentStatus === 'paid' ? 'paid' : 'scheduled'}`}>{appointment.status === 'cancelled' ? '예약 취소' : appointment.paymentStatus === 'paid' ? '정산 완료' : '예약 확정'}</span></article>)}</div> : <div className="customer-empty-history"><PawPrint size={22} /><p>이 아이에게 연결된 예약이 아직 없어요.</p><span>새 예약을 등록하거나 아래에서 기존 예약을 연결할 수 있어요.</span></div>}</section>
+      <section className="customer-history"><h3><CalendarDays size={17} /> 예약 · 미용 이력 <span className="count-pill">{history.length}</span></h3>{history.length ? <div className="customer-history-list">{history.map((appointment) => <article key={appointment.id} className={appointment.status === 'cancelled' ? 'is-cancelled' : ''}><div><strong>{displayDate(appointment.date)} <span>{appointment.time}</span></strong><p>{appointment.service} · {money(appointment.price)}원</p>{appointment.notes && <p className="customer-history-note">{appointment.notes}</p>}<button type="button" className="text-button" onClick={() => onCare(appointment)}>전후 · 케어 기록</button></div><span className={`badge ${appointment.status === 'cancelled' ? 'cancelled' : appointment.paymentStatus === 'paid' ? 'paid' : 'scheduled'}`}>{appointment.status === 'cancelled' ? '예약 취소' : appointment.paymentStatus === 'paid' ? '정산 완료' : '예약 확정'}</span></article>)}</div> : <div className="customer-empty-history"><PawPrint size={22} /><p>이 아이에게 연결된 예약이 아직 없어요.</p><span>새 예약을 등록하거나 아래에서 기존 예약을 연결할 수 있어요.</span></div>}</section>
       {unlinked.length > 0 && <section className="customer-link-history"><h3><Link size={16} /> 기존 예약 이력 연결</h3><div className="field"><label htmlFor={`${id}-history`}>연결할 예약 선택</label><select id={`${id}-history`} value={linkId} onChange={(event) => setLinkId(event.target.value)} disabled={busy}><option value="">예약의 반려견과 보호자를 확인해 주세요</option>{unlinked.map((appointment) => <option key={appointment.id} value={appointment.id}>{appointment.date} {appointment.time} · {appointment.dogName} / {appointment.guardianName} · {appointment.phone || '연락처 없음'}</option>)}</select></div><p className="field-hint">같은 이름의 다른 아이는 아닌지 확인해 주세요. 기존 예약의 이름·금액·정산 내역은 유지하고 이력만 연결해요.</p><button type="button" className="btn btn-secondary btn-small" disabled={busy || !linkId} onClick={() => void run(async () => { await api(`/appointments/${linkId}/link-pet`, 'POST', { petId: pet.id }); onSaved(); })}>{busy ? <LoaderCircle size={15} className="spin" /> : <Link size={15} />}이 반려견 이력에 연결</button>{error && <p className="form-error" role="alert">{error}</p>}</section>}
     </div><footer className="modal-footer"><button type="button" className="btn btn-secondary" disabled={busy} onClick={onEdit}><Pencil size={15} />정보 수정</button><button type="button" className="btn btn-primary" disabled={busy} onClick={onBook}><Plus size={16} />이 아이 예약하기</button></footer>
   </Modal>;
 }
 
-export function CustomersPanel({ customers, pets, appointments, onSaved, onBook }: { customers: Customer[]; pets: Pet[]; appointments: Appointment[]; onSaved: () => void; onBook: (petId: string) => void }) {
+export function CustomersPanel({ customers, pets, appointments, onSaved, onBook, onCare }: { customers: Customer[]; pets: Pet[]; appointments: Appointment[]; onCare: (appointment: Appointment) => void; onSaved: () => void; onBook: (petId: string) => void }) {
   const [query, setQuery] = useState('');
   const [dialog, setDialog] = useState<Dialog>(null);
   const normalized = query.trim().toLowerCase();
@@ -165,6 +164,6 @@ export function CustomersPanel({ customers, pets, appointments, onSaved, onBook 
     {dialog?.type === 'register' && <PetForm customers={customers} customerId={dialog.customerId} onClose={() => setDialog(null)} onSaved={save} />}
     {dialog?.type === 'customer' && <CustomerForm initial={dialog.customer} onClose={() => setDialog(null)} onSaved={save} />}
     {dialog?.type === 'pet' && <PetForm customers={customers} initial={dialog.pet} onClose={() => setDialog(null)} onSaved={save} />}
-    {dialog?.type === 'detail' && <PetDetail pet={dialog.pet} customer={customers.find((customer) => customer.id === dialog.pet.customerId)} appointments={appointments} onClose={save} onSaved={save} onEdit={() => setDialog({ type: 'pet', pet: dialog.pet })} onBook={() => book(dialog.pet.id)} />}
+    {dialog?.type === 'detail' && <PetDetail pet={dialog.pet} customer={customers.find((customer) => customer.id === dialog.pet.customerId)} appointments={appointments} onCare={appointment => { save(); onCare(appointment); }} onClose={save} onSaved={save} onEdit={() => setDialog({ type: 'pet', pet: dialog.pet })} onBook={() => book(dialog.pet.id)} />}
   </div>;
 }

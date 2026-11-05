@@ -34,6 +34,7 @@ BREAKDOWN_FIELDS = {"basePrice", "breedSurcharge", "weightSurcharge", "extraChar
 CUSTOMER_FIELDS = {"name", "phone", "notes"}
 PET_FIELDS = {"photos", "customerId", "name", "breed", "weight", "birthDate", "sex", "neutered", "allergies", "healthNotes", "behaviorNotes", "preferredStyle", "visitIntervalWeeks"}
 SHAMPOO_FIELDS = {"photo", "name", "purchasePrice", "volumeMl", "dilutionWaterRatio", "notes", "archived"}
+CARE_FIELDS = {"beforeNotes", "afterNotes", "groomerOpinion", "homeCare", "nextVisitDate", "photos"}
 DEFAULT_PRICING = {
     "services": [
         {"id": "full", "name": "전체 미용", "basePrice": 65000, "duration": 120},
@@ -178,6 +179,41 @@ def validate_shampoo(data):
     if not isinstance(archived, bool):
         raise APIError("샴푸 사용 중지 여부를 확인해 주세요.")
     result["archived"] = archived
+    return result
+
+
+def validate_care(data):
+    result = {key: text_field(data, key, label, maximum=2000) for key, label in (
+        ("beforeNotes", "미용 전 상태"), ("afterNotes", "미용 후 상태"),
+        ("groomerOpinion", "미용 소견"), ("homeCare", "보호자 관리사항"),
+    )}
+    next_date = data.get("nextVisitDate", "")
+    result["nextVisitDate"] = valid_date(next_date, "다음 권장 방문일") if next_date != "" else ""
+    photos = data.get("photos", [])
+    if not isinstance(photos, list) or len(photos) > 8:
+        raise APIError("미용 사진은 전·후 각각 4장까지 저장할 수 있습니다.")
+    result["photos"], seen, counts = [], set(), {"before": 0, "after": 0}
+    for photo in photos:
+        if not isinstance(photo, dict) or set(photo) != {"id", "src", "caption", "stage"}:
+            raise APIError("미용 사진 항목을 확인해 주세요.")
+        image_id = text_field(photo, "id", "사진 ID", required=True, maximum=80)
+        stage = photo.get("stage")
+        if not isinstance(stage, str) or stage not in counts or image_id in seen:
+            raise APIError("미용 전·후 구분과 사진 ID를 확인해 주세요.")
+        counts[stage] += 1
+        if counts[stage] > 4:
+            raise APIError("미용 사진은 전·후 각각 4장까지 저장할 수 있습니다.")
+        seen.add(image_id)
+        src = photo.get("src")
+        if not isinstance(src, str) or len(src) > 350000 or not re.fullmatch(r"data:image/jpeg;base64,[A-Za-z0-9+/]+=*", src):
+            raise APIError("JPEG 사진을 선택해 주세요.")
+        try:
+            image_bytes = base64.b64decode(src.split(",", 1)[1], validate=True)
+        except (ValueError, binascii.Error):
+            raise APIError("사진 데이터를 읽을 수 없습니다.") from None
+        if not image_bytes.startswith(b"\xff\xd8") or not image_bytes.endswith(b"\xff\xd9"):
+            raise APIError("JPEG 사진을 선택해 주세요.")
+        result["photos"].append({"id": image_id, "src": src, "caption": text_field(photo, "caption", "사진 설명", maximum=120), "stage": stage})
     return result
 
 
@@ -326,6 +362,10 @@ class Store:
                 );
                 CREATE INDEX IF NOT EXISTS expense_date ON expenses(date);
                 CREATE TABLE IF NOT EXISTS booking_requests (id TEXT PRIMARY KEY, payload TEXT NOT NULL, status TEXT NOT NULL, createdAt TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS care_records (
+                    appointmentId TEXT PRIMARY KEY REFERENCES appointments(id),
+                    payload TEXT NOT NULL, shareToken TEXT UNIQUE
+                );
                 CREATE TABLE IF NOT EXISTS settings (
                     key TEXT PRIMARY KEY, value TEXT NOT NULL
                 );
@@ -702,6 +742,92 @@ class Store:
             )
             return self.find(connection, appointment_id)
 
+    @staticmethod
+    def write_care(connection, record):
+        connection.execute(
+            "INSERT INTO care_records (appointmentId, payload, shareToken) VALUES (?, ?, ?) "
+            "ON CONFLICT(appointmentId) DO UPDATE SET payload = excluded.payload, shareToken = excluded.shareToken",
+            (record["appointmentId"], json.dumps(record, ensure_ascii=False), record["shareToken"]),
+        )
+
+    def get_care(self, appointment_id):
+        with self.connect() as connection:
+            self.find(connection, appointment_id)
+            row = connection.execute("SELECT payload FROM care_records WHERE appointmentId = ?", (appointment_id,)).fetchone()
+            return json.loads(row["payload"]) if row else None
+
+    def save_care(self, appointment_id, data):
+        if not data or set(data) - CARE_FIELDS:
+            raise APIError("미용 기록 입력 항목을 확인해 주세요.")
+        with self.connect(write=True) as connection:
+            appointment = self.find(connection, appointment_id)
+            row = connection.execute("SELECT payload FROM care_records WHERE appointmentId = ?", (appointment_id,)).fetchone()
+            current = json.loads(row["payload"]) if row else {
+                "id": appointment_id, "appointmentId": appointment_id,
+                "published": False, "shareToken": None, "publishedSnapshot": None,
+            }
+            record = {**current, **validate_care({**current, **data}), "updatedAt": timestamp()}
+            if record["nextVisitDate"] and record["nextVisitDate"] < appointment["date"]:
+                raise APIError("다음 권장 방문일은 이번 방문일 이후로 선택해 주세요.")
+            self.write_care(connection, record)
+            return record
+
+    def publish_care(self, appointment_id, data):
+        if data:
+            raise APIError("먼저 미용 기록을 저장한 뒤 공유해 주세요.")
+        with self.connect(write=True) as connection:
+            appointment = self.find(connection, appointment_id)
+            row = connection.execute("SELECT payload FROM care_records WHERE appointmentId = ?", (appointment_id,)).fetchone()
+            if not row:
+                raise APIError("먼저 미용 기록을 작성해 주세요.", 404)
+            record = json.loads(row["payload"])
+            care = validate_care(record)
+            if care["nextVisitDate"] and care["nextVisitDate"] < appointment["date"]:
+                raise APIError("다음 권장 방문일은 이번 방문일 이후로 선택해 주세요.")
+            if not care["photos"] and not any(care[key] for key in ("beforeNotes", "afterNotes", "groomerOpinion", "homeCare")):
+                raise APIError("공유할 미용 기록이나 사진을 먼저 남겨 주세요.")
+            # Deliberate allowlist: never include money, contact information or internal notes.
+            snapshot = {"id": appointment_id, **{key: appointment[key] for key in ("petId", "dogName", "breed", "weight", "date", "service")}, **care, "publishedAt": timestamp()}
+            record.update({"published": True, "shareToken": record.get("shareToken") or uuid4().hex, "publishedSnapshot": snapshot})
+            self.write_care(connection, record)
+            return record
+
+    def unpublish_care(self, appointment_id):
+        with self.connect(write=True) as connection:
+            self.find(connection, appointment_id)
+            row = connection.execute("SELECT payload FROM care_records WHERE appointmentId = ?", (appointment_id,)).fetchone()
+            if not row:
+                raise APIError("미용 기록을 찾을 수 없습니다.", 404)
+            record = json.loads(row["payload"])
+            record.update({"published": False, "shareToken": None, "publishedSnapshot": None})
+            self.write_care(connection, record)
+            return record
+
+    def public_care(self, token):
+        if not isinstance(token, str) or not re.fullmatch(r"[a-f0-9]{32}", token):
+            raise APIError("공유된 미용 기록을 찾을 수 없습니다.", 404)
+        with self.connect() as connection:
+            connection.execute("BEGIN")
+            row = connection.execute("SELECT payload FROM care_records WHERE shareToken = ?", (token,)).fetchone()
+            record = json.loads(row["payload"]) if row else None
+            if not record or not record["published"] or not record["publishedSnapshot"]:
+                raise APIError("공유가 종료되었거나 존재하지 않는 미용 기록입니다.", 404)
+            report = record["publishedSnapshot"]
+            history = [{key: report[key] for key in ("id", "petId", "dogName", "date", "service")} | {"shareToken": token}]
+            if report["petId"]:
+                # Return only small history summaries, never every visit's photo payload.
+                history = [dict(item) for item in connection.execute("""SELECT
+                    json_extract(payload, '$.publishedSnapshot.id') AS id,
+                    json_extract(payload, '$.publishedSnapshot.petId') AS petId,
+                    json_extract(payload, '$.publishedSnapshot.dogName') AS dogName,
+                    json_extract(payload, '$.publishedSnapshot.date') AS date,
+                    json_extract(payload, '$.publishedSnapshot.service') AS service, shareToken
+                    FROM care_records WHERE shareToken IS NOT NULL
+                    AND json_extract(payload, '$.published') = 1
+                    AND json_extract(payload, '$.publishedSnapshot.petId') = ?
+                    ORDER BY date DESC, id DESC""", (report["petId"],))]
+            return {"report": report, "history": history}
+
     def create_expense(self, data):
         if set(data) - {"date", "category", "amount", "memo"}:
             raise APIError("지출에 지원하지 않는 입력 항목이 있습니다.")
@@ -728,7 +854,7 @@ class Store:
             if not cursor.rowcount:
                 raise APIError("지출 내역을 찾을 수 없습니다.", 404)
 
-    def state(self, month):
+    def state(self, month, care_summary=False):
         month = valid_month(month)
         with self.connect() as connection:
             # Read both tables from one snapshot for consistent financial totals.
@@ -737,6 +863,14 @@ class Store:
             expenses = [dict(row) for row in connection.execute("SELECT * FROM expenses ORDER BY date DESC, createdAt DESC")]
             pricing = json.loads(connection.execute("SELECT value FROM settings WHERE key = 'pricing'").fetchone()["value"])
             masters = {table: [self.master_from_row(row) for row in connection.execute(f"SELECT * FROM {table} ORDER BY createdAt, id")] for table in ("customers", "pets", "shampoos")}
+            if care_summary:
+                care_records = [{**dict(row), "published": bool(row["published"])} for row in connection.execute("""SELECT appointmentId,
+                    json_extract(payload, '$.published') AS published,
+                    json_array_length(payload, '$.photos') AS photoCount,
+                    json_extract(payload, '$.updatedAt') AS updatedAt
+                    FROM care_records ORDER BY appointmentId""")]
+            else:
+                care_records = [json.loads(row["payload"]) for row in connection.execute("SELECT payload FROM care_records ORDER BY appointmentId")]
         paid = [a for a in appointments if a["paymentStatus"] == "paid" and a["paidDate"].startswith(month)]
         revenue = sum(a["price"] for a in paid)
         total_expenses = sum(e["amount"] for e in expenses if e["date"].startswith(month))
@@ -746,6 +880,7 @@ class Store:
             "expenses": expenses,
             "pricing": pricing,
             **masters,
+            "careRecordSummaries" if care_summary else "careRecords": care_records,
             "summary": {
                 "revenue": revenue, "totalExpenses": total_expenses,
                 "profit": revenue - total_expenses, "unpaidAmount": unpaid,
@@ -776,7 +911,7 @@ def make_handler(store: Store, static_dir: Path):
             if origin and urlsplit(origin).netloc != self.headers.get("Host"):
                 raise APIError("다른 사이트에서는 데이터를 변경할 수 없습니다.", 403)
 
-        def read_json(self):
+        def read_json(self, maximum=2_200_000):
             self.validate_origin()
             if self.headers.get_content_type() != "application/json":
                 raise APIError("JSON 형식으로 요청해 주세요.", 415)
@@ -784,7 +919,7 @@ def make_handler(store: Store, static_dir: Path):
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 raise APIError("요청 크기가 올바르지 않습니다.") from None
-            if length <= 0 or length > 2_200_000:
+            if length <= 0 or length > maximum:
                 raise APIError("요청 내용이 없거나 너무 큽니다.", 413)
             try:
                 data = json.loads(self.rfile.read(length))
@@ -819,6 +954,9 @@ def make_handler(store: Store, static_dir: Path):
                     return self.send_json({"status": "ok"})
                 if method == "GET" and path == "/api/public/catalog":
                     return self.send_json(store.public_catalog())
+                care_public_match = re.fullmatch(r"/api/public/care/([a-f0-9]{32})", path)
+                if method == "GET" and care_public_match:
+                    return self.send_json(store.public_care(care_public_match.group(1)))
                 if method == "GET" and path == "/api/public/availability":
                     query = parse_qs(parsed.query)
                     return self.send_json(store.public_availability(query.get("date",[""])[0],query.get("serviceId",[""])[0]))
@@ -830,8 +968,9 @@ def make_handler(store: Store, static_dir: Path):
                 if method == "POST" and booking_match:
                     return self.send_json(store.decide_booking(booking_match.group(1), self.read_json()))
                 if method == "GET" and path == "/api/state":
-                    month = parse_qs(parsed.query, keep_blank_values=True).get("month", [today()[:7]])[0]
-                    return self.send_json(store.state(month))
+                    query = parse_qs(parsed.query, keep_blank_values=True)
+                    month = query.get("month", [today()[:7]])[0]
+                    return self.send_json(store.state(month, care_summary=query.get("care", [""])[0] == "summary"))
                 if method == "POST" and path == "/api/appointments":
                     return self.send_json(store.create_appointment(self.read_json()), 201)
                 if method == "PUT" and path == "/api/pricing":
@@ -849,6 +988,18 @@ def make_handler(store: Store, static_dir: Path):
                 match = re.fullmatch(r"/api/appointments/([a-f0-9]{32})", path)
                 if method == "PATCH" and match:
                     return self.send_json(store.update_appointment(match.group(1), self.read_json()))
+                care_match = re.fullmatch(r"/api/appointments/([a-f0-9]{32})/care(/publish)?", path)
+                if care_match:
+                    appointment_id, publication = care_match.groups()
+                    if method == "GET" and not publication:
+                        return self.send_json(store.get_care(appointment_id))
+                    if method in {"POST", "PATCH"} and not publication:
+                        return self.send_json(store.save_care(appointment_id, self.read_json(maximum=3_000_000)))
+                    if method == "POST" and publication:
+                        return self.send_json(store.publish_care(appointment_id, self.read_json()))
+                    if method == "DELETE" and publication:
+                        self.validate_origin()
+                        return self.send_json(store.unpublish_care(appointment_id))
                 match = re.fullmatch(r"/api/appointments/([a-f0-9]{32})/settle", path)
                 if method == "POST" and match:
                     return self.send_json(store.settle(match.group(1), self.read_json()))

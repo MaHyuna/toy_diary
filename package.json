@@ -12,7 +12,8 @@
     "package:demo": "npm run build:demo && python scripts/package_demo.py",
     "start": "python -m server.app --host 127.0.0.1 --port 3000",
     "test": "python -m unittest discover -s tests -v",
-    "test:studio": "node --test --test-isolation=none tests/price-studio.test.mjs"
+    "test:studio": "node --test --test-isolation=none tests/price-studio.test.mjs",
+    "test:care": "node --experimental-strip-types --test --test-isolation=none tests/care.test.ts"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

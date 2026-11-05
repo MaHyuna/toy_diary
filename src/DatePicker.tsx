@@ -5,8 +5,8 @@ import { shiftMonth } from './calendar';
 import { today } from './types';
 
 /** Inline calendar: selecting a date is explicit and never opens the browser popup. */
-export function DatePicker({ value, max = today(), min = '2000-01-01', disabled, onChange, onClose }: {
-  value: string; max?: string; min?: string; disabled?: boolean; onChange: (date: string) => void; onClose?: () => void;
+export function DatePicker({ value, label = '실제 결제일', max = today(), min = '2000-01-01', disabled, onChange, onClose }: {
+  value: string; label?: string; max?: string; min?: string; disabled?: boolean; onChange: (date: string) => void; onClose?: () => void;
 }) {
   const [month, setMonth] = useState(value.slice(0, 7));
   const [focused, setFocused] = useState(value);
@@ -33,18 +33,18 @@ export function DatePicker({ value, max = today(), min = '2000-01-01', disabled,
     if (!inRange(target)) return;
     focusPending.current = true; setMonth(target.slice(0, 7)); setFocused(target);
   }
-  return <fieldset ref={root} className="inline-datepicker" aria-label="실제 결제일" disabled={disabled} onKeyDown={event => {
+  return <fieldset ref={root} className="inline-datepicker" aria-label={label} disabled={disabled} onKeyDown={event => {
     if (event.key === 'Escape' && onClose) { event.preventDefault(); event.stopPropagation(); onClose(); }
   }}>
-    <legend className="sr-only">실제 결제일</legend>
+    <legend className="sr-only">{label}</legend>
     <div className="datepicker-toolbar">
-      <button type="button" className="icon-button" aria-label="결제일 이전 달" disabled={disabled || month <= min.slice(0, 7)} onClick={() => setMonth(shiftMonth(month, -1))}><ChevronLeft size={18} /></button>
-      <div className="datepicker-period"><select aria-label="결제 연도" value={month.slice(0, 4)} onChange={event => changeMonth(`${event.target.value}-${month.slice(5)}`)} disabled={disabled}>
+      <button type="button" className="icon-button" aria-label={label === '실제 결제일' ? '결제일 이전 달' : `${label} 이전 달`} disabled={disabled || month <= min.slice(0, 7)} onClick={() => setMonth(shiftMonth(month, -1))}><ChevronLeft size={18} /></button>
+      <div className="datepicker-period"><select aria-label={label === '실제 결제일' ? '결제 연도' : `${label} 연도`} value={month.slice(0, 4)} onChange={event => changeMonth(`${event.target.value}-${month.slice(5)}`)} disabled={disabled}>
         {Array.from({ length: Number(max.slice(0, 4)) - Number(min.slice(0, 4)) + 1 }, (_, index) => Number(max.slice(0, 4)) - index).map(year => <option key={year} value={year}>{year}년</option>)}
-      </select><select aria-label="결제 월" value={month.slice(5)} onChange={event => setMonth(`${month.slice(0, 4)}-${event.target.value}`)} disabled={disabled}>
+      </select><select aria-label={label === '실제 결제일' ? '결제 월' : `${label} 월`} value={month.slice(5)} onChange={event => setMonth(`${month.slice(0, 4)}-${event.target.value}`)} disabled={disabled}>
         {Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0')).map(number => <option key={number} value={number} disabled={`${month.slice(0, 4)}-${number}` < min.slice(0, 7) || `${month.slice(0, 4)}-${number}` > max.slice(0, 7)}>{Number(number)}월</option>)}
       </select></div>
-      <button type="button" className="icon-button" aria-label="결제일 다음 달" disabled={disabled || month >= max.slice(0, 7)} onClick={() => setMonth(shiftMonth(month, 1))}><ChevronRight size={18} /></button>
+      <button type="button" className="icon-button" aria-label={label === '실제 결제일' ? '결제일 다음 달' : `${label} 다음 달`} disabled={disabled || month >= max.slice(0, 7)} onClick={() => setMonth(shiftMonth(month, 1))}><ChevronRight size={18} /></button>
     </div>
     <div className="datepicker-weekdays" aria-hidden="true">{['일', '월', '화', '수', '목', '금', '토'].map(day => <span key={day}>{day}</span>)}</div>
     <div className="datepicker-days">

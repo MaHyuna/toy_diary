@@ -1,4 +1,4 @@
-import type { Appointment, BookingRequest, Customer, Expense, PaymentMethod, Pet, Pricing, Shampoo, ShampooUsage, State } from '../types.ts';
+import type { Appointment, BookingRequest, CarePhoto, Customer, Expense, GroomingRecord, PaymentMethod, Pet, Pricing, PublicCareHistoryItem, PublicCareReport, Shampoo, ShampooUsage, State } from '../types.ts';
 import { addExpandedDemoData, createDemoData, DEMO_SEED_REVISION } from './seed.ts';
 import type { DemoData } from './seed.ts';
 
@@ -11,6 +11,8 @@ const petFields = ['photos', 'customerId', 'name', 'breed', 'weight', 'birthDate
 const shampooFields = ['photo', 'name', 'purchasePrice', 'volumeMl', 'dilutionWaterRatio', 'notes', 'archived'];
 const breakdownFields = ['basePrice', 'breedSurcharge', 'weightSurcharge', 'extraCharges', 'shampooUsage'];
 const appointmentFields = ['dogName', 'guardianName', 'phone', 'breed', 'weight', 'service', 'date', 'time', 'duration', 'price', 'notes', 'status', 'staffId', 'customerId', 'petId', 'shampooUsage', 'shampooSurcharge', 'shampooCost', 'basePrice', 'breedSurcharge', 'weightSurcharge', 'extraCharges'];
+const careFields = ['beforeNotes', 'afterNotes', 'groomerOpinion', 'homeCare', 'nextVisitDate', 'photos'];
+const publicCareFields = ['id', 'petId', 'dogName', 'breed', 'weight', 'date', 'service', ...careFields, 'publishedAt'];
 const fail = (message: string): never => { throw new Error(message); };
 const clone = <T>(value: T): T => structuredClone(value);
 const uid = () => crypto.randomUUID().replaceAll('-', '');
@@ -190,13 +192,43 @@ function appointment(data: DemoData, supplied: Input, current?: Appointment): Ap
   return result;
 }
 
-function summary(data: DemoData, selected: string): State {
+function summary(data: DemoData, selected: string, careSummary = false): State {
   month(selected);
   const appointments = [...data.appointments].sort((a, b) => `${a.date}${a.time}${a.createdAt}`.localeCompare(`${b.date}${b.time}${b.createdAt}`));
   const expenses = [...data.expenses].sort((a, b) => `${b.date}${b.createdAt}`.localeCompare(`${a.date}${a.createdAt}`));
   const paid = appointments.filter(row => row.paymentStatus === 'paid' && row.paidDate?.startsWith(selected));
   const revenue = paid.reduce((sum, row) => sum + row.price, 0), totalExpenses = expenses.filter(row => row.date.startsWith(selected)).reduce((sum, row) => sum + row.amount, 0);
-  return { ...data, appointments, expenses, summary: { revenue, totalExpenses, profit: revenue - totalExpenses, paidCount: paid.length, unpaidAmount: appointments.filter(row => row.date.startsWith(selected) && row.status !== 'cancelled' && row.paymentStatus === 'unpaid').reduce((sum, row) => sum + row.price, 0), shampooCost: paid.reduce((sum, row) => sum + row.shampooCost, 0) } };
+  const { careRecords, careRecordSummaries: _summaries, ...base } = data;
+  const care = careSummary
+    ? { careRecordSummaries: (careRecords ?? []).map(row => ({ appointmentId: row.appointmentId, published: row.published, photoCount: row.photos.length, updatedAt: row.updatedAt })) }
+    : { careRecords: careRecords ?? [] };
+  return { ...base, ...care, appointments, expenses, summary: { revenue, totalExpenses, profit: revenue - totalExpenses, paidCount: paid.length, unpaidAmount: appointments.filter(row => row.date.startsWith(selected) && row.status !== 'cancelled' && row.paymentStatus === 'unpaid').reduce((sum, row) => sum + row.price, 0), shampooCost: paid.reduce((sum, row) => sum + row.shampooCost, 0) } };
+}
+
+function careDraft(input: Input, visitDate: string) {
+  const photos: CarePhoto[] = list(input.photos ?? [], 8, '미용 사진').map(value => {
+    const photo = object(value); only(photo, ['id', 'src', 'caption', 'stage']);
+    const src = text(photo, 'src', '사진', 350000, true);
+    if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(src)) fail('JPEG 사진을 선택해 주세요.');
+    let raw = ''; try { raw = atob(src.split(',')[1]); } catch { fail('사진 데이터를 읽을 수 없습니다.'); }
+    if (!raw.startsWith('\xff\xd8') || !raw.endsWith('\xff\xd9')) fail('JPEG 사진을 선택해 주세요.');
+    return { id: text(photo, 'id', '사진 ID', 80, true), src, caption: text(photo, 'caption', '사진 설명', 120), stage: choice(photo.stage, ['before', 'after'] as const, '미용 전·후 구분') };
+  });
+  if (new Set(photos.map(photo => photo.id)).size !== photos.length || ['before', 'after'].some(stage => photos.filter(photo => photo.stage === stage).length > 4)) fail('미용 사진은 전·후 각각 4장까지, 중복 없이 저장해 주세요.');
+  const nextVisitDate = input.nextVisitDate === undefined || input.nextVisitDate === '' ? '' : day(input.nextVisitDate, '다음 권장 방문일');
+  if (nextVisitDate && nextVisitDate < visitDate) fail('다음 권장 방문일은 이번 방문일 이후로 선택해 주세요.');
+  return {
+    beforeNotes: text(input, 'beforeNotes', '미용 전 상태'), afterNotes: text(input, 'afterNotes', '미용 후 상태'),
+    groomerOpinion: text(input, 'groomerOpinion', '미용 소견'), homeCare: text(input, 'homeCare', '보호자 관리사항'), nextVisitDate, photos,
+  };
+}
+
+function publicCareSnapshot(input: Input): PublicCareReport {
+  only(input, publicCareFields);
+  const date = day(input.date), petId = input.petId === null ? null : text(input, 'petId', '반려견 ID', 80, true);
+  return { id: text(input, 'id', '미용 기록 ID', 80, true), petId, dogName: text(input, 'dogName', '반려견 이름', 80, true),
+    breed: text(input, 'breed', '견종', 80), weight: input.weight === null ? null : measure(input.weight, '몸무게', 150),
+    date, service: text(input, 'service', '서비스', 100, true), ...careDraft(input, date), publishedAt: text(input, 'publishedAt', '공유일', 80, true) };
 }
 
 function validateStored(value: unknown, today: string): DemoData {
@@ -228,6 +260,26 @@ function validateStored(value: unknown, today: string): DemoData {
     for (const field of appointmentFields) editable[field] = object(row)[field];
     const normalized = appointment({ ...records, appointments: [] }, editable, { ...row, paymentStatus: 'unpaid' });
     if (normalized.price !== row.price || normalized.shampooCost !== row.shampooCost || normalized.shampooSurcharge !== row.shampooSurcharge) fail('요금 기록을 확인할 수 없습니다.');
+  }
+  const careIds = new Set<string>(), careTokens = new Set<string>();
+  for (const value of list(records.careRecords === undefined ? [] : records.careRecords, 10000, '미용 기록')) {
+    const row = object(value);
+    only(row, ['id', 'appointmentId', ...careFields, 'published', 'shareToken', 'publishedSnapshot', 'updatedAt']);
+    const id = text(row, 'id', '미용 기록 ID', 80, true);
+    if (id !== row.appointmentId || careIds.has(id)) fail('미용 기록 연결을 확인해 주세요.');
+    careIds.add(id);
+    const visit = existing(records.appointments, id, '예약');
+    careDraft(row, visit.date);
+    text(row, 'updatedAt', '저장일', 80, true);
+    if (typeof row.published !== 'boolean') fail('공유 상태를 확인해 주세요.');
+    if (row.published) {
+      const token = text(row, 'shareToken', '공유 주소', 32, true);
+      if (!/^[a-f0-9]{32}$/.test(token) || careTokens.has(token)) fail('공유 주소를 확인해 주세요.');
+      careTokens.add(token);
+      const snapshot = publicCareSnapshot(object(row.publishedSnapshot));
+      if (snapshot.id !== id) fail('공유된 미용 기록의 연결을 확인해 주세요.');
+      if (snapshot.petId !== null) existing(records.pets, snapshot.petId, '반려견');
+    } else if (row.shareToken !== null || row.publishedSnapshot !== null) fail('종료된 공유 상태를 확인해 주세요.');
   }
   return records;
 }
@@ -272,14 +324,50 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         const route = url.pathname.replace(/^\/api(?=\/)/, '');
         if (method === 'GET' && route === '/health') return { status: 'ok', mode: 'demo' } as T;
         const data = clone(read()), today = day(getToday());
-        if (method === 'GET' && route === '/state') return clone(summary(data, url.searchParams.get('month') ?? today.slice(0, 7))) as T;
+        if (method === 'GET' && route === '/state') return clone(summary(data, url.searchParams.get('month') ?? today.slice(0, 7), url.searchParams.get('care') === 'summary')) as T;
         if(method==='GET'&&route==='/public/catalog')return clone({pricing:data.pricing,name:'몽글 미용실',hours:'09:00–19:00'}) as T;
+        if (method === 'GET' && /^\/public\/care\/[^/]+$/.test(route)) {
+          const token = route.split('/').at(-1)!;
+          const current = data.careRecords?.find(row => /^[a-f0-9]{32}$/.test(token) && row.published && row.shareToken === token && row.publishedSnapshot);
+          if (!current?.publishedSnapshot) return fail('공유가 종료되었거나 존재하지 않는 미용 기록입니다.');
+          const report = publicCareSnapshot(object(current.publishedSnapshot));
+          const rows = report.petId ? (data.careRecords ?? []).filter(row => row.published && row.publishedSnapshot?.petId === report.petId) : [current];
+          const history: PublicCareHistoryItem[] = rows.map(row => {
+            const snapshot = row.publishedSnapshot!;
+            return { id: snapshot.id, petId: snapshot.petId, dogName: snapshot.dogName, date: snapshot.date, service: snapshot.service, shareToken: row.shareToken! };
+          });
+          history.sort((a, b) => `${b.date}${b.id}`.localeCompare(`${a.date}${a.id}`));
+          return clone({ report, history }) as T;
+        }
+        const careGet = /^\/appointments\/([^/]+)\/care$/.exec(route);
+        if (method === 'GET' && careGet) { existing(data.appointments, careGet[1], '예약'); return clone(data.careRecords?.find(row => row.appointmentId === careGet[1]) ?? null) as T; }
         if(method==='GET'&&route==='/booking-requests')return clone(requestRows(data).map(({booking:_,...row})=>row)) as T;
         if(method==='GET'&&route==='/public/availability'){const date=publicDay(url.searchParams.get('date')),service=existing(data.pricing.services,url.searchParams.get('serviceId'),'서비스');return {slots:slots(data,date,service.duration)} as T;}
         const input = method === 'DELETE' ? {} : object(body);
         let result: unknown;
         const parts = route.split('/').filter(Boolean), [resource, id, action] = parts;
-        if(method==='POST'&&route==='/public/requests'){
+        if (resource === 'appointments' && id && action === 'care' && (parts.length === 3 || parts.length === 4 && parts[3] === 'publish')) {
+          const visit = existing(data.appointments, id, '예약');
+          const careRecords = data.careRecords ??= [];
+          const current = careRecords.find(row => row.appointmentId === id);
+          if (parts.length === 3 && (method === 'POST' || method === 'PATCH')) {
+            only(input, careFields); if (!Object.keys(input).length) fail('미용 기록 입력 항목을 확인해 주세요.');
+            const saved: GroomingRecord = { id, appointmentId: id, published: false, shareToken: null, publishedSnapshot: null, ...current, ...careDraft({ ...current, ...input }, visit.date), updatedAt: stamp() };
+            if (current) careRecords[careRecords.indexOf(current)] = saved; else careRecords.push(saved);
+            result = saved;
+          } else if (parts.length === 4 && method === 'POST') {
+            only(input, []); if (!current) return fail('먼저 미용 기록을 작성해 주세요.');
+            const care = careDraft(object(current), visit.date);
+            if (!care.photos.length && !care.beforeNotes && !care.afterNotes && !care.groomerOpinion && !care.homeCare) fail('공유할 미용 기록이나 사진을 먼저 남겨 주세요.');
+            const snapshot: PublicCareReport = { id, petId: visit.petId, dogName: visit.dogName, breed: visit.breed, weight: visit.weight, date: visit.date, service: visit.service, ...care, publishedAt: stamp() };
+            const published = { ...current, published: true, shareToken: current.shareToken ?? uid(), publishedSnapshot: snapshot };
+            careRecords[careRecords.indexOf(current)] = published; result = published;
+          } else if (parts.length === 4 && method === 'DELETE') {
+            if (!current) return fail('미용 기록을 찾을 수 없습니다.');
+            const unpublished = { ...current, published: false, shareToken: null, publishedSnapshot: null };
+            careRecords[careRecords.indexOf(current)] = unpublished; result = unpublished;
+          } else fail('요청한 경로를 찾을 수 없습니다.');
+        } else if(method==='POST'&&route==='/public/requests'){
           only(input,['serviceId','date','time','dogName','guardianName','phone','breed','weight','notes','consent']);if(input.consent!==true)fail('개인정보 수집에 동의해 주세요.');const date=publicDay(input.date),service=existing(data.pricing.services,input.serviceId,'서비스'),phone=text(input,'phone','연락처',40,true);if(!/^[0-9]{10,11}$/.test(phone.replace(/\D/g,'')))fail('연락 가능한 전화번호를 입력해 주세요.');const breed=text(input,'breed','견종',80),weight=measure(input.weight,'몸무게',150),breedFee=data.pricing.breedRules.find(r=>r.breed===breed)?.amount??0,weightFee=data.pricing.weightRules.find(r=>weight>=r.minWeight&&(weight<r.maxWeight||weight===r.maxWeight&&weight===150))?.amount??0;
           if(!slots(data,date,service.duration).includes(String(input.time)))fail('선택한 시간이 마감됐어요. 다른 시간을 선택해 주세요.');
           const booking=appointment(data,{date,time:input.time,dogName:input.dogName,guardianName:input.guardianName,phone,breed,weight,notes:input.notes,service:service.name,duration:service.duration,basePrice:service.basePrice,breedSurcharge:breedFee,weightSurcharge:weightFee,extraCharges:[],price:service.basePrice+breedFee+weightFee});

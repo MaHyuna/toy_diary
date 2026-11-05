@@ -36,11 +36,25 @@ export type BookingRequest = { id: string; status: 'pending' | 'accepted' | 'rej
 export type Pricing = { services: { id: string; name: string; basePrice: number; duration: number }[]; breedRules: { id: string; breed: string; amount: number }[]; weightRules: { id: string; minWeight: number; maxWeight: number; amount: number }[] };
 export type Customer = { id: string; name: string; phone: string; notes: string; createdAt: string };
 export type PetPhoto = { id: string; src: string; caption: string; date: string };
+export type CarePhoto = { id: string; src: string; caption: string; stage: 'before' | 'after' };
+export type PublicCareReport = {
+  id: string; petId: string | null; dogName: string; breed: string; weight: number | null;
+  date: string; service: string; beforeNotes: string; afterNotes: string;
+  groomerOpinion: string; homeCare: string; nextVisitDate: string;
+  photos: CarePhoto[]; publishedAt: string;
+};
+export type GroomingRecord = {
+  id: string; appointmentId: string; beforeNotes: string; afterNotes: string;
+  groomerOpinion: string; homeCare: string; nextVisitDate: string; photos: CarePhoto[];
+  published: boolean; shareToken: string | null; publishedSnapshot: PublicCareReport | null; updatedAt: string;
+};
+export type PublicCareHistoryItem = Pick<PublicCareReport, 'id' | 'petId' | 'dogName' | 'date' | 'service'> & { shareToken: string };
+export type CareRecordSummary = Pick<GroomingRecord, 'appointmentId' | 'published' | 'updatedAt'> & { photoCount: number };
 export type Pet = { photos?: PetPhoto[]; id: string; customerId: string; name: string; breed: string; weight: number | null; birthDate: string; sex: 'unknown' | 'male' | 'female'; neutered: boolean | null; allergies: string; healthNotes: string; behaviorNotes: string; preferredStyle: string; visitIntervalWeeks: number | null; createdAt: string };
 export type Shampoo = { photo?: string; id: string; name: string; purchasePrice: number; volumeMl: number; dilutionWaterRatio: number; notes: string; archived: boolean; createdAt: string };
 export type ShampooUsage = { shampooId: string; name: string; usedMl: number; purchasePrice: number; volumeMl: number; cost: number; customerCharge: number };
 export type Expense = { id: string; date: string; category: string; amount: number; memo: string; createdAt: string };
-export type State = { bookingRequests?: BookingRequest[]; appointments: Appointment[]; expenses: Expense[]; pricing: Pricing; customers: Customer[]; pets: Pet[]; shampoos: Shampoo[]; summary: { revenue: number; totalExpenses: number; profit: number; unpaidAmount: number; paidCount: number; shampooCost: number } };
+export type State = { careRecordSummaries?: CareRecordSummary[]; careRecords?: GroomingRecord[]; bookingRequests?: BookingRequest[]; appointments: Appointment[]; expenses: Expense[]; pricing: Pricing; customers: Customer[]; pets: Pet[]; shampoos: Shampoo[]; summary: { revenue: number; totalExpenses: number; profit: number; unpaidAmount: number; paidCount: number; shampooCost: number } };
 export const money = (value: number) => new Intl.NumberFormat('ko-KR').format(value);
 export const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 export const paymentLabels: Record<PaymentMethod, string> = { card: '카드', cash: '현금', transfer: '계좌이체' };
