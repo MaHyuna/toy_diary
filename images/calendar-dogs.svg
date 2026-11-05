@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 180" fill="none">
+  <title>몽글의 작은 산책</title>
+  <desc>서로 다른 세 강아지와 작은 꽃을 직접 그린 달력 장식</desc>
+  <g stroke="#8a756c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 150c93-4 156 7 240 1s158-3 233 0 163-7 225-3 131 4 194-1" opacity=".36"/>
+    <g transform="translate(98 19)">
+      <path d="M50 92c-13 9-19 27-14 39 4 8 18 9 23 1m45-41c15 8 21 26 15 39-5 8-18 8-23 1" fill="#e4e9dc"/>
+      <path d="M53 90c-9 12-12 34-8 46h24l4-20 6 20h23c5-16 1-36-8-46" fill="#fff4df"/>
+      <path d="M48 30c-15-13-29-6-29 14 0 14 3 25 14 31l16-21m46-24c15-13 29-6 29 14 0 14-3 25-14 31L94 54" fill="#c9b7a9"/>
+      <path d="M40 49c0-26 17-36 34-36s35 12 35 36c0 28-11 47-35 47S40 77 40 49Z" fill="#fff4df"/>
+      <path d="M61 20c1-10 17-15 23-4m-14 5c4-10 15-11 18-3"/>
+      <path d="M56 57v4m35-4v4" stroke-width="4"/>
+      <ellipse cx="74" cy="71" rx="7" ry="5" fill="#8a756c" stroke="none"/>
+      <path d="M74 75v5m0 0c-4 4-8 3-11 0m11 0c4 4 8 3 11 0"/>
+      <path d="m56 99 18 6 18-6-4 12H60Z" fill="#edb2af"/>
+      <path d="M61 138h-9m39 0h9"/>
+      <ellipse cx="50" cy="72" rx="7" ry="4" fill="#edb2af" stroke="none" opacity=".6"/>
+      <ellipse cx="98" cy="72" rx="7" ry="4" fill="#edb2af" stroke="none" opacity=".6"/>
+    </g>
+    <g transform="translate(414 26)">
+      <path d="M53 91c-13 9-17 26-13 37h24l4-18 6 18h25c3-17-1-29-10-37" fill="#f4e4d8"/>
+      <path d="M97 102c14 1 21-13 17-22-8 1-13 9-13 15" fill="#f4e4d8"/>
+      <path d="M40 43C20 27 16 55 23 70c4 9 13 15 21 9m52-36c20-16 24 12 17 27-4 9-13 15-21 9" fill="#cbb9a7"/>
+      <path d="M44 30c-12-15 4-28 15-20 0-15 22-17 26-3 11-11 28 2 19 14 18 4 14 25 1 26 9 23-6 48-32 48-27 0-44-23-36-46-14-3-10-21 7-19Z" fill="#f4e4d8"/>
+      <path d="M57 56v4m32-4v4" stroke-width="4"/>
+      <ellipse cx="73" cy="70" rx="6" ry="4" fill="#8a756c" stroke="none"/>
+      <path d="M73 74v6m0 0c-4 4-8 3-10-1m10 1c4 4 8 3 10-1"/>
+      <path d="m51 98 18 4 20-4-4 11H55Z" fill="#c2d4cc"/>
+      <path d="M50 130h10m20 0h10"/>
+      <ellipse cx="48" cy="72" rx="7" ry="4" fill="#edb2af" stroke="none" opacity=".6"/>
+      <ellipse cx="98" cy="72" rx="7" ry="4" fill="#edb2af" stroke="none" opacity=".6"/>
+    </g>
+    <g transform="translate(698 24)">
+      <path d="M62 84c18-6 46-2 56 10l7 31h-18l-8-16H74l-7 16H49l4-32" fill="#fff4df"/>
+      <path d="M113 90c13-8 15-19 9-29 12-1 23 18 10 32l-13 5" fill="#c9b7a9"/>
+      <path d="M34 37C17 22 11 41 17 60c3 9 7 17 17 15m44-38c17-15 23 4 17 23-3 9-7 17-17 15" fill="#c9b7a9"/>
+      <path d="M27 45c0-23 12-34 28-34s31 12 31 34c0 26-11 44-30 44S27 70 27 45Z" fill="#fff4df"/>
+      <path d="M40 50v4m31-4v4" stroke-width="4"/>
+      <ellipse cx="56" cy="66" rx="6" ry="4" fill="#8a756c" stroke="none"/>
+      <path d="M56 71v5m0 0c-4 3-7 2-9-1m9 1c4 3 7 2 9-1"/>
+      <path d="m37 89 19 6 22-5-8 11H44Z" fill="#edb2af"/>
+      <path d="M54 127h10m46 0h12"/>
+      <ellipse cx="34" cy="65" rx="6" ry="4" fill="#edb2af" stroke="none" opacity=".6"/>
+      <ellipse cx="78" cy="65" rx="6" ry="4" fill="#edb2af" stroke="none" opacity=".6"/>
+    </g>
+    <g stroke="#b29486" stroke-width="2">
+      <path d="M331 145v-22m0 8c-10 0-13-6-13-9 8-1 13 4 13 9m0 6c9 0 12-6 12-9-8-1-12 4-12 9"/>
+      <path d="M329 117c-9-6-2-14 3-8 6-7 13 2 5 7 1 8-9 10-8 1Z" fill="#edb2af"/>
+      <path d="M635 146v-17m-1 7c-9-1-10-6-10-8 7 0 10 4 10 8m2 3c7-1 9-5 9-8-7 0-9 4-9 8"/>
+      <path d="M630 125c-6-6 0-11 4-7 5-6 11 2 4 6 0 7-8 8-8 1Z" fill="#e4e9dc"/>
+      <path d="m270 81 3-7m9 13 7-2m-13 11 4 5m336-43 3-7m9 13 7-2" opacity=".7"/>
+    </g>
+  </g>
+</svg>
