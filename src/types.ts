@@ -1,3 +1,4 @@
+export type ShopNotice = { id: string; title: string; body: string; published: boolean };
 import { isDemo } from './runtime';
 
 export type PaymentMethod = 'card' | 'cash' | 'transfer';
@@ -48,7 +49,7 @@ export type GroomingRecord = {
   groomerOpinion: string; homeCare: string; nextVisitDate: string; photos: CarePhoto[];
   published: boolean; shareToken: string | null; publishedSnapshot: PublicCareReport | null; updatedAt: string;
 };
-export type PublicCareHistoryItem = Pick<PublicCareReport, 'id' | 'petId' | 'dogName' | 'date' | 'service'> & { shareToken: string };
+export type PublicCareHistoryItem = Pick<PublicCareReport, 'id' | 'petId' | 'dogName' | 'date' | 'service' | 'weight'> & { shareToken: string };
 export type CareRecordSummary = Pick<GroomingRecord, 'appointmentId' | 'published' | 'updatedAt'> & { photoCount: number };
 export type Pet = { photos?: PetPhoto[]; id: string; customerId: string; name: string; breed: string; weight: number | null; birthDate: string; sex: 'unknown' | 'male' | 'female'; neutered: boolean | null; allergies: string; healthNotes: string; behaviorNotes: string; preferredStyle: string; visitIntervalWeeks: number | null; createdAt: string };
 export type Shampoo = { photo?: string; id: string; name: string; purchasePrice: number; volumeMl: number; dilutionWaterRatio: number; notes: string; archived: boolean; createdAt: string };

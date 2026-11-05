@@ -237,7 +237,7 @@ class APITest(unittest.TestCase):
         from datetime import date, timedelta
         from server.app import today
         status,catalog=self.request("GET","/api/public/catalog")
-        self.assertEqual(status,200);self.assertEqual(set(catalog),{"name","hours","pricing"})
+        self.assertEqual(status,200);self.assertEqual(set(catalog),{"name","hours","pricing","notices"})
         service=catalog["pricing"]["services"][0];day=(date.fromisoformat(today())+timedelta(days=20)).isoformat()
         status,availability=self.request("GET",f"/api/public/availability?date={day}&serviceId={service['id']}")
         self.assertEqual(set(availability),{"slots"})

@@ -245,6 +245,13 @@ function validateStored(value: unknown, today: string): DemoData {
     }
   }
   const records = data as unknown as DemoData;
+  const noticeIds = new Set<string>();
+  for (const value of list(records.notices ?? [], 20, '공지')) {
+    const row = object(value); only(row, ['id','title','body','published']);
+    const id = text(row, 'id', '공지 ID', 80, true);
+    if (!/^[A-Za-z0-9_-]+$/.test(id) || noticeIds.has(id) || typeof row.published !== 'boolean') fail('공지 형식을 확인해 주세요.');
+    noticeIds.add(id); text(row, 'title', '공지 제목', 80, true); text(row, 'body', '공지 내용', 2000, true);
+  }
   pricing(object(records.pricing));
   for (const row of records.customers) customer(object(row));
   for (const row of records.pets) { pet(object(row), today); existing(records.customers, row.customerId, '보호자'); }
@@ -325,7 +332,7 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         if (method === 'GET' && route === '/health') return { status: 'ok', mode: 'demo' } as T;
         const data = clone(read()), today = day(getToday());
         if (method === 'GET' && route === '/state') return clone(summary(data, url.searchParams.get('month') ?? today.slice(0, 7), url.searchParams.get('care') === 'summary')) as T;
-        if(method==='GET'&&route==='/public/catalog')return clone({pricing:data.pricing,name:'몽글 미용실',hours:'09:00–19:00'}) as T;
+        if(method==='GET'&&route==='/public/catalog')return clone({pricing:data.pricing,name:'몽글 미용실',hours:'09:00–19:00',notices:(data.notices??[]).filter(item=>item.published)}) as T;
         if (method === 'GET' && /^\/public\/care\/[^/]+$/.test(route)) {
           const token = route.split('/').at(-1)!;
           const current = data.careRecords?.find(row => /^[a-f0-9]{32}$/.test(token) && row.published && row.shareToken === token && row.publishedSnapshot);
@@ -334,11 +341,13 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
           const rows = report.petId ? (data.careRecords ?? []).filter(row => row.published && row.publishedSnapshot?.petId === report.petId) : [current];
           const history: PublicCareHistoryItem[] = rows.map(row => {
             const snapshot = row.publishedSnapshot!;
-            return { id: snapshot.id, petId: snapshot.petId, dogName: snapshot.dogName, date: snapshot.date, service: snapshot.service, shareToken: row.shareToken! };
+            return { id: snapshot.id, petId: snapshot.petId, dogName: snapshot.dogName, date: snapshot.date, service: snapshot.service, weight: snapshot.weight, shareToken: row.shareToken! };
           });
           history.sort((a, b) => `${b.date}${b.id}`.localeCompare(`${a.date}${a.id}`));
           return clone({ report, history }) as T;
         }
+        if (method === 'GET' && route === '/public/price-poster') return clone(data.pricePoster ?? null) as T;
+        if (method === 'GET' && route === '/notices') return clone(data.notices ?? []) as T;
         const careGet = /^\/appointments\/([^/]+)\/care$/.exec(route);
         if (method === 'GET' && careGet) { existing(data.appointments, careGet[1], '예약'); return clone(data.careRecords?.find(row => row.appointmentId === careGet[1]) ?? null) as T; }
         if(method==='GET'&&route==='/booking-requests')return clone(requestRows(data).map(({booking:_,...row})=>row)) as T;
@@ -346,7 +355,12 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         const input = method === 'DELETE' ? {} : object(body);
         let result: unknown;
         const parts = route.split('/').filter(Boolean), [resource, id, action] = parts;
-        if (resource === 'appointments' && id && action === 'care' && (parts.length === 3 || parts.length === 4 && parts[3] === 'publish')) {
+        if (route === '/price-poster' && method === 'DELETE') {delete data.pricePoster;result=null;} else if (route === '/price-poster' && method === 'PUT') {only(input,['image','description']);const image=text(input,'image','요금표 이미지',2500000,true);if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(image))fail('JPEG 요금표를 사용해 주세요.');let raw='';try{raw=atob(image.split(',')[1]);}catch{fail('이미지를 읽을 수 없어요.');}if(!raw.startsWith('\xff\xd8')||!raw.endsWith('\xff\xd9'))fail('JPEG 요금표를 사용해 주세요.');data.pricePoster={image,description:text(input,'description','요금표 내용',30000,true)};result=data.pricePoster;} else if (method === 'PUT' && route === '/notices') {
+          only(input, ['notices']);
+          const notices = list(input.notices, 20, '공지').map(value => { const item = object(value); only(item, ['id','title','body','published']); const id = text(item, 'id', '공지 ID', 80, true); if (!/^[A-Za-z0-9_-]+$/.test(id) || typeof item.published !== 'boolean') fail('공지 ID와 공개 상태를 확인해 주세요.'); return { id, title: text(item, 'title', '공지 제목', 80, true), body: text(item, 'body', '공지 내용', 2000, true), published: item.published as boolean }; });
+          if (new Set(notices.map(item=>item.id)).size !== notices.length) fail('공지 ID가 중복됩니다.');
+          data.notices = notices; result = notices;
+        } else if (resource === 'appointments' && id && action === 'care' && (parts.length === 3 || parts.length === 4 && parts[3] === 'publish')) {
           const visit = existing(data.appointments, id, '예약');
           const careRecords = data.careRecords ??= [];
           const current = careRecords.find(row => row.appointmentId === id);

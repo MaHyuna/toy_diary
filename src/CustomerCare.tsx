@@ -1,3 +1,5 @@
+import { appUrl } from './routes';
+import { ShopNoticeBoard } from './ShopNotices';
 import { useEffect, useId, useRef, useState } from 'react';
 import { CalendarDays, Camera, ChevronRight, Download, Heart, LoaderCircle, PawPrint, RotateCw, Scissors, X } from 'lucide-react';
 import { api } from './types';
@@ -12,13 +14,25 @@ const dayLabel = (value: string) => new Intl.DateTimeFormat('ko-KR', {
 }).format(new Date(`${value}T12:00:00Z`));
 const photoLabel = (photo: CarePhoto) => `${photo.stage === 'before' ? '미용 전' : '미용 후'}${photo.caption ? ` · ${photo.caption}` : ' 사진'}`;
 
+function WeightHistory({report, visits}: {report: PublicCareReport; visits: PublicCareHistoryItem[]}) {
+  const older = visits.find(visit => visit.date < report.date && typeof visit.weight === 'number');
+  const difference = report.weight !== null && older && typeof older.weight === 'number'
+    ? Math.round((report.weight - older.weight) * 100) / 100 : null;
+  return <section className="care-report-section notebook-weight" aria-label="방문별 몸무게 기록">
+    <div className="notebook-weight-heading"><div><h2>몸무게 기록</h2><p>선택한 방문 당시의 몸무게</p></div><strong>{report.weight === null ? '미기록' : <>{report.weight}<small> kg</small></>}</strong></div>
+    {difference !== null && <p className="notebook-weight-difference">{older!.date} 기록 대비 {difference > 0 ? '+' : ''}{difference}kg</p>}
+    <p className="notebook-weight-caption">공개된 방문 기록을 기준으로 표시해요. 기록이 없는 날은 비워 둡니다.</p>
+    {visits.length > 1 && <details><summary>지난 몸무게 함께 보기</summary><table><thead><tr><th scope="col">방문일</th><th scope="col">몸무게</th></tr></thead><tbody>{visits.map(visit=><tr key={visit.id}><td><time dateTime={visit.date}>{visit.date}</time></td><td>{typeof visit.weight === 'number' ? `${visit.weight}kg` : '미기록'}</td></tr>)}</tbody></table></details>}
+  </section>;
+}
+
 function CareHistory({ visits, selectedId, onSelect }: { visits: PublicCareHistoryItem[]; selectedId: string; onSelect: (visit: PublicCareHistoryItem) => void }) {
   const id = useId();
   if (visits.length < 2) return null;
   return <section className="care-report-section care-report-history" aria-labelledby={id}>
     <h2 id={id}>지난 관리 기록 <small>{visits.length}회</small></h2>
     <div>{visits.map(visit => <button type="button" key={visit.id} aria-pressed={visit.id === selectedId} aria-label={`${dayLabel(visit.date)} ${visit.service} 관리 기록 보기`} onClick={() => onSelect(visit)}>
-      <span><time dateTime={visit.date}>{dayLabel(visit.date)}</time><span>{visit.service}</span></span><ChevronRight size={18} aria-hidden="true" />
+      <span><time dateTime={visit.date}>{dayLabel(visit.date)}</time><span>{visit.service}{typeof visit.weight === 'number' ? ` · ${visit.weight}kg` : ''}</span></span><ChevronRight size={18} aria-hidden="true" />
     </button>)}</div>
   </section>;
 }
@@ -90,9 +104,11 @@ export function CareReportView({ report, history = [], onSelect }: {
       <div className="care-report-avatar">{avatar
         ? <img src={avatar.src} alt={`${report.dogName} 미용 사진`} decoding="async" />
         : <PawPrint size={34} aria-hidden="true" />}</div>
-      <div><p className="care-report-eyebrow">우리 아이 케어 노트</p><h1 tabIndex={-1}>{report.dogName}</h1><p className="care-report-pet-meta">{report.breed || '견종 미등록'}{report.weight !== null ? ` · ${report.weight}kg` : ''}</p></div>
+      <div><p className="care-report-eyebrow">우리 아이 미용관리 수첩</p><h1 tabIndex={-1}>{report.dogName}</h1><p className="care-report-pet-meta">{report.breed || '견종 미등록'}{report.weight !== null ? ` · ${report.weight}kg` : ''}</p></div>
     </header>
     <div className="care-report-meta"><time dateTime={report.date}><CalendarDays size={16} aria-hidden="true" />{dayLabel(report.date)}</time><span><Scissors size={16} aria-hidden="true" />{report.service}</span></div>
+
+    <WeightHistory report={report} visits={visits.length ? visits : [{...report, shareToken: ''}]} />
 
     <section className="care-report-section care-report-photos" aria-labelledby={`${dialogTitle}-photos`}>
       <div className="care-report-section-heading"><h2 id={`${dialogTitle}-photos`}>미용 전·후 기록</h2><span>사진을 누르면 크게 볼 수 있어요</span></div>
@@ -169,14 +185,16 @@ export function CustomerCare() {
     window.history.replaceState(null, '', location);
   }
   return <div className="care-site">
-    <header className="care-site-header"><span><PawPrint size={23} aria-hidden="true" /><strong>몽글</strong></span><span>케어 노트</span></header>
+    <header className="care-site-header"><a href={appUrl('home', token ? {token} : {})}><PawPrint size={23} aria-hidden="true" /><strong>몽글 · 미용수첩</strong></a><a href={appUrl('booking')}>다음 미용 예약</a></header>
     {isDemo && <p className="care-demo-notice">공유 체험 · 이 링크는 현재 브라우저에 저장된 공개 기록을 보여줘요. 다른 기기로 전달하려면 기록 파일을 저장해 주세요.</p>}
     <main ref={main}>
+      <ShopNoticeBoard />
       {!token && <section className="care-empty care-status"><PawPrint size={40} aria-hidden="true" /><h1>우리 아이의 케어 노트</h1><p>매장에서 전달받은 기록 링크를 열면<br />미용 전후 사진과 관리 안내를 확인할 수 있어요.</p></section>}
       {loading && <section className="care-loading care-status" role="status"><LoaderCircle size={26} className="spin" aria-hidden="true" /><p>케어 기록을 불러오고 있어요…</p></section>}
       {!!token && (!validToken || failed) && <section className="care-error-state care-status" role="alert"><PawPrint size={36} aria-hidden="true" /><h1>기록을 확인할 수 없어요</h1><p>매장에서 받은 링크를 확인해 주세요.<br />공개가 중단된 기록은 열리지 않아요.</p>{validToken && <button type="button" onClick={() => setRetry(value => value + 1)}><RotateCw size={17} />다시 확인</button>}</section>}
       {!loading && !failed && report && <CareReportView report={report} history={history} onSelect={selectVisit} />}
       {(loading || failed) && history.length > 1 && <div className="care-report care-status-history"><CareHistory visits={history} selectedId={selectedId} onSelect={selectVisit} /></div>}
     </main>
+    <nav className="notebook-care-nav" aria-label="수첩 메뉴"><a href={appUrl('home')}>다른 수첩 열기</a><a href={appUrl('booking')}>미용 예약</a><a href={appUrl('prices')}>요금표</a></nav>
   </div>;
 }

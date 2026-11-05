@@ -578,10 +578,58 @@ class Store:
             if start < other_start + row["duration"] and end > other_start:
                 raise APIError("같은 시간에 다른 예약이 있습니다. 예약 시간을 확인해 주세요.", 409)
 
+    def price_poster(self):
+        with self.connect() as connection:
+            row = connection.execute("SELECT value FROM settings WHERE key='price-poster'").fetchone()
+            return json.loads(row[0]) if row else None
+
+    def save_price_poster(self, data):
+        if data is not None:
+            if set(data) != {"image", "description"}:
+                raise APIError("요금표 입력 항목을 확인해 주세요.")
+            image = text_field(data, "image", "요금표 이미지", required=True, maximum=2500000)
+            if not re.fullmatch(r"data:image/jpeg;base64,[A-Za-z0-9+/]+=*", image):
+                raise APIError("JPEG 요금표를 사용해 주세요.")
+            try:
+                raw = base64.b64decode(image.split(",", 1)[1], validate=True)
+            except (ValueError, binascii.Error):
+                raise APIError("이미지를 읽을 수 없습니다.") from None
+            if not raw.startswith(b"\xff\xd8") or not raw.endswith(b"\xff\xd9"):
+                raise APIError("JPEG 요금표를 사용해 주세요.")
+            data = {"image": image, "description": text_field(data, "description", "요금표 내용", required=True, maximum=30000)}
+        with self.connect(write=True) as connection:
+            if data is None:
+                connection.execute("DELETE FROM settings WHERE key='price-poster'")
+            else:
+                connection.execute("INSERT INTO settings(key,value) VALUES('price-poster',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(data, ensure_ascii=False),))
+        return data
+
+    def notices(self):
+        with self.connect() as connection:
+            row = connection.execute("SELECT value FROM settings WHERE key='notices'").fetchone()
+            return json.loads(row[0]) if row else []
+
+    def update_notices(self, data):
+        if set(data) != {"notices"} or not isinstance(data["notices"], list) or len(data["notices"]) > 20:
+            raise APIError("공지는 최대 20개까지 저장할 수 있습니다.")
+        result, ids = [], set()
+        for item in data["notices"]:
+            if not isinstance(item, dict) or set(item) != {"id", "title", "body", "published"}:
+                raise APIError("공지 입력 항목을 확인해 주세요.")
+            identifier = text_field(item, "id", "공지 ID", required=True, maximum=80)
+            if not re.fullmatch(r"[A-Za-z0-9_-]+", identifier) or identifier in ids or not isinstance(item["published"], bool):
+                raise APIError("공지 ID와 공개 상태를 확인해 주세요.")
+            ids.add(identifier)
+            result.append({"id": identifier, "title": text_field(item, "title", "공지 제목", required=True, maximum=80),
+                           "body": text_field(item, "body", "공지 내용", required=True, maximum=2000), "published": item["published"]})
+        with self.connect(write=True) as connection:
+            connection.execute("INSERT INTO settings(key,value) VALUES('notices',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(result, ensure_ascii=False),))
+        return result
+
     def public_catalog(self):
         with self.connect() as connection:
             pricing = json.loads(connection.execute("SELECT value FROM settings WHERE key='pricing'").fetchone()[0])
-        return {"pricing": pricing, "hours": "09:00–19:00", "name": "몽글 미용실"}
+        return {"pricing": pricing, "hours": "09:00–19:00", "name": "몽글 미용실", "notices": [item for item in self.notices() if item["published"]]}
 
     def booking_requests(self):
         with self.connect() as connection:
@@ -820,7 +868,7 @@ class Store:
             if not record or not record["published"] or not record["publishedSnapshot"]:
                 raise APIError("공유가 종료되었거나 존재하지 않는 미용 기록입니다.", 404)
             report = record["publishedSnapshot"]
-            history = [{key: report[key] for key in ("id", "petId", "dogName", "date", "service")} | {"shareToken": token}]
+            history = [{key: report[key] for key in ("id", "petId", "dogName", "date", "service", "weight")} | {"shareToken": token}]
             if report["petId"]:
                 # Return only small history summaries, never every visit's photo payload.
                 history = [dict(item) for item in connection.execute("""SELECT
@@ -828,7 +876,8 @@ class Store:
                     json_extract(payload, '$.publishedSnapshot.petId') AS petId,
                     json_extract(payload, '$.publishedSnapshot.dogName') AS dogName,
                     json_extract(payload, '$.publishedSnapshot.date') AS date,
-                    json_extract(payload, '$.publishedSnapshot.service') AS service, shareToken
+                    json_extract(payload, '$.publishedSnapshot.service') AS service,
+                    json_extract(payload, '$.publishedSnapshot.weight') AS weight, shareToken
                     FROM care_records WHERE shareToken IS NOT NULL
                     AND json_extract(payload, '$.published') = 1
                     AND json_extract(payload, '$.publishedSnapshot.petId') = ?
@@ -1077,7 +1126,7 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
                     return self.send_json({"authenticated": False, "role": None, "configured": sessions.configured}, headers={"Set-Cookie": self.session_cookie()})
                 care_public_match = re.fullmatch(r"/api/public/care/([a-f0-9]{32})", path)
                 public = (method, path) in {
-                    ("GET", "/api/public/catalog"), ("GET", "/api/public/availability"),
+                    ("GET", "/api/public/catalog"), ("GET", "/api/public/price-poster"), ("GET", "/api/public/availability"),
                     ("POST", "/api/public/requests"),
                 } or method == "GET" and care_public_match is not None
                 if path.startswith("/api/") and not public:
@@ -1095,6 +1144,17 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
                     return self.send_json(store.public_availability(query.get("date",[""])[0],query.get("serviceId",[""])[0]))
                 if method == "POST" and path == "/api/public/requests":
                     return self.send_json(store.request_booking(self.read_json()),201)
+                if method == "GET" and path == "/api/public/price-poster":
+                    return self.send_json(store.price_poster())
+                if method == "PUT" and path == "/api/price-poster":
+                    return self.send_json(store.save_price_poster(self.read_json(maximum=2600000)))
+                if method == "DELETE" and path == "/api/price-poster":
+                    self.validate_origin()
+                    return self.send_json(store.save_price_poster(None))
+                if method == "GET" and path == "/api/notices":
+                    return self.send_json(store.notices())
+                if method == "PUT" and path == "/api/notices":
+                    return self.send_json(store.update_notices(self.read_json()))
                 if method == "GET" and path == "/api/booking-requests":
                     return self.send_json(store.booking_requests())
                 booking_match = re.fullmatch(r"/api/booking-requests/([a-f0-9]{32})",path)

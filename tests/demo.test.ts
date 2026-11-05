@@ -450,7 +450,7 @@ test('care history lists only same-pet published summaries and revoked links sta
   const result = await api.request<PublicCareResult>(`/public/care/${shares[0].shareToken}`);
   assert.deepEqual(new Set(result.history.map(item => item.id)), new Set(samePet.slice(0, 2).map(a => a.id)));
   for (const item of result.history) {
-    assert.deepEqual(Object.keys(item).sort(), ['id', 'petId', 'dogName', 'date', 'service', 'shareToken'].sort());
+    assert.deepEqual(Object.keys(item).sort(), ['id', 'petId', 'dogName', 'date', 'service', 'weight', 'shareToken'].sort());
     assert.equal((await api.request<PublicCareResult>(`/public/care/${item.shareToken}`)).report.id, item.id);
   }
   const path = `/appointments/${samePet[0].id}/care/publish`;
@@ -508,4 +508,37 @@ test('opt-in state care summaries omit large record payloads without changing st
   assert.deepEqual(fullBase, leanBase);
   assert.equal(storage.getItem(KEY), persisted);
   assert.deepEqual(await api.request<GroomingRecord>(path), record);
+});
+
+
+test('notices persist, expose only published content and preserve data after invalid or failed writes', async () => {
+  const {api,storage}=setup();
+  const publicNotice={id:'public',title:'예약 변경 안내',body:'변경은 매장에 문의해 주세요.',published:true};
+  const draft={id:'draft',title:'PRIVATE_DRAFT',body:'비공개 초안',published:false};
+  await api.request('/notices','PUT',{notices:[publicNotice,draft]});
+  assert.deepEqual((await api.request<{notices:unknown[]}>('/public/catalog')).notices,[publicNotice]);
+  assert.deepEqual(await setup(storage).api.request('/notices'),[publicNotice,draft]);
+  await assert.rejects(api.request('/notices','PUT',{notices:[publicNotice,publicNotice]}));
+  storage.failWrites=true;
+  await assert.rejects(api.request('/notices','PUT',{notices:[]}));
+  storage.failWrites=false;
+  assert.deepEqual(await api.request('/notices'),[publicNotice,draft]);
+  await api.request('/notices','PUT',{notices:[{...publicNotice,published:false},draft]});
+  assert.deepEqual((await api.request<{notices:unknown[]}>('/public/catalog')).notices,[]);
+});
+
+
+test('published price poster persists separately and failed replacements preserve the public snapshot', async () => {
+ const storage=new MemoryStorage(), api=createDemoApi(storage,()=>TODAY);
+ const poster={image:'data:image/jpeg;base64,/9j/2Q==',description:'소형견 미용 · 목욕 15,000'};
+ assert.equal(await api.request('/public/price-poster'),null);
+ await api.request('/price-poster','PUT',poster);
+ assert.deepEqual(await createDemoApi(storage,()=>TODAY).request('/public/price-poster'),poster);
+ await assert.rejects(api.request('/price-poster','PUT',{...poster,image:'javascript:alert(1)'}));
+ storage.failWrites=true;
+ await assert.rejects(api.request('/price-poster','PUT',{...poster,description:'새 요금'}));
+ storage.failWrites=false;
+ assert.deepEqual(await api.request('/public/price-poster'),poster);
+ await api.request('/price-poster','DELETE');
+ assert.equal(await api.request('/public/price-poster'),null);
 });

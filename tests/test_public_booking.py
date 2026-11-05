@@ -11,7 +11,7 @@ class PublicBookingTest(unittest.TestCase):
  def payload(self,**changes):
   return {'serviceId':self.service['id'],'date':self.date,'time':'09:00','dogName':'테스트 두부','guardianName':'테스트 보호자','phone':'010-0000-0000','breed':'말티즈','weight':3.2,'notes':'체험 예약','consent':True,**changes}
  def test_request_holds_time_and_accepts_once_without_creating_revenue(self):
-  self.assertEqual(set(self.store.public_catalog()),{'pricing','name','hours'})
+  self.assertEqual(set(self.store.public_catalog()),{'pricing','name','hours','notices'})
   self.assertIn('09:00',self.store.public_availability(self.date,self.service['id'])['slots'])
   receipt=self.store.request_booking(self.payload())
   self.assertEqual(set(receipt),{'id','status','date','time','price'})

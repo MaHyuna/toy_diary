@@ -1,6 +1,6 @@
 import type { Appointment, Customer, Pet, Shampoo, ShampooUsage, State } from '../types.ts';
 
-export type DemoData = Omit<State, 'summary'>;
+export type DemoData = Omit<State, 'summary'> & { pricePoster?: {image:string;description:string}; notices?: import('../types').ShopNotice[] };
 export const DEMO_SEED_REVISION = 2;
 
 /** Fictional, independent sample records. This module never reads stored data. */

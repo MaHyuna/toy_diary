@@ -30,7 +30,7 @@ def open_editor(page, visit):
     page.locator('#month').fill(visit['date'][:7])
     page.locator(f'[data-date="{visit["date"]}"]').click()
     button = page.locator('.calendar-day-panel .visit-open').filter(has=page.locator('time').filter(has_text=re.compile(f'^{re.escape(visit["time"])}$')))
-    button = button.filter(has=page.get_by_text(visit['dogName'], exact=True))
+    button = button.and_(page.get_by_role('button', name=visit['dogName'] + ' 예약 상세 보기', exact=True))
     expect(button).to_have_count(1)
     button.click()
     page.locator('.care-visit-entry').get_by_role('button').click()

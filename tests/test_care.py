@@ -81,7 +81,7 @@ class CareTest(unittest.TestCase):
 
     def test_history_contains_only_same_pet_published_summaries(self):
         first = self.visit()
-        second = self.visit(date="2026-02-05")
+        second = self.visit(date="2026-02-05", weight=3.5)
         unpublished = self.visit(date="2026-03-05")
         other = self.store.create_pet({"customerId": self.owner["id"], "name": "다른 아이", "breed": "말티즈", "weight": 3.2})
         other_visit = self.visit(pet=other, date="2026-04-05")
@@ -90,8 +90,9 @@ class CareTest(unittest.TestCase):
         reports = {visit["id"]: self.store.publish_care(visit["id"], {}) for visit in (first, second, other_visit)}
         response = self.store.public_care(reports[first["id"]]["shareToken"])
         self.assertEqual([item["id"] for item in response["history"]], [second["id"], first["id"]])
+        self.assertEqual([item["weight"] for item in response["history"]], [3.5, 3.2])
         for item in response["history"]:
-            self.assertEqual(set(item), {"id", "petId", "dogName", "date", "service", "shareToken"})
+            self.assertEqual(set(item), {"id", "petId", "dogName", "date", "service", "weight", "shareToken"})
             self.assertEqual(self.store.public_care(item["shareToken"])["report"]["id"], item["id"])
         unlinked = self.visit(date="2026-05-05", petId=None, customerId=None)
         self.store.save_care(unlinked["id"], self.draft(nextVisitDate=""))

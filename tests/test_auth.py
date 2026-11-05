@@ -58,11 +58,39 @@ class AuthTest(unittest.TestCase):
             "phone": "010-9999-8888", "breed": "말티즈", "weight": 3.2, "service": "전체 미용",
             "date": "2026-01-15", "time": "10:00", "duration": 60, "basePrice": 65000, "notes": "PRIVATE_NOTE"})
 
+    def test_price_poster_publication_requires_owner_and_valid_image(self):
+        cookie, _ = self.login()
+        poster = {"image": "data:image/jpeg;base64,/9j/2Q==", "description": "소형견 미용 · 4kg 미만 목욕 15,000"}
+        self.assertIsNone(self.request("GET", "/api/public/price-poster")[1])
+        for method in ("PUT", "DELETE"):
+            self.assertEqual(self.request(method, "/api/price-poster", poster)[0], 401)
+        self.assertEqual(self.request("PUT", "/api/price-poster", poster, cookie=cookie)[0], 200)
+        self.assertEqual(self.request("GET", "/api/public/price-poster")[1], poster)
+        self.assertEqual(self.request("PUT", "/api/price-poster", {**poster,"image":"data:image/svg+xml,<svg/>"}, cookie=cookie)[0], 400)
+        self.assertEqual(self.store.price_poster(), poster)
+        self.assertEqual(self.request("DELETE", "/api/price-poster", cookie=cookie)[0], 200)
+        self.assertIsNone(self.request("GET", "/api/public/price-poster")[1])
+
+    def test_only_owner_can_publish_notices_and_drafts_stay_private(self):
+        cookie, _ = self.login()
+        visible = {"id": "public", "title": "예약 변경 안내", "body": "변경은 매장에 문의해 주세요.", "published": True}
+        hidden = {"id": "private", "title": "PRIVATE_DRAFT", "body": "아직 공개하지 않은 공지", "published": False}
+        self.assertEqual(self.request("PUT", "/api/notices", {"notices": [visible, hidden]}, cookie=cookie)[0], 200)
+        self.assertEqual(self.request("GET", "/api/public/catalog")[1]["notices"], [visible])
+        self.assertEqual(Store(self.store.database).notices(), [visible, hidden])
+        status, _, _ = self.request("PUT", "/api/notices", {"notices": [visible, visible]}, cookie=cookie)
+        self.assertEqual(status, 400)
+        self.assertEqual(self.store.notices(), [visible, hidden])
+        status, _, _ = self.request("PUT", "/api/notices", {"notices": [{**visible, "published": "true"}]}, cookie=cookie)
+        self.assertEqual(status, 400)
+        self.request("PUT", "/api/notices", {"notices": [{**visible, "published": False}, hidden]}, cookie=cookie)
+        self.assertEqual(self.request("GET", "/api/public/catalog")[1]["notices"], [])
+
     def test_anonymous_requests_cannot_read_or_write_any_owner_resource(self):
         visit = self.visit()
         before = self.store.state("2026-01")
         paths = [("GET", "/api/state?month=2026-01"), ("GET", "/api/booking-requests"),
-            ("GET", "/api/health"), ("GET", f"/api/appointments/{visit['id']}/care"),
+            ("GET", "/api/notices"), ("PUT", "/api/notices"), ("GET", "/api/health"), ("GET", f"/api/appointments/{visit['id']}/care"),
             ("POST", "/api/appointments"), ("PATCH", f"/api/appointments/{visit['id']}"),
             ("POST", f"/api/appointments/{visit['id']}/settle"), ("PUT", "/api/pricing"),
             ("POST", "/api/customers"), ("PATCH", "/api/pets/" + "0" * 32),

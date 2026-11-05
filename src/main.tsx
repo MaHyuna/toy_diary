@@ -13,6 +13,7 @@ import './owner-ui.css';
 import './care-ui.css';
 import './calendar-theme.css';
 
+const CustomerPrices = lazy(() => import('./CustomerPrices').then(module => ({ default: module.CustomerPrices })));
 const CustomerHome = lazy(() => import('./CustomerHome').then(module => ({ default: module.CustomerHome })));
 const OwnerApp = lazy(() => import('./App'));
 const PublicBooking = lazy(() => import('./PublicBooking').then(module => ({ default: module.PublicBooking })));
@@ -23,6 +24,6 @@ const loading = <p role="status">화면을 불러오고 있어요…</p>;
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>{screen === 'owner'
     ? <OwnerSession customerUrl={appUrl('home')}><Suspense fallback={loading}><OwnerApp /></Suspense></OwnerSession>
-    : <Suspense fallback={loading}>{screen === 'home' ? <CustomerHome /> : screen === 'care' ? <CustomerCare /> : <PublicBooking />}</Suspense>}
+    : <Suspense fallback={loading}>{screen === 'home' ? <CustomerHome /> : screen === 'care' ? <CustomerCare /> : screen === 'prices' ? <CustomerPrices /> : <PublicBooking />}</Suspense>}
   </React.StrictMode>,
 );
