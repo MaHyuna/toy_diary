@@ -101,7 +101,9 @@ with sync_playwright() as p:
     assert paid['paidDate'] == paid_date and paid['notes'] == '결제 후에도 미용 메모 보완'
     page.set_viewport_size({'width': 390, 'height': 667})
     page.locator(f'[data-date="{visit["date"]}"]').click()
-    page.locator('.grooming-day-sheet').get_by_role('button', name='미용 완료', exact=True).first.click()
+    expect(page.locator('.mobile-day-panel')).to_be_visible()
+    expect(page.locator('.calendar-workspace')).to_have_attribute('data-agenda-open', 'true')
+    page.locator('.mobile-day-panel').get_by_role('button', name='미용 완료', exact=True).first.click()
     expect(checkout).to_be_visible()
     expect(checkout.locator('input[type=date]')).to_have_count(0)
     assert checkout.locator('.modal').evaluate('el=>el.scrollWidth<=el.clientWidth')

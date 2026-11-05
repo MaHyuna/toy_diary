@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Plus, Settings2, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Plus, Settings2, X } from 'lucide-react';
 import { monthDays } from './calendar';
 import type { CalendarDay } from './calendar';
 import type { Appointment, Pet } from './types';
 import { PetAvatar } from './PetAvatar';
 import { money, paymentLabels, today } from './types';
-import { Modal } from './Forms';
 
 type Props = {
   selected: string;
@@ -15,6 +14,7 @@ type Props = {
   detailsOpen: boolean;
   actionsDisabled?: boolean;
   onCloseDetails: () => void;
+  onOpenDetails: () => void;
   onSelect: (date: string) => void;
   onAdd: () => void;
   onDetails: (appointment: Appointment) => void;
@@ -44,7 +44,7 @@ const moveDate = (date: string, delta: number) => {
 const sourceLabel = (appointment: Appointment) => appointment.source === 'website' ? '고객 예약'
   : appointment.source === 'naver' ? '네이버' : '직접 등록';
 
-/** The same visit actions appear in the desktop agenda and mobile day sheet. */
+/** One agenda and one set of visit actions serve both screen sizes. */
 function DayAgenda({ day, pets, compact = false, onAdd, onDetails, onSettle, onEdit, onCancel, actionsDisabled = false }: AgendaProps) {
   const showPaymentRecords = day.payments.some(visit => visit.date !== day.date);
   return <section className="grooming-day" aria-label="선택한 날의 미용 예약">
@@ -63,12 +63,13 @@ function DayAgenda({ day, pets, compact = false, onAdd, onDetails, onSettle, onE
         className={`grooming-visit ${appointment.status === 'completed' ? 'is-complete' : ''}`} key={appointment.id}
       >
         <button type="button" className="visit-open" aria-label={`${appointment.dogName} 예약 상세 보기`} onClick={() => onDetails(appointment)}>
-          <span className="visit-identity"><PetAvatar pet={pets.find(pet => pet.id === appointment.petId) || { id: '', name: appointment.dogName, breed: appointment.breed }} /><time>{appointment.time}</time></span>
+          <span className="visit-identity"><time>{appointment.time}</time><PetAvatar pet={pet || { id: '', name: appointment.dogName, breed: appointment.breed }} /></span>
           <span className="visit-open-info">
-            <strong>{appointment.dogName}</strong>
+            <strong>{appointment.dogName.replace(/ \(체험\)$/, '')}</strong>
             <span>{appointment.service} · {appointment.duration}분</span>
             <small className="visit-guardian-line">{appointment.guardianName} · {appointment.breed || '견종 미입력'}{appointment.weight ? ` · ${appointment.weight}kg` : ''}</small>
             {attention.length > 0 && <span className="visit-attention" title={attention.join(' · ')}><AlertTriangle size={12} aria-hidden="true" /><span>{attention[0]}</span>{attention.length > 1 && <small>+{attention.length - 1}</small>}</span>}
+            {appointment.notes?.trim() && <small className="visit-memo">{appointment.notes}</small>}
             {(appointment.source === 'website' || appointment.source === 'naver') && <span className="source-tag">{sourceLabel(appointment)}</span>}
           </span>
           <span className="visit-open-price"><b>{money(appointment.price)}원</b><ChevronRight className="visit-open-chevron" size={14} aria-hidden="true" /></span>
@@ -106,12 +107,14 @@ export function StudioCalendar(props: Props) {
   const [previewBudget, setPreviewBudget] = useState(0);
   const root = useRef<HTMLDivElement>(null);
   const agendaTitle = useRef<HTMLHeadingElement>(null);
+  const agendaBody = useRef<HTMLDivElement>(null);
   const pendingFocus = useRef<string | null>(null);
   const month = selected.slice(0, 7);
   const days = monthDays(month, appointments, []);
   const selectedDay = days.find(day => day.date === selected)!;
   const offset = new Date(`${month}-01T12:00:00Z`).getUTCDay();
   const padding = (7 - (offset + days.length) % 7) % 7;
+  const selectedWeek = Math.floor((offset + Number(selected.slice(8)) - 1) / 7);
   const completed = days.reduce((sum, day) => sum + day.completedCount, 0);
   const bookingCount = days.reduce((sum, day) => sum + day.appointments.length, 0);
   const currentDay = today();
@@ -129,7 +132,7 @@ export function StudioCalendar(props: Props) {
     if (!cell) return;
     const update = () => {
       const height = cell.getBoundingClientRect().height;
-      setPreviewBudget(height >= 132 ? 3 : height >= 110 ? 2 : height >= 80 ? 1 : 0);
+      setPreviewBudget(height >= 145 ? 3 : height >= 120 ? 2 : height >= 94 ? 1 : 0);
     };
     update();
     const observer = new ResizeObserver(update);
@@ -142,9 +145,14 @@ export function StudioCalendar(props: Props) {
       pendingFocus.current = null;
     }
   }, [selected]);
+  useEffect(() => { agendaBody.current?.scrollTo({ top: 0 }); }, [selected]);
+
+  function expandMonth() {
+    props.onCloseDetails();
+    requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>(`[data-date="${selected}"]`)?.focus({ preventScroll: true }));
+  }
 
   function handleDayKey(event: KeyboardEvent<HTMLButtonElement>, date: string) {
-    if (!desktop) return;
     const direction: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
     if (event.key in direction) {
       event.preventDefault();
@@ -159,26 +167,27 @@ export function StudioCalendar(props: Props) {
     }
   }
 
-  return <div ref={root} className="studio-calendar grooming-calendar calendar-workspace" data-calendar-desktop={desktop}>
-    <section className="panel month-calendar" aria-label="월간 예약 캘린더">
+  return <div ref={root} className="studio-calendar grooming-calendar calendar-workspace" data-calendar-desktop={desktop} data-agenda-open={!desktop && props.detailsOpen} aria-busy={props.actionsDisabled}>
+    <section className="panel month-calendar" aria-label={!desktop && props.detailsOpen ? '선택한 주의 예약 캘린더' : '월간 예약 캘린더'}>
       <div className="calendar-amount-toolbar">
         <div role="group" aria-label="달력 금액 기준">
-          <button aria-pressed={amountView === 'income'} onClick={() => setAmountView('income')}>결제 매출</button>
-          <button aria-pressed={amountView === 'bookingAmount'} onClick={() => setAmountView('bookingAmount')}>예약 예상</button>
+          <button title="실제 결제일 기준" aria-pressed={amountView === 'income'} onClick={() => setAmountView('income')}>받은 금액</button>
+          <button title="방문일 기준 예상금액" aria-pressed={amountView === 'bookingAmount'} onClick={() => setAmountView('bookingAmount')}>예약 금액</button>
         </div>
         <span>이달 <strong>{money(days.reduce((sum, day) => sum + day[amountView], 0))}원</strong></span>
       </div>
       <div className="month-weekdays" aria-hidden="true">{['일', '월', '화', '수', '목', '금', '토'].map(day => <span key={day}>{day}</span>)}</div>
-      <div className="month-cells" data-weeks={(offset + days.length + padding) / 7}>
-        {Array.from({ length: offset }, (_, index) => <div className="month-blank" key={`before-${index}`} />)}
+      <div className="month-cells" id="calendar-month-grid" data-weeks={(offset + days.length + padding) / 7}>
+        {Array.from({ length: offset }, (_, index) => <div className="month-blank" data-selected-week={selectedWeek === 0} key={`before-${index}`} />)}
         {days.map(day => <button
           key={day.date} type="button" data-date={day.date}
+          data-selected-week={Math.floor((offset + Number(day.date.slice(8)) - 1) / 7) === selectedWeek}
           className={`month-day ${selected === day.date ? 'is-selected' : ''} ${currentDay === day.date ? 'is-current' : ''}`}
           tabIndex={desktop ? selected === day.date ? 0 : -1 : 0}
           aria-pressed={selected === day.date} aria-current={currentDay === day.date ? 'date' : undefined}
-          aria-haspopup={desktop ? undefined : 'dialog'}
-          aria-controls={desktop ? 'selected-day-agenda' : undefined}
-          aria-label={`${dateLabel(day.date)}, 예약 ${day.appointments.length}건, 결제 매출 ${money(day.income)}원, 예약 예상 ${money(day.bookingAmount)}원, 미용 완료 ${day.completedCount}건`}
+          aria-controls="selected-day-agenda"
+          aria-expanded={!desktop && selected === day.date ? props.detailsOpen : undefined}
+          aria-label={`${dateLabel(day.date)}, 예약 ${day.appointments.length}건, 받은 금액 ${money(day.income)}원, 예약 금액 ${money(day.bookingAmount)}원, 미용 완료 ${day.completedCount}건`}
           onClick={() => onSelect(day.date)}
           onKeyDown={event => handleDayKey(event, day.date)}
         >
@@ -204,15 +213,17 @@ export function StudioCalendar(props: Props) {
           </span>}
 
         </button>)}
-        {Array.from({ length: padding }, (_, index) => <div className="month-blank" key={`after-${index}`} />)}
+        {Array.from({ length: padding }, (_, index) => <div className="month-blank" data-selected-week={selectedWeek === (offset + days.length + padding) / 7 - 1} key={`after-${index}`} />)}
       </div>
+      <div className="calendar-doodle" aria-hidden="true" />
       <div className="grooming-calendar-caption">
         <span>예약 <strong>{bookingCount}건</strong> · 미용 완료 <strong>{completed}건</strong></span>
-        <span>결제: 결제일 · 예상: 방문일</span>
+        <span>{amountView === 'income' ? '받은 금액 · 결제일 기준' : '예약 금액 · 방문일 기준'}</span>
       </div>
+      {!desktop && <button className="mobile-calendar-toggle" aria-controls="selected-day-agenda" aria-expanded={props.detailsOpen} onClick={() => props.detailsOpen ? expandMonth() : props.onOpenDetails()}>{props.detailsOpen ? <ChevronDown size={15} /> : <ChevronUp size={15} />}<span>{props.detailsOpen ? '월간 펼치기' : '선택한 날 일정 보기'}</span></button>}
     </section>
 
-    {desktop && <aside className="calendar-day-panel" id="selected-day-agenda" aria-label="선택한 날의 일정">
+    {(desktop || props.detailsOpen) && <aside className={`calendar-day-panel${desktop ? '' : ' mobile-day-panel'}`} id="selected-day-agenda" aria-label="선택한 날의 일정">
       <header className="calendar-day-panel-header">
         <div className="calendar-day-title" aria-live="polite" aria-atomic="true">
           <h2 ref={agendaTitle} tabIndex={-1}>{panelDateLabel(selected)}</h2>
@@ -223,12 +234,8 @@ export function StudioCalendar(props: Props) {
           <button className="icon-button" aria-label="다음 날짜" disabled={selected >= '2100-12-31'} onClick={() => onSelect(moveDate(selected, 1))}><ChevronRight size={17} /></button>
         </div>
       </header>
-      <div className="calendar-day-panel-body calendar-agenda-enter" key={selected}><DayAgenda {...dayProps} compact /></div>
-      <button className="calendar-day-add" aria-label="예약 추가" title={`${panelDateLabel(selected)} 예약 추가`} disabled={props.actionsDisabled} onClick={props.onAdd}><Plus size={22} /></button>
+      <div ref={agendaBody} className="calendar-day-panel-body calendar-agenda-enter" key={selected}><DayAgenda {...dayProps} compact /></div>
+      {desktop && <button className="calendar-day-add" aria-label="예약 추가" title={`${panelDateLabel(selected)} 예약 추가`} disabled={props.actionsDisabled} onClick={props.onAdd}><Plus size={22} /></button>}
     </aside>}
-
-    {!desktop && props.detailsOpen && <Modal title={dateLabel(selected)} description={`예약 ${selectedDay.appointments.length}건 · 미용 완료 ${selectedDay.completedCount}건`} onClose={props.onCloseDetails} className="grooming-day-sheet">
-      <DayAgenda {...dayProps} />
-    </Modal>}
   </div>;
 }

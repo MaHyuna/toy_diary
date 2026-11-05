@@ -11,6 +11,7 @@ import './booking.css';
 import './booking-ux.css';
 import './owner-ui.css';
 import './care-ui.css';
+import './calendar-theme.css';
 
 const OwnerApp = lazy(() => import('./App'));
 const PublicBooking = lazy(() => import('./PublicBooking').then(module => ({ default: module.PublicBooking })));
