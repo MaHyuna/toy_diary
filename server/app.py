@@ -585,7 +585,7 @@ class Store:
 
     def save_price_poster(self, data):
         if data is not None:
-            if set(data) != {"image", "description"}:
+            if not {"image", "description"} <= set(data) or set(data) - {"image", "description", "menu"}:
                 raise APIError("요금표 입력 항목을 확인해 주세요.")
             image = text_field(data, "image", "요금표 이미지", required=True, maximum=2500000)
             if not re.fullmatch(r"data:image/jpeg;base64,[A-Za-z0-9+/]+=*", image):
@@ -596,7 +596,29 @@ class Store:
                 raise APIError("이미지를 읽을 수 없습니다.") from None
             if not raw.startswith(b"\xff\xd8") or not raw.endswith(b"\xff\xd9"):
                 raise APIError("JPEG 요금표를 사용해 주세요.")
+            menu = data.get("menu")
+            if menu is not None:
+                try:
+                    def words(v):
+                        if not isinstance(v, str) or len(v) > 2000: raise ValueError()
+                        return v
+                    def rows(v, maximum):
+                        if not isinstance(v, list) or len(v) > maximum: raise ValueError()
+                        return v
+                    columns = [words(c) for c in rows(menu["columns"], 8)]
+                    sections = []
+                    for section in rows(menu["sections"], 24):
+                        entry = {k: words(section[k]) for k in ("title", "breeds", "note", "content")}
+                        entry["rows"] = [{"weight": words(r["weight"]), "prices": [words(p) for p in rows(r["prices"], 8)]} for r in rows(section["rows"], 30)]
+                        if any(len(r["prices"]) != len(columns) for r in entry["rows"]): raise ValueError()
+                        entry["items"] = [{"label": words(i["label"]), "value": words(i["value"])} for i in rows(section["items"], 40)]
+                        sections.append(entry)
+                    menu = {"columns": columns, "sections": sections}
+                except (KeyError, TypeError, ValueError):
+                    raise APIError("모바일 요금표 형식을 확인해 주세요.") from None
             data = {"image": image, "description": text_field(data, "description", "요금표 내용", required=True, maximum=30000)}
+            if menu is not None:
+                data["menu"] = menu
         with self.connect(write=True) as connection:
             if data is None:
                 connection.execute("DELETE FROM settings WHERE key='price-poster'")

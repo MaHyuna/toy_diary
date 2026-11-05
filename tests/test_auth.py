@@ -68,6 +68,12 @@ class AuthTest(unittest.TestCase):
         self.assertEqual(self.request("GET", "/api/public/price-poster")[1], poster)
         self.assertEqual(self.request("PUT", "/api/price-poster", {**poster,"image":"data:image/svg+xml,<svg/>"}, cookie=cookie)[0], 400)
         self.assertEqual(self.store.price_poster(), poster)
+        menu = {"columns": ["목욕"], "sections": [{"title": "소형견", "breeds": "말티즈", "note": "", "content": "", "rows": [{"weight": "4kg 미만", "prices": ["15000"]}], "items": []}]}
+        mobile = {**poster, "menu": menu}
+        self.assertEqual(self.request("PUT", "/api/price-poster", mobile, cookie=cookie)[0], 200)
+        self.assertEqual(self.request("GET", "/api/public/price-poster")[1], mobile)
+        self.assertEqual(self.request("PUT", "/api/price-poster", {**poster,"menu":{"columns":[],"sections":[{}]}}, cookie=cookie)[0], 400)
+        self.assertEqual(self.store.price_poster(), mobile)
         self.assertEqual(self.request("DELETE", "/api/price-poster", cookie=cookie)[0], 200)
         self.assertIsNone(self.request("GET", "/api/public/price-poster")[1])
 

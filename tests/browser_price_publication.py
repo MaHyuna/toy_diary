@@ -14,9 +14,12 @@ with sync_playwright() as p:
  assert '소형견 미용' in poster['description'] and '고양이 미용' in poster['description']
  page.goto(base+'customer/prices/',wait_until='networkidle');expect(page.locator('.price-poster-scroll img')).to_have_attribute('src',poster['image']);expect(page.locator('.poster-example')).to_have_count(0)
  page.get_by_text('요금표 글자로 보기',exact=True).click();expect(page.locator('.poster-text')).to_contain_text('소형견 미용')
- for width in [390,1440]:
-  page.set_viewport_size({'width':width,'height':900});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=f'/tmp/price-published-{width}.png',full_page=True)
- page.goto(base+'owner/',wait_until='networkidle');page.get_by_role('button',name='요금표 디자인',exact=True).click();page.get_by_role('button',name='게시 내리기',exact=True).click();expect(page.get_by_role('status').filter(has_text='게시를 내렸어요')).to_be_visible()
+ for width in [320,390,700,1440]:
+  page.set_viewport_size({'width':width,'height':900});
+  if width<=700:
+   expect(page.locator('.mobile-price-menu')).to_be_visible();page.get_by_label('우리 아이 몸무게',exact=True).select_option('1');expect(page.locator('.mobile-price-services')).to_contain_text('20,000원');page.get_by_role('button',name='고양이 미용',exact=True).click();expect(page.locator('.mobile-price-services')).to_contain_text('50,000');page.get_by_role('button',name='소형견 미용',exact=True).click()
+  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=f'/tmp/price-published-{width}.png',full_page=True)
+ page.set_viewport_size({'width':390,'height':844});page.goto(base+'owner/',wait_until='networkidle');page.get_by_role('button',name='더보기',exact=True).click();page.get_by_role('button',name='요금표 디자인',exact=True).click();publish=page.get_by_role('button',name='현재 요금표 게시',exact=True);expect(publish).to_be_in_viewport();expect(page.locator('iframe')).to_be_visible();page.screenshot(path='/tmp/mobile-price-editor.png');page.get_by_role('button',name='게시 내리기',exact=True).click();expect(page.get_by_role('status').filter(has_text='게시를 내렸어요')).to_be_visible()
  page.goto(base+'customer/prices/',wait_until='networkidle');expect(page.locator('.poster-example')).to_be_visible();assert not errors,errors
  b.close()
 s.shutdown();print('PASS exact editor snapshot publication, text alternative, public display, mobile overflow, unpublish')

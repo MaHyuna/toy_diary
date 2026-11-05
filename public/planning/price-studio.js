@@ -81,6 +81,6 @@ window.addEventListener('message',event=>{
   const canvas=document.createElement('canvas');const rendered=renderPoster(canvas,project,logo);
   if(rendered.error)throw new Error(rendered.error);
   const description=[project.brand.name,project.brand.title,...project.sections.filter(s=>s.visible).flatMap(s=>[s.title,s.breeds,s.note,...(s.kind==='matrix'?s.rows.map(r=>r.weight+' · '+project.columns.map((c,i)=>c.name+' '+r.prices[i]).join(' / ')):s.kind==='list'?s.items.map(i=>i.label+' '+i.value):[s.content])]),project.brand.contact,project.brand.footer].filter(Boolean).join('\n');
-  window.parent.postMessage({type:'mongle-price-poster',poster:{image:canvas.toDataURL('image/jpeg',.92),description}},location.origin);
+  window.parent.postMessage({type:'mongle-price-poster',poster:{image:canvas.toDataURL('image/jpeg',.92),description,menu:{columns:project.columns.map(c=>c.name),sections:project.sections.filter(s=>s.visible).map(s=>({title:s.title,breeds:s.breeds||'',note:s.note||'',content:s.content||'',rows:(s.rows||[]).map(r=>({weight:r.weight,prices:r.prices})),items:s.items||[]}))}}},location.origin);
  }catch(e){message('게시할 이미지를 만들지 못했어요. '+e.message);}
 });

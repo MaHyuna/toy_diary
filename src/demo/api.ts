@@ -1,3 +1,4 @@
+import { validatePriceMenu } from '../price-menu.ts';
 import type { Appointment, BookingRequest, CarePhoto, Customer, Expense, GroomingRecord, PaymentMethod, Pet, Pricing, PublicCareHistoryItem, PublicCareReport, Shampoo, ShampooUsage, State } from '../types.ts';
 import { addExpandedDemoData, createDemoData, DEMO_SEED_REVISION } from './seed.ts';
 import type { DemoData } from './seed.ts';
@@ -355,7 +356,7 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         const input = method === 'DELETE' ? {} : object(body);
         let result: unknown;
         const parts = route.split('/').filter(Boolean), [resource, id, action] = parts;
-        if (route === '/price-poster' && method === 'DELETE') {delete data.pricePoster;result=null;} else if (route === '/price-poster' && method === 'PUT') {only(input,['image','description']);const image=text(input,'image','요금표 이미지',2500000,true);if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(image))fail('JPEG 요금표를 사용해 주세요.');let raw='';try{raw=atob(image.split(',')[1]);}catch{fail('이미지를 읽을 수 없어요.');}if(!raw.startsWith('\xff\xd8')||!raw.endsWith('\xff\xd9'))fail('JPEG 요금표를 사용해 주세요.');data.pricePoster={image,description:text(input,'description','요금표 내용',30000,true)};result=data.pricePoster;} else if (method === 'PUT' && route === '/notices') {
+        if (route === '/price-poster' && method === 'DELETE') {delete data.pricePoster;result=null;} else if (route === '/price-poster' && method === 'PUT') {only(input,['image','description','menu']);const image=text(input,'image','요금표 이미지',2500000,true);if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(image))fail('JPEG 요금표를 사용해 주세요.');let raw='';try{raw=atob(image.split(',')[1]);}catch{fail('이미지를 읽을 수 없어요.');}if(!raw.startsWith('\xff\xd8')||!raw.endsWith('\xff\xd9'))fail('JPEG 요금표를 사용해 주세요.');data.pricePoster={image,description:text(input,'description','요금표 내용',30000,true),...(input.menu===undefined?{}:{menu:validatePriceMenu(input.menu)})};result=data.pricePoster;} else if (method === 'PUT' && route === '/notices') {
           only(input, ['notices']);
           const notices = list(input.notices, 20, '공지').map(value => { const item = object(value); only(item, ['id','title','body','published']); const id = text(item, 'id', '공지 ID', 80, true); if (!/^[A-Za-z0-9_-]+$/.test(id) || typeof item.published !== 'boolean') fail('공지 ID와 공개 상태를 확인해 주세요.'); return { id, title: text(item, 'title', '공지 제목', 80, true), body: text(item, 'body', '공지 내용', 2000, true), published: item.published as boolean }; });
           if (new Set(notices.map(item=>item.id)).size !== notices.length) fail('공지 ID가 중복됩니다.');
