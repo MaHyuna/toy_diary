@@ -34,3 +34,5 @@
 }
 @media(max-width:700px){.mobile-price-section{min-height:100svh}}
 @media(max-width:700px){.mobile-price-section{min-height:0}.mobile-price-table th,.mobile-price-table td{color:#302c32}.price-category-tabs{scroll-padding-inline:16px}}
+
+@media(max-width:700px){.mobile-price-table-block{width:100%;margin:0 0 22px}.mobile-price-table{table-layout:fixed;width:100%;min-width:0;font-size:12px}.mobile-price-table th,.mobile-price-table td{padding:14px 3px;white-space:normal;overflow-wrap:anywhere}.mobile-price-table tr>:first-child{position:static;min-width:0;width:24%;padding-left:0;padding-right:8px;border-right:0;text-align:left}.mobile-price-table tbody td{font-size:12px;letter-spacing:-.4px;font-weight:650;white-space:nowrap}.mobile-price-table thead th{font-size:11px;line-height:1.6}.mobile-price-table tbody th{font-size:12px;line-height:1.7}.mobile-price-table tbody tr+tr>*{border-top:1px solid #efdee1}.price-table-hint{justify-content:flex-end;margin-bottom:8px}}
