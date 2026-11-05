@@ -291,14 +291,21 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
           const current = existing(data.appointments, id, '예약');
           if (method === 'PATCH' && !action) {
             if (!Object.keys(input).length) fail('수정할 항목을 입력해 주세요.');
-            const saved = appointment(data, input, current); data.appointments[data.appointments.indexOf(current)] = saved; result = saved;
+            const saved = Object.keys(input).length === 1 && 'notes' in input
+              ? { ...current, notes: text(input, 'notes', '메모') }
+              : appointment(data, input, current);
+            data.appointments[data.appointments.indexOf(current)] = saved; result = saved;
           } else if (method === 'POST' && action === 'settle') {
-            only(input, ['paymentMethod', 'paidDate']);
+            only(input, ['paymentMethod', 'paidDate', 'changes']);
             if (current.paymentStatus === 'paid') fail('이미 정산 완료된 예약입니다.');
             if (current.status === 'cancelled') fail('취소된 예약은 정산할 수 없습니다.');
             const paidDate = day(input.paidDate, '결제 날짜'); if (paidDate > today) fail('결제 날짜는 오늘 이후로 지정할 수 없습니다.');
-            current.paymentMethod = choice<PaymentMethod>(input.paymentMethod, ['card', 'cash', 'transfer'], '결제 수단');
-            current.paidDate = paidDate; current.paymentStatus = 'paid'; current.status = 'completed'; result = current;
+            const paymentMethod = choice<PaymentMethod>(input.paymentMethod, ['card', 'cash', 'transfer'], '결제 수단');
+            const changes = input.changes === undefined ? {} : object(input.changes);
+            only(changes, ['basePrice', 'extraCharges', 'notes']);
+            const updated = Object.keys(changes).length ? appointment(data, changes, current) : current;
+            const paid: Appointment = { ...updated, paymentMethod, paidDate, paymentStatus: 'paid', status: 'completed' };
+            data.appointments[data.appointments.indexOf(current)] = paid; result = paid;
           } else if (method === 'POST' && action === 'link-pet') {
             only(input, ['petId']); const selected = existing(data.pets, input.petId, '반려견');
             if (current.petId !== null && current.petId !== selected.id) fail('이미 다른 반려견과 연결된 예약입니다.');

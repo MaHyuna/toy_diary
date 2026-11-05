@@ -113,6 +113,31 @@ test('settlement records money once and locks paid appointment edits', async () 
   assert.equal(storage.getItem(KEY), saved);
 });
 
+test('checkout validates final charges atomically and paid notes never change money', async () => {
+  const { api, storage } = setup();
+  const visit = await api.request<Appointment>('/appointments', 'POST', reservation());
+  const path = `/appointments/${visit.id}`;
+  const payment = { paymentMethod: 'card', paidDate: TODAY };
+  const before = storage.getItem(KEY);
+  for (const changes of [{ basePrice: -1 }, { date: '2030-01-01', notes: 'must not save' }]) {
+    await assert.rejects(api.request(path + '/settle', 'POST', { ...payment, changes }));
+    assert.equal(storage.getItem(KEY), before);
+  }
+  const changes = { basePrice: 70000, extraCharges: [{ label: '엉킴 정리', amount: 5000 }], notes: '미용 후 피부 확인' };
+  storage.failWrites = true;
+  await assert.rejects(api.request(path + '/settle', 'POST', { ...payment, changes }));
+  assert.equal(storage.getItem(KEY), before);
+  storage.failWrites = false;
+  const paid = await api.request<Appointment>(path + '/settle', 'POST', { ...payment, changes });
+  assert.equal(paid.price, 75000);
+  assert.equal(paid.notes, changes.notes);
+  const updated = await api.request<Appointment>(path, 'PATCH', { notes: '픽업 안내 완료' });
+  assert.deepEqual(updated, { ...paid, notes: '픽업 안내 완료' });
+  await assert.rejects(api.request(path, 'PATCH', { notes: 'no', price: 1 }));
+  await assert.rejects(api.request(path + '/settle', 'POST', { ...payment, changes: { basePrice: 1 } }));
+  assert.equal((await api.request<State>('/state')).appointments.find(a => a.id === visit.id)?.price, 75000);
+});
+
 test('monthly cash totals use payment dates and avoid deducting shampoo cost twice', async () => {
   const { api } = setup();
   const before = (await api.request<State>('/state?month=2029-12')).summary;

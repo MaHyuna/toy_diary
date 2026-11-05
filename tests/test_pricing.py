@@ -43,6 +43,18 @@ class PricingTest(unittest.TestCase):
             function(*args)
         self.assertEqual(raised.exception.status, 400)
 
+    def test_checkout_database_failure_rolls_back_quote_and_notes(self):
+        visit = self.store.create_appointment(self.booking_data())
+        with self.store.connect(write=True) as connection:
+            connection.execute("""CREATE TRIGGER fail_payment BEFORE UPDATE OF paymentStatus ON appointments
+                WHEN NEW.paymentStatus = 'paid' BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END""")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.store.settle(visit["id"], {"paymentMethod": "card", "paidDate": "2026-01-15", "changes": {
+                "basePrice": 70000, "extraCharges": [{"label": "엉킴", "amount": 5000}], "notes": "저장되면 안 되는 메모",
+            }})
+        current = next(a for a in Store(self.database).state("2026-01")["appointments"] if a["id"] == visit["id"])
+        self.assertEqual(current, visit)
+
     def test_default_pricing_and_saved_rules_survive_reopening(self):
         default = self.store.state("2026-01")["pricing"]
         self.assertEqual(len(default["services"]), 4)

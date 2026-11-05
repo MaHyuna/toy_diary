@@ -634,6 +634,10 @@ class Store:
             raise APIError("수정할 예약 항목이 올바르지 않습니다.")
         with self.connect(write=True) as connection:
             current = self.find(connection, appointment_id)
+            if set(data) == {"notes"}:
+                notes = text_field(data, "notes", "메모", maximum=2000)
+                connection.execute("UPDATE appointments SET notes = ? WHERE id = ?", (notes, appointment_id))
+                return self.find(connection, appointment_id)
             if current["paymentStatus"] == "paid":
                 raise APIError("정산 완료된 예약은 수정하거나 취소할 수 없습니다.", 409)
             merged = self.prepare_appointment(connection, {**current, **data}, data, current)
@@ -668,8 +672,11 @@ class Store:
         return pricing
 
     def settle(self, appointment_id, data):
-        if set(data) - {"paymentMethod", "paidDate"}:
+        if set(data) - {"paymentMethod", "paidDate", "changes"}:
             raise APIError("정산 입력 항목이 올바르지 않습니다.")
+        changes = data.get("changes", {})
+        if not isinstance(changes, dict) or set(changes) - {"basePrice", "extraCharges", "notes"}:
+            raise APIError("정산 시에는 기본요금·추가요금·미용 메모만 수정할 수 있습니다.")
         method = data.get("paymentMethod")
         if not isinstance(method, str) or method not in PAYMENT_METHODS:
             raise APIError("결제 수단을 선택해 주세요.")
@@ -682,6 +689,13 @@ class Store:
                 raise APIError("이미 정산 완료된 예약입니다.", 409)
             if current["status"] == "cancelled":
                 raise APIError("취소된 예약은 정산할 수 없습니다.", 409)
+            if changes:
+                merged = {**current, **changes}
+                if {"basePrice", "extraCharges"}.intersection(changes):
+                    merged.pop("price", None)
+                updated = validate_appointment(merged)
+                assignments = ", ".join(f"{column} = ?" for column in updated)
+                connection.execute(f"UPDATE appointments SET {assignments} WHERE id = ?", (*self.appointment_values(updated), appointment_id))
             connection.execute(
                 "UPDATE appointments SET status = 'completed', paymentStatus = 'paid', paymentMethod = ?, paidDate = ? WHERE id = ?",
                 (method, paid_date, appointment_id),

@@ -1,8 +1,10 @@
+import { PetAvatar } from './PetAvatar';
+import { DatePicker } from './DatePicker';
 import { PetPicker } from './PetPicker';
 import { ProductImage } from './ProductImage';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { ArrowRightLeft, Banknote, Check, CreditCard, LoaderCircle, Plus, Trash2, X } from 'lucide-react';
+import { ArrowRightLeft, Banknote, Check, CreditCard, LoaderCircle, Pencil, Plus, ShieldAlert, Trash2, X } from 'lucide-react';
 import { api, categories, money, paymentLabels, today } from './types';
 import type { Appointment, Customer, PaymentMethod, Pet, Pricing, Shampoo } from './types';
 
@@ -346,37 +348,52 @@ export function ExpenseForm({ date, onSaved, onClose }: FormCallbacks & { date: 
   </Modal>;
 }
 
-export function SettleForm({ appointment, onSaved, onClose }: FormCallbacks & { appointment: Appointment }) {
-  const formId = useId();
+export function SettleForm({ appointment: a, pet, customer, onSaved, onClose }: FormCallbacks & { appointment: Appointment; pet?: Pet; customer?: Customer }) {
+  const id = useId();
+  const dateTrigger = useRef<HTMLButtonElement>(null);
   const [method, setMethod] = useState<PaymentMethod>('card');
   const [paidDate, setPaidDate] = useState(today());
+  const [changeDate, setChangeDate] = useState(false);
+  const [editPrice, setEditPrice] = useState(false);
+  const [basePrice, setBasePrice] = useState(String(a.basePrice));
+  const [extras, setExtras] = useState(a.extraCharges.map(extra => ({ label: extra.label, amount: String(extra.amount) })));
+  const [notes, setNotes] = useState(a.notes);
   const { busy, error, run } = useSubmission(onSaved);
   const methodIcons = { card: CreditCard, cash: Banknote, transfer: ArrowRightLeft };
+  const total = Number(basePrice) + a.breedSurcharge + a.weightSurcharge + a.shampooSurcharge + extras.reduce((sum, item) => sum + Number(item.amount), 0);
+  const phone = customer ? customer.phone : a.phone;
+  const care = pet?.allergies || pet?.behaviorNotes || pet?.healthNotes;
   function submit(event: FormEvent) {
     event.preventDefault();
-    void run(() => api(`/appointments/${appointment.id}/settle`, 'POST', { paymentMethod: method, paidDate }));
+    void run(() => api(`/appointments/${a.id}/settle`, 'POST', { paymentMethod: method, paidDate,
+      changes: { basePrice: Number(basePrice), extraCharges: extras.map(extra => ({ label: extra.label.trim(), amount: Number(extra.amount) })), notes } }));
   }
-  return <Modal title="미용 완료 · 결제 확인" description={`${appointment.dogName} · ${appointment.service}`} onClose={onClose} busy={busy}>
+  return <Modal title="미용 마무리" onClose={onClose} busy={busy} className="checkout-sheet">
     <form onSubmit={submit}>
-      <div className="modal-body">
-        <div className="amount-preview"><span>최종 미용 금액</span><strong>{money(appointment.price)}<small>원</small></strong></div>
-        <div className="form-grid">
-          <div className="field field-full"><span>결제 수단</span>
-            <div className="segmented" role="group" aria-label="결제 수단">
-              {(['card', 'cash', 'transfer'] as PaymentMethod[]).map((value) => {
-                const Icon = methodIcons[value];
-                return <button type="button" key={value} className={method === value ? 'active' : ''} aria-pressed={method === value} onClick={() => setMethod(value)} disabled={busy}>
-                  <Icon size={18} />{paymentLabels[value]}
-                </button>;
-              })}
-            </div>
-          </div>
-          <div className="field field-full"><label htmlFor={`${formId}-paid-date`}>실제 결제일</label>
-            <input id={`${formId}-paid-date`} type="date" value={paidDate} max={today()} onChange={(e) => setPaidDate(e.target.value)} required disabled={busy} /></div>
-          <p className="field-hint field-full">결제까지 확인하면 미용 완료로 기록돼요. 추가요금이 있다면 먼저 예약·요금 수정에서 반영해 주세요. 완료 후에는 금액과 예약을 수정할 수 없어요.</p>
-        </div><FormError error={error} />
+      <div className="modal-body checkout-body">
+        <div className="checkout-pet"><PetAvatar pet={pet || { id: a.petId || '', name: a.dogName, breed: a.breed }} /><div><strong>{a.dogName}</strong><p>{a.service} · {a.breed || '견종 미등록'}{a.weight ? ` · ${a.weight}kg` : ''}</p><div className="checkout-contact"><span>{customer?.name || a.guardianName}</span>{phone && <a href={`tel:${phone.replace(/[^\d+]/g, '')}`}>{phone}</a>}</div></div></div>
+        {care && <p className="checkout-care"><ShieldAlert size={15} /><span>{care}</span></p>}
+        <div className="checkout-total"><div><span>최종 금액</span><strong aria-live="polite">{money(total)}<small>원</small></strong></div><button type="button" className="text-button" aria-expanded={editPrice} aria-controls={`${id}-quote`} onClick={() => setEditPrice(!editPrice)} disabled={busy}><Pencil size={14} />요금 수정</button></div>
+        {editPrice && <section className="checkout-quote" id={`${id}-quote`} aria-label="최종 요금 수정">
+          <div className="field"><label htmlFor={`${id}-base`}>기본 미용 요금 (원)</label><input id={`${id}-base`} type="number" min="0" max="100000000" step="1" value={basePrice} onChange={e => setBasePrice(e.target.value)} required disabled={busy} inputMode="numeric" /></div>
+          {a.breedSurcharge + a.weightSurcharge + a.shampooSurcharge > 0 && <p className="checkout-fixed-fees">견종 {money(a.breedSurcharge)}원 · 몸무게 {money(a.weightSurcharge)}원 · 샴푸 {money(a.shampooSurcharge)}원</p>}
+          {extras.map((extra, index) => <div className="checkout-extra" key={index}>
+            <div className="field"><label htmlFor={`${id}-extra-${index}`}>추가요금 사유</label><input id={`${id}-extra-${index}`} value={extra.label} maxLength={80} required disabled={busy} onChange={e => setExtras(extras.map((item, i) => i === index ? { ...item, label: e.target.value } : item))} placeholder="예: 엉킴 정리" /></div>
+            <div className="field"><label htmlFor={`${id}-amount-${index}`}>금액 (원)</label><input id={`${id}-amount-${index}`} type="number" min="0" max="100000000" step="1" value={extra.amount} required disabled={busy} onChange={e => setExtras(extras.map((item, i) => i === index ? { ...item, amount: e.target.value } : item))} inputMode="numeric" /></div>
+            <button type="button" className="icon-button" aria-label={`${index + 1}번째 추가요금 삭제`} title="추가요금 삭제" disabled={busy} onClick={() => setExtras(extras.filter((_, i) => i !== index))}><X size={16} /></button>
+          </div>)}
+          <button type="button" className="text-button" disabled={busy || extras.length >= 20} onClick={() => setExtras([...extras, { label: '', amount: '0' }])}><Plus size={15} />추가요금</button>
+        </section>}
+        <div className="checkout-methods" role="group" aria-label="결제 수단">{(['card', 'cash', 'transfer'] as PaymentMethod[]).map(value => {
+          const Icon = methodIcons[value];
+          return <button type="button" key={value} aria-pressed={method === value} data-autofocus={value === 'card' ? '' : undefined} onClick={() => setMethod(value)} disabled={busy}><Icon size={18} />{paymentLabels[value]}</button>;
+        })}</div>
+        <div className="checkout-date"><span>결제일</span><strong>{paidDate === today() ? '오늘 · ' : ''}{Number(paidDate.slice(5, 7))}.{Number(paidDate.slice(8))}</strong><button ref={dateTrigger} type="button" className="text-button" aria-expanded={changeDate} aria-controls={`${id}-paid-date`} onClick={() => setChangeDate(!changeDate)} disabled={busy}>변경</button></div>
+        {changeDate && <div className="checkout-date-field" id={`${id}-paid-date`}><DatePicker value={paidDate} disabled={busy} onClose={() => { setChangeDate(false); dateTrigger.current?.focus(); }} onChange={date => { setPaidDate(date); setChangeDate(false); requestAnimationFrame(() => dateTrigger.current?.focus()); }} /></div>}
+        <div className="field checkout-notes"><label htmlFor={`${id}-notes`}>미용 메모</label><textarea id={`${id}-notes`} rows={2} value={notes} onChange={e => setNotes(e.target.value)} maxLength={2000} disabled={busy} placeholder="오늘 미용 상태, 다음 방문에 참고할 내용을 남겨요." /></div>
+        <FormError error={error} />
       </div>
-      <footer className="modal-footer"><button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>취소</button><SaveButton busy={busy}>완료 · 결제 기록</SaveButton></footer>
+      <footer className="modal-footer"><SaveButton busy={busy}>{money(total)}원 기록</SaveButton></footer>
     </form>
   </Modal>;
 }

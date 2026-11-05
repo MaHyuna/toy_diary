@@ -18,5 +18,5 @@ export function MobileNavigation({ active, onNavigate, onMore }: {
 }
 
 export function QuickAddButton({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
-  return <button type="button" className="quick-add" aria-label={label} aria-haspopup="dialog" data-primary-add disabled={disabled} onClick={onClick}><Plus size={24} strokeWidth={2.3} /><span>{label}</span></button>;
+  return <button type="button" className="quick-add" aria-label={label} title={label} aria-haspopup="dialog" data-primary-add disabled={disabled} onClick={onClick}><Plus size={24} strokeWidth={2.3} /><span>{label}</span></button>;
 }

@@ -103,6 +103,26 @@ class APITest(unittest.TestCase):
         self.assertEqual(state["summary"]["revenue"], 70000)
         self.assertEqual(state["summary"]["paidCount"], 1)
 
+    def test_checkout_updates_quote_and_notes_together_and_keeps_paid_money_locked(self):
+        _, appointment = self.booking()
+        path = f"/api/appointments/{appointment['id']}"
+        payment = {"paymentMethod": "cash", "paidDate": "2026-01-15"}
+        for changes in ({"basePrice": -1}, {"notes": "바뀌면 안 되는 메모", "date": "2026-02-01"}):
+            self.assertEqual(self.request("POST", path + "/settle", {**payment, "changes": changes})[0], 400)
+            current = next(a for a in self.request("GET", "/api/state?month=2026-01")[1]["appointments"] if a["id"] == appointment["id"])
+            self.assertEqual(current, appointment)
+        changes = {"basePrice": 75000, "extraCharges": [{"label": "엉킴 정리", "amount": 5000}], "notes": "미용 후 피부 상태 확인"}
+        status, paid = self.request("POST", path + "/settle", {**payment, "changes": changes})
+        self.assertEqual(status, 200)
+        self.assertEqual(paid["price"], 80000)
+        self.assertEqual(paid["notes"], changes["notes"])
+        status, updated = self.request("PATCH", path, {"notes": "픽업 안내까지 완료"})
+        self.assertEqual(status, 200)
+        self.assertEqual(updated, {**paid, "notes": "픽업 안내까지 완료"})
+        self.assertEqual(self.request("PATCH", path, {"notes": "변경 금지", "price": 100})[0], 409)
+        self.assertEqual(self.request("POST", path + "/settle", {**payment, "changes": {"basePrice": 1}})[0], 409)
+        self.assertEqual(self.request("GET", "/api/state?month=2026-01")[1]["summary"]["revenue"], 80000)
+
     def test_summary_uses_payment_date_and_actual_expense_month(self):
         _, appointment = self.booking()
         self.request("POST", f"/api/appointments/{appointment['id']}/settle", {"paymentMethod": "transfer", "paidDate": "2026-02-01"})
