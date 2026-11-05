@@ -80,7 +80,7 @@ window.addEventListener('message',event=>{
   const menu=event.data.menu;if(!menu||!Array.isArray(menu.columns)||!Array.isArray(menu.sections))return;
   project.columns=menu.columns.map((name,i)=>({id:'source-col-'+i,name,note:''}));
   project.sections=menu.sections.map((s,i)=>({...s,id:'source-group-'+i,kind:s.rows.length?'matrix':s.items.length?'list':'text',span:'full',visible:true,style:{},rows:s.rows.map((r,j)=>({...r,id:'source-row-'+i+'-'+j}))}));
-  project.brand.footer='최종 금액은 상담 후 안내합니다.';active=project.sections[0]?.id;renderAll();message('요금 관리에 저장된 기준입니다. 금액을 바꾸려면 사장님 요금 관리에서 수정해 주세요.');return;
+  active=project.sections[0]?.id;renderAll();message('요금 관리에 저장된 기준입니다. 금액을 바꾸려면 사장님 요금 관리에서 수정해 주세요.');return;
  }
  if(event.data?.type!=='mongle-export-price-poster')return;
  if(!fontReady||result.error){message(result.error||'글꼴을 준비하고 있어요. 잠시 후 다시 게시해 주세요.');return;}

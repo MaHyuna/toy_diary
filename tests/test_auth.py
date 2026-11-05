@@ -58,6 +58,17 @@ class AuthTest(unittest.TestCase):
             "phone": "010-9999-8888", "breed": "말티즈", "weight": 3.2, "service": "전체 미용",
             "date": "2026-01-15", "time": "10:00", "duration": 60, "basePrice": 65000, "notes": "PRIVATE_NOTE"})
 
+    def test_shared_price_matrix_requires_owner_and_preserves_old_booking_rates(self):
+        owner, _ = self.login()
+        menu = {"columns": ["목욕"], "sections": [{"title": "소형견 미용", "breeds": "말티즈", "note": "", "content": "", "rows": [{"weight": "4kg 미만", "prices": ["15000"]}], "items": []}]}
+        before = self.store.public_catalog()["pricing"]
+        self.assertEqual(self.request("PUT", "/api/price-menu", menu)[0], 401)
+        self.assertEqual(self.request("PUT", "/api/price-menu", menu, cookie=owner)[0], 200)
+        self.assertEqual(self.request("GET", "/api/public/price-menu")[1], menu)
+        self.assertEqual(self.request("PUT", "/api/price-menu", {"columns": [], "sections": [{}]}, cookie=owner)[0], 400)
+        self.assertEqual(self.store.price_menu(), menu)
+        self.assertEqual(self.store.public_catalog()["pricing"], before)
+
     def test_price_poster_publication_requires_owner_and_valid_image(self):
         cookie, _ = self.login()
         poster = {"image": "data:image/jpeg;base64,/9j/2Q==", "description": "소형견 미용 · 4kg 미만 목욕 15,000"}

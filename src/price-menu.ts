@@ -8,3 +8,6 @@ export function validatePriceMenu(value:unknown):PriceMenu {
  const sections=arr(p.sections,24).map(v=>{const s=obj(v);return {title:str(s.title),breeds:str(s.breeds),note:str(s.note),content:str(s.content),rows:arr(s.rows,30).map(v=>{const r=obj(v),prices=arr(r.prices,8).map(str);if(prices.length!==columns.length)fail();return {weight:str(r.weight),prices};}),items:arr(s.items,40).map(v=>{const i=obj(v);return {label:str(i.label),value:str(i.value)};})};});
  return {columns,sections};
 }
+
+const normalized=(menu:PriceMenu)=>({columns:menu.columns,sections:menu.sections.map(s=>({title:s.title,breeds:s.breeds,note:s.note,content:s.content,rows:s.rows.map(r=>({weight:r.weight,prices:r.prices})),items:s.items.map(i=>({label:i.label,value:i.value}))}))});
+export const sameMenu=(a:PriceMenu|undefined,b:PriceMenu)=>!!a&&JSON.stringify(normalized(a))===JSON.stringify(normalized(b));

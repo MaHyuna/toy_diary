@@ -578,6 +578,20 @@ class Store:
             if start < other_start + row["duration"] and end > other_start:
                 raise APIError("같은 시간에 다른 예약이 있습니다. 예약 시간을 확인해 주세요.", 409)
 
+    def price_menu(self):
+        with self.connect() as connection:
+            row = connection.execute("SELECT value FROM settings WHERE key='price-menu'").fetchone()
+        if row: return json.loads(row[0])
+        poster = self.price_poster()
+        return poster.get("menu") if poster else None
+
+    def save_price_menu(self, data):
+        from server.price_menu import validate_menu
+        menu = validate_menu(data, APIError)
+        with self.connect(write=True) as connection:
+            connection.execute("INSERT INTO settings(key,value) VALUES('price-menu',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(menu, ensure_ascii=False),))
+        return menu
+
     def price_poster(self):
         with self.connect() as connection:
             row = connection.execute("SELECT value FROM settings WHERE key='price-poster'").fetchone()
@@ -1153,7 +1167,7 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
                     return
                 care_public_match = re.fullmatch(r"/api/public/care/([a-f0-9]{32})", path)
                 public = (method, path) in {
-                    ("GET", "/api/public/catalog"), ("GET", "/api/public/price-poster"), ("GET", "/api/public/availability"),
+                    ("GET", "/api/public/price-menu"), ("GET", "/api/public/catalog"), ("GET", "/api/public/price-poster"), ("GET", "/api/public/availability"),
                     ("POST", "/api/public/requests"),
                 } or method == "GET" and care_public_match is not None
                 if path.startswith("/api/") and not public:
@@ -1164,6 +1178,10 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
                     with store.connect() as connection:
                         connection.execute("SELECT 1").fetchone()
                     return self.send_json({"status": "ok"})
+                if method == "GET" and path == "/api/public/price-menu":
+                    return self.send_json(store.price_menu())
+                if method == "PUT" and path == "/api/price-menu":
+                    return self.send_json(store.save_price_menu(self.read_json()))
                 if method == "GET" and path == "/api/public/catalog":
                     return self.send_json(store.public_catalog())
                 if method == "GET" and care_public_match:

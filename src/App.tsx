@@ -8,7 +8,7 @@ import { ArrowDownLeft, ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays,
 import type { Appointment, GroomingRecord, BookingRequest, State } from './types';
 import { api, money, paymentLabels, today } from './types';
 import { AppointmentForm, ConfirmDialog, ExpenseForm, Modal, SettleForm } from './Forms';
-import { PricingPage } from './Pricing';
+import { SharedPricing } from './SharedPricing';
 import { AppointmentDetails } from './AppointmentDetails';
 import { CustomersPanel, PetForm } from './Customers';
 import { ShampoosPanel } from './Shampoos';
@@ -36,7 +36,7 @@ const titles: Record<View, { title: string; subtitle: string }> = {
   customers: { title: '고객 · 반려견 관리대장', subtitle: '아이의 특성과 지난 방문을 기억하는, 우리 가게의 고객 기록.' },
   supplies: { title: '샴푸 · 사용 원가', subtitle: '사용하는 제품부터 한 번의 미용에 드는 비용까지.' },
   notices: { title: '고객 공지 게시판', subtitle: '매장 소식을 작성하고 공개 상태를 관리해요.' },
-  pricing: { title: '매장 요금 관리', subtitle: '고객 안내와 새 예약에 사용하는 요금 기준을 설정해요.' },
+  pricing: { title: '매장 요금 관리', subtitle: '고객과 같은 견종·몸무게별 요금표를 수정해요.' },
 };
 const empty: State = { appointments: [], expenses: [], customers: [], pets: [], shampoos: [], pricing: { services: [], breedRules: [], weightRules: [] }, summary: { revenue: 0, totalExpenses: 0, profit: 0, unpaidAmount: 0, paidCount: 0, shampooCost: 0 } };
 const formatDate = (value: string) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date(`${value}T12:00:00+09:00`));
@@ -149,7 +149,7 @@ export default function App() {
         {view === 'customers' && <CustomersPanel onCare={appointment => void openCare(appointment)} customers={state.customers} pets={state.pets} appointments={state.appointments} onSaved={() => saved('고객대장을 저장했어요.')} onBook={(petId) => { setSelectedDate(today()); setDialog({ type: 'appointment', petId }); }} />}
         {view === 'supplies' && <ShampoosPanel shampoos={state.shampoos} appointments={state.appointments} onSaved={() => saved('샴푸 정보를 저장했어요.')} onExpense={() => setDialog({ type: 'expense' })} />}
         {view === 'notices' && <NoticeBoard />}
-        {view === 'pricing' && <PricingPage pricing={state.pricing} onSaved={() => saved('우리 가게 요금표를 저장했어요.')} />}
+        {view === 'pricing' && <SharedPricing />}
         {view === 'guide' && <div className="guide-grid"><section className="panel guide-panel"><div className="section-eyebrow">A LITTLE GUIDE</div><h2>아이의 첫 방문부터 다음 만남까지.</h2>{[{ n: '01', title: '고객과 반려견을 먼저 기록해요', text: '고객대장에 보호자와 아이를 등록하세요. 견종·몸무게와 알레르기, 입질 등 주의사항을 남기고 아이마다 미용 이력을 확인할 수 있어요. 한 보호자에게 여러 반려견을 연결할 수 있어요.' }, { n: '02', title: '아이와 만날 시간을 등록해요', text: '달력에서 반려견·보호자 정보와 미용 서비스, 시간, 예상 금액을 입력하세요. 서비스별 기본 시간과 금액은 예약마다 수정할 수 있어요.' }, { n: '03', title: '사용한 샴푸와 추가 작업을 남겨요', text: '샴푸 관리에서 실제 제품 가격과 용량을 등록한 뒤 예약에 원액 사용량과 고객 추가요금을 기록하세요. 입질·엉킴 등 현장 추가 작업도 사유와 함께 남길 수 있어요. 기존 방문의 원가는 제품 가격을 바꿔도 유지돼요.' }, { n: '04', title: '미용을 마치면 결제를 확인해요', text: '날짜별 예약에서 미용 완료를 누르고 최종 금액·결제 수단·실제 결제일을 확인하세요. 완료 내역은 방문일 기준 미용 장부에, 받은 금액은 결제일 기준 운영비·손익에 반영돼요. 결제 후 금액 변경과 환불은 아직 지원하지 않아요. 미용 메모는 완료 후에도 보완할 수 있어요.' }, { n: '05', title: '가게를 위해 쓴 돈을 남겨요', text: '더보기의 운영비·손익에서 미용 용품, 임대료 등 매장 지출을 기록하세요. 실제 받은 미용 대금과 기록한 비용을 확인하고, 월별 내역을 CSV로 내려받을 수 있어요.' }].map(item => <div className="guide-step" key={item.n}><span>{item.n}</span><div><h3>{item.title}</h3><p>{item.text}</p></div></div>)}</section><section className="panel guide-panel"><span className="naver-icon">N</span><h2>네이버 예약 연동 계획</h2><p>현재는 직접 등록한 예약을 관리하는 첫 버전이에요. 네이버 예약 자동 연동은 아직 제공하지 않아요.</p><ul><li>공식 연동 가능 여부와 사업자 권한 확인</li><li>외부 예약 번호로 중복 가져오기 방지</li><li>예약 변경·취소와 매장 일정 동기화</li><li>연동 오류 알림과 수동 확인 기능</li></ul><div className="guide-callout"><strong>현재 버전의 사용 범위</strong><p>{isDemo ? '이 페이지는 기능을 시험하는 공유 체험판이에요. 예시 데이터와 직접 입력한 기록은 현재 브라우저에만 저장돼요. 기기를 바꾸거나 사이트 저장 공간을 지우면 기록을 이어서 볼 수 없어요. 실제 매장 고객 정보는 입력하지 마세요.' : '한 대의 기기에서 사용하는 매장 내부용 앱이에요. 사장님 로그인으로 매장 관리 기록에 접근합니다. 고객은 매장에서 전달한 전용 링크로 공개된 기록만 확인해요. 기록은 서버의 SQLite 데이터베이스에 저장되므로 정기적으로 백업해 주세요.'}</p></div></section></div>}
       </>}
       <footer className="page-footer"><span><PawPrint size={13} /> 몽글 · 우리 가게의 다정한 기록</span><span>작은 발자국, 차곡차곡 쌓이는 하루.</span></footer></main></div>

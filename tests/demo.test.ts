@@ -542,3 +542,16 @@ test('published price poster persists separately and failed replacements preserv
  await api.request('/price-poster','DELETE');
  assert.equal(await api.request('/public/price-poster'),null);
 });
+
+test('shared customer matrix is editable without overwriting booking presets and failed writes preserve it',async()=>{
+ const storage=new MemoryStorage(),adapter=createDemoApi(storage,()=>TODAY);
+ const prior=await adapter.request<{pricing:Pricing}>('/public/catalog');
+ const menu={columns:['목욕'],sections:[{title:'소형견 미용',breeds:'말티즈',note:'',content:'',items:[],rows:[{weight:'4kg 미만',prices:['15000']}]}]};
+ await adapter.request('/price-menu','PUT',menu);
+ assert.deepEqual(await createDemoApi(storage,()=>TODAY).request('/public/price-menu'),menu);
+ storage.failWrites=true;await assert.rejects(adapter.request('/price-menu','PUT',{...menu,columns:['변경']}));storage.failWrites=false;
+ assert.deepEqual(await adapter.request('/public/price-menu'),menu);
+ assert.deepEqual((await adapter.request<{pricing:Pricing}>('/public/catalog')).pricing,prior.pricing);
+ await assert.rejects(adapter.request('/price-menu','PUT',{columns:[],sections:[{}]}));
+ assert.deepEqual(await adapter.request('/public/price-menu'),menu);
+});
