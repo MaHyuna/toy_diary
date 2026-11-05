@@ -332,6 +332,18 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         const route = url.pathname.replace(/^\/api(?=\/)/, '');
         if (method === 'GET' && route === '/health') return { status: 'ok', mode: 'demo' } as T;
         const data = clone(read()), today = day(getToday());
+        if(route.startsWith('/guardian/')) {
+          const active=typeof sessionStorage!=='undefined'&&sessionStorage.getItem('mongle-demo-guardian')==='active';
+          if(route==='/guardian/session'&&method==='GET')return {authenticated:active} as T;
+          if(route==='/guardian/demo'&&method==='POST'){sessionStorage.setItem('mongle-demo-guardian','active');return {authenticated:true} as T;}
+          if(route==='/guardian/logout'&&method==='POST'){sessionStorage.removeItem('mongle-demo-guardian');return {authenticated:false} as T;}
+          if(route==='/guardian/notebook'&&method==='GET'){
+            if(!active)fail('체험 보호자로 시작해 주세요.');
+            const customer=data.customers[0],pets=data.pets.filter(p=>p.customerId===customer?.id);
+            return {name:customer?.name??'체험 보호자',pets:pets.map(p=>({id:p.id,name:p.name,breed:p.breed})),records:(data.careRecords??[]).filter(r=>r.published&&r.publishedSnapshot&&pets.some(p=>p.id===r.publishedSnapshot?.petId)).map(r=>r.publishedSnapshot)} as T;
+          }
+          fail('Pages에서는 체험 보호자로 이용해 주세요.');
+        }
         if (method === 'GET' && route === '/state') return clone(summary(data, url.searchParams.get('month') ?? today.slice(0, 7), url.searchParams.get('care') === 'summary')) as T;
         if(method==='GET'&&route==='/public/catalog')return clone({pricing:data.pricing,name:'몽글 미용실',hours:'09:00–19:00',notices:(data.notices??[]).filter(item=>item.published)}) as T;
         if (method === 'GET' && /^\/public\/care\/[^/]+$/.test(route)) {

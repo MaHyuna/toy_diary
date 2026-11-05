@@ -1038,6 +1038,9 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
     if secure_cookies is None:
         secure_cookies = os.environ.get("MONGLE_SECURE_COOKIES", "").lower() in {"1", "true", "yes"}
 
+    from server.customer_access import CustomerAccess
+    guardians = CustomerAccess(store, APIError, secure=secure_cookies, clock=auth_clock)
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "GroomingStudio/0.1"
 
@@ -1146,6 +1149,8 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
                     self.validate_origin()
                     sessions.logout(self.session_token())
                     return self.send_json({"authenticated": False, "role": None, "configured": sessions.configured}, headers={"Set-Cookie": self.session_cookie()})
+                if guardians.handle(self, method, path):
+                    return
                 care_public_match = re.fullmatch(r"/api/public/care/([a-f0-9]{32})", path)
                 public = (method, path) in {
                     ("GET", "/api/public/catalog"), ("GET", "/api/public/price-poster"), ("GET", "/api/public/availability"),
@@ -1153,6 +1158,8 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
                 } or method == "GET" and care_public_match is not None
                 if path.startswith("/api/") and not public:
                     self.require_owner()
+                if path == "/api/guardian-links" and method in {"GET", "PUT"}:
+                    return self.send_json(guardians.links(self.read_json() if method == "PUT" else None))
                 if method == "GET" and path == "/api/health":
                     with store.connect() as connection:
                         connection.execute("SELECT 1").fetchone()
