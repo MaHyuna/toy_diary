@@ -72,3 +72,15 @@ const canvasEditor=createCanvasEditor({getProject:()=>project,onReveal:revealPag
 $('view-form').addEventListener('click',()=>{tab='content';renderEditor();});
 $('show-editor').textContent='꾸미기';$('show-editor').onclick=()=>{$('sheet-close').click();$('view-form').click();tab='design';renderEditor();};
 init();
+
+// Only the owning application frame can request a public snapshot. Editing stays local.
+window.addEventListener('message',event=>{
+ if(window.parent===window||event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='mongle-export-price-poster')return;
+ if(!fontReady||result.error){message(result.error||'글꼴을 준비하고 있어요. 잠시 후 다시 게시해 주세요.');return;}
+ try{
+  const canvas=document.createElement('canvas');const rendered=renderPoster(canvas,project,logo);
+  if(rendered.error)throw new Error(rendered.error);
+  const description=[project.brand.name,project.brand.title,...project.sections.filter(s=>s.visible).flatMap(s=>[s.title,s.breeds,s.note,...(s.kind==='matrix'?s.rows.map(r=>r.weight+' · '+project.columns.map((c,i)=>c.name+' '+r.prices[i]).join(' / ')):s.kind==='list'?s.items.map(i=>i.label+' '+i.value):[s.content])]),project.brand.contact,project.brand.footer].filter(Boolean).join('\n');
+  window.parent.postMessage({type:'mongle-price-poster',poster:{image:canvas.toDataURL('image/jpeg',.92),description}},location.origin);
+ }catch(e){message('게시할 이미지를 만들지 못했어요. '+e.message);}
+});
