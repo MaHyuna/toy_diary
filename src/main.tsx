@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import { PublicBooking } from './PublicBooking';
-import { CustomerCare } from './CustomerCare';
+import { OwnerSession } from './OwnerSession';
+import { appUrl, normalizeEntry } from './routes';
 import './styles.css';
 import './calendar.css';
 import './design.css';
@@ -13,6 +12,15 @@ import './booking-ux.css';
 import './owner-ui.css';
 import './care-ui.css';
 
+const OwnerApp = lazy(() => import('./App'));
+const PublicBooking = lazy(() => import('./PublicBooking').then(module => ({ default: module.PublicBooking })));
+const CustomerCare = lazy(() => import('./CustomerCare').then(module => ({ default: module.CustomerCare })));
+const screen = normalizeEntry();
+const loading = <p role="status">화면을 불러오고 있어요…</p>;
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>{new URLSearchParams(location.search).get('screen') === 'care' ? <CustomerCare/> : ['booking','prices'].includes(new URLSearchParams(location.search).get('screen')??'')?<PublicBooking/>:<App/>}</React.StrictMode>,
+  <React.StrictMode>{screen === 'owner'
+    ? <OwnerSession customerUrl={appUrl('booking')}><Suspense fallback={loading}><OwnerApp /></Suspense></OwnerSession>
+    : <Suspense fallback={loading}>{screen === 'care' ? <CustomerCare /> : <PublicBooking />}</Suspense>}
+  </React.StrictMode>,
 );

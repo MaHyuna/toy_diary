@@ -17,7 +17,7 @@ def assert_agenda_space(page):
  assert body['height']>=panel['height']*.8,(panel,body)
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
- ctx=browser.new_context(viewport={'width':1440,'height':1000},accept_downloads=True);page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+ ctx=browser.new_context(viewport={'width':1440,'height':1000},accept_downloads=True);ctx.add_init_script("sessionStorage.setItem('mongle-demo-owner-session','active')");page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.goto(f'http://127.0.0.1:{server.server_address[1]}/?screen=owner',wait_until='networkidle')
  panel=page.locator('.calendar-day-panel');expect(panel).to_be_visible();expect(page.locator('.calendar-cell-event').first).to_be_visible()
  month=page.locator('.month-calendar').bounding_box();agenda=panel.bounding_box();assert month['x']+month['width']<=agenda['x']+1;assert month['width']>600 and agenda['width']>=290

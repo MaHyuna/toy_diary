@@ -9,7 +9,7 @@ class Handler(SimpleHTTPRequestHandler):
  def log_message(self,*a):pass
 server=ThreadingHTTPServer(('127.0.0.1',0),partial(Handler,directory=str(Path(__file__).resolve().parents[1]/'demo-dist')));threading.Thread(target=server.serve_forever,daemon=True).start()
 with sync_playwright() as p:
- b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);ctx=b.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,accept_downloads=True);page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));base=f'http://127.0.0.1:{server.server_address[1]}/'
+ b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);ctx=b.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,accept_downloads=True);ctx.add_init_script("sessionStorage.setItem('mongle-demo-owner-session','active')");page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));base=f'http://127.0.0.1:{server.server_address[1]}/'
  page.goto(base+'?screen=booking',wait_until='networkidle');expect(page.get_by_role('heading',name='어떤 미용이 필요하세요?')).to_be_visible();assert page.locator('.sidebar,.mobile-navigation,.studio-name-field').count()==0
  page.screenshot(path='/tmp/customer-booking-service.png')
  page.get_by_role('button',name='다음',exact=True).tap();booking_date=page.evaluate('()=>{const d=new Date();d.setDate(d.getDate()+20);return d.toLocaleDateString("sv-SE",{timeZone:"Asia/Seoul"});}')

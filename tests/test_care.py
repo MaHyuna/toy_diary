@@ -137,7 +137,7 @@ class CareTest(unittest.TestCase):
         visit = self.visit()
         root = Path(self.folder.name) / "static"
         root.mkdir()
-        handler = make_handler(self.store, root)
+        handler = make_handler(self.store, root, owner_password="test-owner-password", secure_cookies=False)
         handler.log_message = lambda *args: None
         server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         thread = Thread(target=server.serve_forever, daemon=True)
@@ -145,15 +145,20 @@ class CareTest(unittest.TestCase):
         self.addCleanup(server.server_close)
         self.addCleanup(thread.join)
         self.addCleanup(server.shutdown)
+        cookie = ""
         def request(method, path, body=None, origin=None):
+            nonlocal cookie
             req = Request(f"http://127.0.0.1:{server.server_port}" + path, method=method,
                 data=json.dumps(body).encode() if body is not None else None,
-                headers={"Content-Type": "application/json", **({"Origin": origin} if origin else {})})
+                headers={"Content-Type": "application/json", "Cookie": cookie, **({"Origin": origin} if origin else {})})
             try:
                 with urlopen(req, timeout=5) as response:
+                    if response.headers.get("Set-Cookie"):
+                        cookie = response.headers["Set-Cookie"].split(";", 1)[0]
                     return response.status, json.load(response)
             except HTTPError as error:
                 return error.code, json.load(error)
+        self.assertEqual(request("POST", "/api/auth/login", {"password": "test-owner-password"})[0], 200)
         path = f"/api/appointments/{visit['id']}/care"
         self.assertEqual(request("GET", path), (200, None))
         self.assertEqual(request("PATCH", path, self.draft(), "https://evil.invalid")[0], 403)
@@ -178,6 +183,7 @@ class CareTest(unittest.TestCase):
             connection.putrequest("POST", path)
             connection.putheader("Content-Type", "application/json")
             connection.putheader("Content-Length", "3000001")
+            connection.putheader("Cookie", cookie)
             connection.endheaders()
             self.assertEqual(connection.getresponse().status, 413)
         finally:

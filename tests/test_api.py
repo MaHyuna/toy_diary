@@ -20,12 +20,14 @@ class APITest(unittest.TestCase):
         self.static = self.root / "dist"
         self.static.mkdir()
         (self.static / "index.html").write_text("<html>grooming app</html>")
-        handler = make_handler(self.store, self.static)
+        handler = make_handler(self.store, self.static, owner_password="test-owner-password", secure_cookies=False)
         handler.log_message = lambda *args: None
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         self.thread = Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.url = f"http://127.0.0.1:{self.server.server_port}"
+        self.cookie = ""
+        self.assertEqual(self.request("POST", "/api/auth/login", {"password": "test-owner-password"})[0], 200)
 
     def tearDown(self):
         self.server.shutdown()
@@ -35,9 +37,11 @@ class APITest(unittest.TestCase):
 
     def request(self, method, path, data=None, headers=None):
         raw = json.dumps(data).encode() if data is not None else None
-        request = Request(self.url + path, data=raw, method=method, headers={"Content-Type": "application/json", **(headers or {})})
+        request = Request(self.url + path, data=raw, method=method, headers={"Content-Type": "application/json", "Cookie": self.cookie, **(headers or {})})
         try:
             with urlopen(request, timeout=5) as response:
+                if response.headers.get("Set-Cookie"):
+                    self.cookie = response.headers["Set-Cookie"].split(";", 1)[0]
                 return response.status, json.load(response)
         except HTTPError as error:
             return error.code, json.load(error)

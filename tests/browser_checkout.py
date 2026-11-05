@@ -16,6 +16,7 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
     page = browser.new_page(viewport={'width': 1440, 'height': 900})
+    page.add_init_script("sessionStorage.setItem('mongle-demo-owner-session','active')")
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.goto(f'http://127.0.0.1:{server.server_address[1]}/?screen=owner', wait_until='networkidle')

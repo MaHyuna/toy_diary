@@ -68,11 +68,12 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
   }
   let response: Response;
   try {
-    response = await fetch(`/api${path}`, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+    response = await fetch(`/api${path}`, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
   } catch {
     throw new Error('연결이 잠시 끊겼어요. 연결 상태를 확인하고 다시 시도해 주세요.');
   }
   const data = await response.json().catch(() => { throw new Error('기록 공간에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'); });
+  if (response.status === 401) window.dispatchEvent(new Event('owner-session-expired'));
   if (!response.ok) throw new Error(data.error || '요청을 처리하지 못했어요. 다시 시도해 주세요.');
   return data;
 }

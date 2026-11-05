@@ -69,6 +69,7 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as folder:
     assert after_file.stat().st_size > 100000
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
     context = browser.new_context(viewport={'width': 1440, 'height': 1000}, accept_downloads=True)
+    context.add_init_script("sessionStorage.setItem('mongle-demo-owner-session','active')")
     owner = context.new_page()
     errors = []
     owner.on('pageerror', lambda error: errors.append(str(error)))

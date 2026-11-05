@@ -1,4 +1,4 @@
-"""Single-owner local application server. Bind to loopback until authentication is added."""
+"""Single-shop application server with owner sessions and scoped public care links."""
 
 from __future__ import annotations
 
@@ -9,12 +9,19 @@ from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.cookies import CookieError, SimpleCookie
+import hashlib
 import json
 import math
 import mimetypes
+import os
 from pathlib import Path
 import re
+import secrets
+import ssl
 import sqlite3
+from threading import Lock
+import time
 import traceback
 from urllib.parse import parse_qs, unquote, urlsplit
 from uuid import uuid4
@@ -890,25 +897,130 @@ class Store:
         }
 
 
-def make_handler(store: Store, static_dir: Path):
+class OwnerSessions:
+    """Opaque session cookies; only token hashes and expiry live on the server."""
+
+    cookie_name = "mongle_owner_session"
+
+    def __init__(self, password, *, lifetime=8 * 60 * 60, clock=time.monotonic):
+        self.configured = isinstance(password, str) and 0 < len(password) <= 256
+        try:
+            self.password_hash = hashlib.sha256(password.encode()).digest() if self.configured else None
+        except UnicodeEncodeError:
+            self.configured = False
+            self.password_hash = None
+        self.lifetime = lifetime
+        self.clock = clock
+        self.sessions = {}
+        self.failures = {}
+        self.lock = Lock()
+
+    @staticmethod
+    def token_hash(token):
+        if not isinstance(token, str) or not re.fullmatch(r"[A-Za-z0-9_-]{43}", token):
+            return None
+        return hashlib.sha256(token.encode()).digest()
+
+    def authenticated(self, token):
+        hashed = self.token_hash(token)
+        with self.lock:
+            now = self.clock()
+            self.sessions = {key: expiry for key, expiry in self.sessions.items() if expiry > now}
+            return self.configured and hashed in self.sessions
+
+    def login(self, password, client, previous_token=None):
+        if not self.configured:
+            raise APIError("매장 로그인 설정이 필요합니다.", 503)
+        with self.lock:
+            now = self.clock()
+            self.failures = {key: [stamp for stamp in attempts if stamp > now - 60]
+                             for key, attempts in self.failures.items() if any(stamp > now - 60 for stamp in attempts)}
+            attempts = self.failures.get(client, [])
+            if len(attempts) >= 5:
+                raise APIError("잠시 후 다시 로그인해 주세요.", 429)
+            valid = isinstance(password, str) and len(password) <= 256
+            try:
+                supplied = hashlib.sha256(password.encode()).digest() if valid else b""
+            except UnicodeEncodeError:
+                supplied = b""
+            if not secrets.compare_digest(supplied, self.password_hash):
+                self.failures[client] = [*attempts, now]
+                raise APIError("비밀번호를 확인해 주세요.", 401)
+            self.failures.pop(client, None)
+            self.sessions = {key: expiry for key, expiry in self.sessions.items() if expiry > now}
+            self.sessions.pop(self.token_hash(previous_token), None)
+            while len(self.sessions) >= 256:
+                self.sessions.pop(next(iter(self.sessions)))
+            token = secrets.token_urlsafe(32)
+            self.sessions[self.token_hash(token)] = now + self.lifetime
+            return token
+
+    def logout(self, token):
+        with self.lock:
+            self.sessions.pop(self.token_hash(token), None)
+
+
+def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_cookies=None, session_seconds=8 * 60 * 60, auth_clock=time.monotonic):
     static_root = static_dir.resolve()
+    sessions = OwnerSessions(os.environ.get("MONGLE_OWNER_PASSWORD") if owner_password is None else owner_password,
+                             lifetime=session_seconds, clock=auth_clock)
+    if secure_cookies is None:
+        secure_cookies = os.environ.get("MONGLE_SECURE_COOKIES", "").lower() in {"1", "true", "yes"}
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "GroomingStudio/0.1"
 
-        def send_json(self, data, status=200):
+        def send_json(self, data, status=200, headers=None):
             payload = json.dumps(data, ensure_ascii=False, allow_nan=False).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(payload)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
+            for name, value in (headers or {}).items():
+                self.send_header(name, value)
             self.end_headers()
             self.wfile.write(payload)
 
+        def session_token(self):
+            cookie = SimpleCookie()
+            try:
+                cookie.load(self.headers.get("Cookie", ""))
+                value = cookie.get(sessions.cookie_name)
+                return value.value if value else None
+            except CookieError:
+                return None
+
+        def session_cookie(self, token=None):
+            cookie = SimpleCookie()
+            cookie[sessions.cookie_name] = token or ""
+            value = cookie[sessions.cookie_name]
+            value["path"] = "/"
+            value["httponly"] = True
+            value["samesite"] = "Strict"
+            value["max-age"] = sessions.lifetime if token else 0
+            if secure_cookies or isinstance(self.connection, ssl.SSLSocket):
+                value["secure"] = True
+            return value.OutputString()
+
+        def auth_status(self):
+            authenticated = bool(sessions.authenticated(self.session_token()))
+            return {"authenticated": authenticated, "role": "owner" if authenticated else None, "configured": sessions.configured}
+
+        def require_owner(self):
+            if not sessions.configured:
+                raise APIError("매장 로그인 설정이 필요합니다.", 503)
+            if not sessions.authenticated(self.session_token()):
+                raise APIError("사장님 로그인이 필요합니다.", 401)
+
         def validate_origin(self):
             origin = self.headers.get("Origin")
-            if origin and urlsplit(origin).netloc != self.headers.get("Host"):
+            expected_scheme = "https" if secure_cookies or isinstance(self.connection, ssl.SSLSocket) else "http"
+            try:
+                parsed = urlsplit(origin) if origin else None
+            except ValueError:
+                raise APIError("다른 사이트에서는 데이터를 변경할 수 없습니다.", 403) from None
+            if self.headers.get("Sec-Fetch-Site") == "cross-site" or parsed and (parsed.netloc != self.headers.get("Host") or parsed.scheme != expected_scheme or parsed.path not in {"", "/"} or parsed.query or parsed.fragment):
                 raise APIError("다른 사이트에서는 데이터를 변경할 수 없습니다.", 403)
 
         def read_json(self, maximum=2_200_000):
@@ -948,13 +1060,34 @@ def make_handler(store: Store, static_dir: Path):
             try:
                 parsed = urlsplit(self.path)
                 path = parsed.path
+                if method == "GET" and path == "/api/auth/session":
+                    return self.send_json(self.auth_status())
+                if method == "POST" and path == "/api/auth/login":
+                    self.validate_origin()
+                    if not sessions.configured:
+                        raise APIError("매장 로그인 설정이 필요합니다.", 503)
+                    data = self.read_json(maximum=4096)
+                    if set(data) != {"password"}:
+                        raise APIError("비밀번호를 입력해 주세요.")
+                    token = sessions.login(data["password"], self.client_address[0], self.session_token())
+                    return self.send_json({"authenticated": True, "role": "owner", "configured": True}, headers={"Set-Cookie": self.session_cookie(token)})
+                if method == "POST" and path == "/api/auth/logout":
+                    self.validate_origin()
+                    sessions.logout(self.session_token())
+                    return self.send_json({"authenticated": False, "role": None, "configured": sessions.configured}, headers={"Set-Cookie": self.session_cookie()})
+                care_public_match = re.fullmatch(r"/api/public/care/([a-f0-9]{32})", path)
+                public = (method, path) in {
+                    ("GET", "/api/public/catalog"), ("GET", "/api/public/availability"),
+                    ("POST", "/api/public/requests"),
+                } or method == "GET" and care_public_match is not None
+                if path.startswith("/api/") and not public:
+                    self.require_owner()
                 if method == "GET" and path == "/api/health":
                     with store.connect() as connection:
                         connection.execute("SELECT 1").fetchone()
                     return self.send_json({"status": "ok"})
                 if method == "GET" and path == "/api/public/catalog":
                     return self.send_json(store.public_catalog())
-                care_public_match = re.fullmatch(r"/api/public/care/([a-f0-9]{32})", path)
                 if method == "GET" and care_public_match:
                     return self.send_json(store.public_care(care_public_match.group(1)))
                 if method == "GET" and path == "/api/public/availability":

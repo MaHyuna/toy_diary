@@ -1,3 +1,4 @@
+import { appUrl } from './routes';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Check, Dog, LoaderCircle, Plus, Scissors, Scale, Trash2 } from 'lucide-react';
@@ -115,5 +116,5 @@ export function PricingPanel({ pricing, onSaved }: { pricing: Pricing; onSaved: 
 }
 
 export function PricingPage({ pricing, onSaved }: { pricing: Pricing; onSaved: () => void }) {
- return <div className="pricing-page"><div className="pricing-admin-intro"><p>사장님 전용 요금 설정입니다.<br/>저장한 기준은 고객용 요금 안내와 새 예약 견적에 반영됩니다.</p><a href="?screen=prices" target="_blank" rel="noreferrer">고객용 요금표 열기 ↗</a></div><PricingPanel pricing={pricing} onSaved={onSaved}/></div>;
+ return <div className="pricing-page"><div className="pricing-admin-intro"><p>사장님 전용 요금 설정입니다.<br/>저장한 기준은 고객용 요금 안내와 새 예약 견적에 반영됩니다.</p><a href={appUrl('prices')} target="_blank" rel="noreferrer">고객용 요금표 열기 ↗</a></div><PricingPanel pricing={pricing} onSaved={onSaved}/></div>;
 }

@@ -5,15 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build",
-    "build:demo": "tsc -b && vite build --mode demo",
+    "build": "tsc -b && vite build && python scripts/build_routes.py dist",
+    "build:demo": "tsc -b && vite build --mode demo && python scripts/build_routes.py demo-dist",
     "test:demo": "node --experimental-strip-types --test --test-isolation=none --test-timeout=10000 tests/demo.test.ts",
     "test:calendar": "node --experimental-strip-types --test --test-isolation=none --test-timeout=10000 tests/calendar.test.ts",
     "package:demo": "npm run build:demo && python scripts/package_demo.py",
     "start": "python -m server.app --host 127.0.0.1 --port 3000",
     "test": "python -m unittest discover -s tests -v",
     "test:studio": "node --test --test-isolation=none tests/price-studio.test.mjs",
-    "test:care": "node --experimental-strip-types --test --test-isolation=none tests/care.test.ts"
+    "test:care": "node --experimental-strip-types --test --test-isolation=none tests/care.test.ts",
+    "test:routes": "node --experimental-strip-types --test --test-isolation=none tests/routes.test.ts",
+    "test:auth:browser": "npm run build && python tests/browser_auth.py"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

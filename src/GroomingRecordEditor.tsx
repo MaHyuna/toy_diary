@@ -1,3 +1,4 @@
+import { appUrl } from './routes';
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Check, ChevronLeft, ChevronRight, Copy, Download, ExternalLink, ImagePlus, LoaderCircle, Share2, Trash2 } from 'lucide-react';
 import { Modal } from './Forms';
@@ -42,11 +43,7 @@ export function GroomingRecordEditor({ appointment, initial, onSaved, onClose }:
   const stage: CarePhoto['stage'] = step === 0 ? 'before' : 'after';
   const stageName = stage === 'before' ? '미용 전' : '미용 후';
   const photos = draft.photos.filter(photo => photo.stage === stage);
-  const shareUrl = record?.shareToken ? (() => {
-    const url = new URL(location.href); url.search = ''; url.hash = '';
-    url.searchParams.set('screen', 'care'); url.searchParams.set('token', record.shareToken);
-    return url.toString();
-  })() : '';
+  const shareUrl = record?.shareToken ? appUrl('care', { token: record.shareToken }) : '';
 
   useEffect(() => {
     if (currentAppointment.current !== appointment.id) {
