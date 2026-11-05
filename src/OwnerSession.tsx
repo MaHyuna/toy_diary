@@ -30,7 +30,7 @@ async function sessionRequest(path: string, body?: { password: string } | Record
 
 /** Server sessions authorize production APIs; the Pages mode is only an explicit sample-data preview. */
 export function OwnerSession({ children, customerUrl = './?screen=booking' }: { children: ReactNode; customerUrl?: string }) {
-  const initialDemo = isDemo && recalled(DEMO_SESSION) === 'active';
+  const initialDemo = isDemo && recalled(DEMO_SESSION) !== 'signedout';
   const [status, setStatus] = useState<Status>(initialDemo ? 'authenticated' : isDemo ? 'anonymous' : 'checking');
   const [opened, setOpened] = useState(initialDemo);
   const [configured, setConfigured] = useState(isDemo);
@@ -61,7 +61,7 @@ export function OwnerSession({ children, customerUrl = './?screen=booking' }: { 
   }, []);
 
   useEffect(() => {
-    if (isDemo) return;
+    if (isDemo) { if (recalled(DEMO_SESSION) !== 'signedout') remember(DEMO_SESSION, 'active'); return; }
     const controller = new AbortController();
     const sequence = ++generation.current;
     const logoutFirst = recalled(PENDING_LOGOUT) === 'pending';
@@ -83,7 +83,7 @@ export function OwnerSession({ children, customerUrl = './?screen=booking' }: { 
     ++generation.current;
     restoreFocus.current = null;
     setPassword(''); setError(''); setOpened(false); setStatus('anonymous');
-    remember(DEMO_SESSION);
+    remember(DEMO_SESSION, isDemo ? 'signedout' : undefined);
     if (isDemo) { operation.current = false; return; }
     remember(PENDING_LOGOUT, 'pending'); setPendingLogout(true); setBusy(true);
     try {
