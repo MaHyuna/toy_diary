@@ -78,8 +78,8 @@ function DayAgenda({ day, pets, compact = false, onAdd, onDetails, onSettle, onE
           {appointment.paymentStatus === 'paid'
             ? <span className="grooming-done"><Check size={12} />완료 · {paymentLabels[appointment.paymentMethod!]}</span>
             : <>
-              <button className="text-button" disabled={actionsDisabled} onClick={() => onEdit(appointment)} aria-label={`${appointment.dogName} 예약·요금 수정`} title="예약·요금 수정"><Settings2 size={14} /></button>
-              <button className="text-button" disabled={actionsDisabled} onClick={() => onCancel(appointment)} aria-label={`${appointment.dogName} 예약 취소`} title="예약 취소"><X size={14} /></button>
+              <button className="text-button" disabled={actionsDisabled} onClick={() => onEdit(appointment)} aria-label={`${appointment.dogName} 예약·요금 수정`} title="예약·요금 수정"><Settings2 size={14} />예약 수정</button>
+              <button className="text-button" disabled={actionsDisabled} onClick={() => onCancel(appointment)} aria-label={`${appointment.dogName} 예약 취소`} title="예약 취소">예약 취소</button>
               <button className="btn btn-primary btn-small" disabled={actionsDisabled} onClick={() => onSettle(appointment)}>미용 완료</button>
             </>}
         </div>
@@ -101,7 +101,9 @@ function DayAgenda({ day, pets, compact = false, onAdd, onDetails, onSettle, onE
 }
 
 export function StudioCalendar(props: Props) {
-  const { selected, appointments, pets, onSelect } = props;
+  const { selected, appointments, pets, onSelect: selectDate } = props;
+  const [desktopPanelOpen, setDesktopPanelOpen] = useState(true);
+  function onSelect(date: string) { setDesktopPanelOpen(true); selectDate(date); }
   const [amountView, setAmountView] = useState<'income' | 'bookingAmount'>('income');
   const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 1100px)').matches);
   const [previewBudget, setPreviewBudget] = useState(0);
@@ -148,6 +150,7 @@ export function StudioCalendar(props: Props) {
   useEffect(() => { agendaBody.current?.scrollTo({ top: 0 }); }, [selected]);
 
   function expandMonth() {
+    setDesktopPanelOpen(false);
     props.onCloseDetails();
     requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>(`[data-date="${selected}"]`)?.focus({ preventScroll: true }));
   }
@@ -167,7 +170,7 @@ export function StudioCalendar(props: Props) {
     }
   }
 
-  return <div ref={root} className="studio-calendar grooming-calendar calendar-workspace" data-calendar-desktop={desktop} data-agenda-open={!desktop && props.detailsOpen} aria-busy={props.actionsDisabled}>
+  return <div ref={root} className="studio-calendar grooming-calendar calendar-workspace" data-calendar-desktop={desktop} data-desktop-panel-open={desktopPanelOpen} data-agenda-open={!desktop && props.detailsOpen} aria-busy={props.actionsDisabled}>
     <section className="panel month-calendar" aria-label={!desktop && props.detailsOpen ? '선택한 주의 예약 캘린더' : '월간 예약 캘린더'}>
       <div className="calendar-amount-toolbar">
         <div role="group" aria-label="달력 금액 기준">
@@ -186,7 +189,7 @@ export function StudioCalendar(props: Props) {
           tabIndex={desktop ? selected === day.date ? 0 : -1 : 0}
           aria-pressed={selected === day.date} aria-current={currentDay === day.date ? 'date' : undefined}
           aria-controls="selected-day-agenda"
-          aria-expanded={!desktop && selected === day.date ? props.detailsOpen : undefined}
+          aria-expanded={selected === day.date ? (desktop ? desktopPanelOpen : props.detailsOpen) : undefined}
           aria-label={`${dateLabel(day.date)}, 예약 ${day.appointments.length}건, 받은 금액 ${money(day.income)}원, 예약 금액 ${money(day.bookingAmount)}원, 미용 완료 ${day.completedCount}건`}
           onClick={() => onSelect(day.date)}
           onKeyDown={event => handleDayKey(event, day.date)}
@@ -223,7 +226,7 @@ export function StudioCalendar(props: Props) {
       {!desktop && <button className="mobile-calendar-toggle" aria-controls="selected-day-agenda" aria-expanded={props.detailsOpen} onClick={() => props.detailsOpen ? expandMonth() : props.onOpenDetails()}>{props.detailsOpen ? <ChevronDown size={15} /> : <ChevronUp size={15} />}<span>{props.detailsOpen ? '월간 펼치기' : '선택한 날 일정 보기'}</span></button>}
     </section>
 
-    {(desktop || props.detailsOpen) && <aside className={`calendar-day-panel${desktop ? '' : ' mobile-day-panel'}`} id="selected-day-agenda" aria-label="선택한 날의 일정">
+    {(desktop ? desktopPanelOpen : props.detailsOpen) && <aside className={`calendar-day-panel${desktop ? '' : ' mobile-day-panel'}`} id="selected-day-agenda" aria-label="선택한 날의 일정">
       <header className="calendar-day-panel-header">
         <div className="calendar-day-title" aria-live="polite" aria-atomic="true">
           <h2 ref={agendaTitle} tabIndex={-1}>{panelDateLabel(selected)}</h2>
@@ -232,6 +235,7 @@ export function StudioCalendar(props: Props) {
         <div className="calendar-day-nav">
           <button className="icon-button" aria-label="이전 날짜" disabled={selected <= '2000-01-01'} onClick={() => onSelect(moveDate(selected, -1))}><ChevronLeft size={17} /></button>
           <button className="icon-button" aria-label="다음 날짜" disabled={selected >= '2100-12-31'} onClick={() => onSelect(moveDate(selected, 1))}><ChevronRight size={17} /></button>
+          <button className="calendar-agenda-close" onClick={expandMonth}><X size={14}/>일정 닫기</button>
         </div>
       </header>
       <div ref={agendaBody} className="calendar-day-panel-body calendar-agenda-enter" key={selected}><DayAgenda {...dayProps} compact /></div>

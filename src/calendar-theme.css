@@ -375,3 +375,7 @@
   .app-shell.calendar-screen > .quick-add,
   .app-shell.calendar-screen .calendar-workspace .month-day { transition: none; }
 }
+.app-shell.calendar-screen .calendar-agenda-close{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:6px 8px;border:1px solid var(--calendar-line);border-radius:8px;background:transparent;color:var(--calendar-muted);font-size:11px;white-space:nowrap}
+.app-shell.calendar-screen .calendar-day-panel .visit-card-actions .text-button{display:inline-flex;align-items:center;gap:4px;width:auto;min-width:0;padding:8px 5px;min-height:36px;font-size:12px;white-space:nowrap}
+@media(min-width:1100px){.app-shell.calendar-screen .studio-calendar.calendar-workspace[data-desktop-panel-open=false]{grid-template-columns:minmax(0,1fr)}}
+.app-shell.calendar-screen .calendar-day-panel-body .visit-card-actions{padding-left:44px;flex-wrap:wrap}
