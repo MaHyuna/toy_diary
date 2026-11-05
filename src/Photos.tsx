@@ -5,11 +5,11 @@ import { Modal } from './Forms';
 import { Camera, ImagePlus, Trash2 } from 'lucide-react';
 import { api, today } from './types';
 import type { Pet, PetPhoto } from './types';
+import { samplePetPortrait } from './petImages';
+export { PetAvatar } from './PetAvatar';
 
-export function PetAvatar({ pet }: { pet: Pet }) {
-  return <img className="pet-photo-avatar" loading="lazy" decoding="async" src={pet.photos?.[0]?.src || './images/studio-art.webp'} alt={`${pet.name} ${pet.photos?.length ? '사진' : '기본 일러스트'}`} />;
-}
 export function PhotoAlbum({ pet, onChange }: { pet: Pet; onChange: (photos: PetPhoto[]) => void }) {
+  const sample = samplePetPortrait(pet);
   const [photos, setPhotos] = useState(pet.photos ?? []);
   const [viewing, setViewing] = useState<PetPhoto | null>(null);
   const [caption, setCaption] = useState(''); const [date, setDate] = useState(today());
@@ -27,7 +27,7 @@ export function PhotoAlbum({ pet, onChange }: { pet: Pet; onChange: (photos: Pet
     finally { lock.current = false; setBusy(false); if (upload.current) upload.current.value = ''; if (camera.current) camera.current.value = ''; }
   }
   return <section className="photo-album"><div className="album-heading"><div><span className="section-eyebrow">GROOMING GALLERY</span><h3>미용 사진 <small>{photos.length}/6</small></h3></div><Camera size={22} /></div>
-    {photos.length ? <div className="photo-grid">{photos.map(photo => <figure key={photo.id}><button type="button" className="photo-open" aria-label={`${photo.caption || pet.name} 사진 확대`} onClick={() => setViewing(photo)}><img src={photo.src} alt={photo.caption || `${pet.name} 미용 사진`} /></button><figcaption>{photo.caption || '미용 기록'}<small>{photo.date}</small></figcaption><button type="button" className="photo-delete" aria-label={`${photo.caption || pet.name} 사진 삭제`} disabled={busy} onClick={async () => { if (lock.current) return; lock.current = true; setBusy(true); setError(''); try { await save(photos.filter(item => item.id !== photo.id)); } catch { setError('사진을 삭제하지 못했어요. 다시 시도해 주세요.'); } finally { lock.current = false; setBusy(false); } }}><Trash2 size={16} /></button></figure>)}</div> : <div className="album-empty"><ImagePlus size={28} /><p>미용 전·후 사진을 남겨 주세요.</p><span>사진을 누르면 원본 비율로 저장할 수 있어요.</span></div>}
+    {photos.length ? <div className="photo-grid">{photos.map(photo => <figure key={photo.id}><button type="button" className="photo-open" aria-label={`${photo.caption || pet.name} 사진 확대`} onClick={() => setViewing(photo)}><img src={photo.src} alt={photo.caption || `${pet.name} 미용 사진`} /></button><figcaption>{photo.caption || '미용 기록'}<small>{photo.date}</small></figcaption><button type="button" className="photo-delete" aria-label={`${photo.caption || pet.name} 사진 삭제`} disabled={busy} onClick={async () => { if (lock.current) return; lock.current = true; setBusy(true); setError(''); try { await save(photos.filter(item => item.id !== photo.id)); } catch { setError('사진을 삭제하지 못했어요. 다시 시도해 주세요.'); } finally { lock.current = false; setBusy(false); } }}><Trash2 size={16} /></button></figure>)}</div> : sample ? <figure className="sample-pet-photo"><img src={sample.src} alt={`${pet.breed} 예시 사진`} /><figcaption><span>견종별 예시 사진</span><a href="./images/pets/credits.html" target="_blank" rel="noreferrer">사진 출처 ↗</a></figcaption></figure> : <div className="album-empty"><ImagePlus size={28} /><p>미용 전·후 사진을 남겨 주세요.</p><span>사진을 누르면 원본 비율로 저장할 수 있어요.</span></div>}
     <div className="photo-inputs"><label>사진 설명<input aria-label="사진 설명" maxLength={120} value={caption} placeholder="예: 미용 후 · 곰돌이 컷" onChange={e => setCaption(e.target.value)} disabled={busy} /></label><label>촬영일<input aria-label="사진 촬영일" type="date" value={date} required onChange={e => setDate(e.target.value)} disabled={busy} /></label></div>
     <input hidden ref={upload} type="file" accept="image/*" aria-label="미용 사진 파일" onChange={e => void add(e.target.files?.[0])} /><input hidden ref={camera} type="file" accept="image/*" capture="environment" aria-label="카메라 촬영 파일" onChange={e => void add(e.target.files?.[0])} />
     <div className="album-actions"><button type="button" className="btn btn-primary" disabled={busy || photos.length >= 6 || !date} onClick={() => upload.current?.click()}><ImagePlus size={17} />{busy ? '사진 저장 중…' : '사진 올리기'}</button><button type="button" className="btn btn-secondary" disabled={busy || photos.length >= 6 || !date} onClick={() => camera.current?.click()}><Camera size={17} />촬영</button></div>

@@ -489,3 +489,31 @@
 @media (prefers-reduced-motion: reduce) {
   .app-shell .workspace > main { animation: none !important; }
 }
+
+/* Pet portraits identify a visit without adding another row to the calendar. */
+.app-shell .visit-open { grid-template-columns: 48px minmax(0,1fr) auto; }
+.app-shell .visit-identity { display: grid; justify-items: center; gap: 7px; min-width: 0; }
+.app-shell .visit-identity .pet-photo-avatar { display: block; width: 44px; height: 44px; border-radius: 14px; background: #f5eaf0; }
+.app-shell .visit-identity time { font-size: 11px; color: #796170; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.app-shell .detail-summary > .pet-photo-avatar { width: 66px; height: 66px; border-radius: 20px; }
+.app-shell .sample-pet-photo { margin: 0; border-radius: 18px; overflow: hidden; border: 1px solid #e9dfe4; background: #faf5f8; }
+.app-shell .sample-pet-photo > img { display: block; width: 100%; height: clamp(200px,55vw,280px); object-fit: contain; background: #f8f4f6; }
+.app-shell .sample-pet-photo figcaption { display: flex; justify-content: space-between; gap: 10px; padding: 11px 14px; font-size: 11px; color: #796170; }
+.app-shell .sample-pet-photo a { color: #70445c; text-decoration: underline; text-underline-offset: 3px; }
+.app-shell .demo-photo-credit a { color: #70445c; text-decoration: underline; text-underline-offset: 3px; }
+.app-shell .customer-pet-profile h3, .app-shell .album-heading h3 { color: #624052; }
+.app-shell .customer-pet-profile p, .app-shell .album-heading, .app-shell .photo-inputs label { color: #806877; }
+.app-shell .calendar-empty-icon { display: block; width: 100%; height: 142px; margin: 0 auto 20px; border-radius: 14px; overflow: hidden; background: #f7ede5; }
+.app-shell .calendar-empty-icon > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 75% 55%; }
+@media (min-width: 1100px) {
+  .app-shell .calendar-day-panel-body .visit-open { grid-template-columns: 44px minmax(0,1fr) auto; }
+  .app-shell .calendar-cell-event > .pet-photo-avatar { display: block; width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+}
+@media (min-width: 1100px) and (max-width: 1279px) {
+  .app-shell .calendar-day-panel-body .visit-open { grid-template-columns: 44px minmax(0,1fr); }
+  .app-shell .calendar-cell-event > .pet-photo-avatar { width: 14px; height: 14px; }
+}
+@media (max-width: 360px) {
+  .app-shell .visit-open { grid-template-columns: 40px minmax(0,1fr) auto; gap: 8px; }
+  .app-shell .visit-identity .pet-photo-avatar { width: 38px; height: 38px; border-radius: 12px; }
+}

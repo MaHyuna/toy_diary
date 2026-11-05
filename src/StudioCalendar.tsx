@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Plus, Settings2, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Plus, Settings2, X } from 'lucide-react';
 import { monthDays } from './calendar';
 import type { CalendarDay } from './calendar';
-import type { Appointment } from './types';
+import type { Appointment, Pet } from './types';
+import { PetAvatar } from './PetAvatar';
 import { money, paymentLabels, today } from './types';
 import { Modal } from './Forms';
 
 type Props = {
   selected: string;
   appointments: Appointment[];
+  pets: Pet[];
   detailsOpen: boolean;
   actionsDisabled?: boolean;
   onCloseDetails: () => void;
@@ -21,7 +23,7 @@ type Props = {
   onCancel: (appointment: Appointment) => void;
 };
 
-type AgendaProps = Pick<Props, 'onAdd' | 'onDetails' | 'onSettle' | 'onEdit' | 'onCancel' | 'actionsDisabled'> & {
+type AgendaProps = Pick<Props, 'pets' | 'onAdd' | 'onDetails' | 'onSettle' | 'onEdit' | 'onCancel' | 'actionsDisabled'> & {
   day: CalendarDay;
   compact?: boolean;
 };
@@ -40,7 +42,7 @@ const sourceLabel = (appointment: Appointment) => appointment.source === 'websit
   : appointment.source === 'naver' ? '네이버' : '직접 등록';
 
 /** The same visit actions appear in the desktop agenda and mobile day sheet. */
-function DayAgenda({ day, compact = false, onAdd, onDetails, onSettle, onEdit, onCancel, actionsDisabled = false }: AgendaProps) {
+function DayAgenda({ day, pets, compact = false, onAdd, onDetails, onSettle, onEdit, onCancel, actionsDisabled = false }: AgendaProps) {
   const showPaymentRecords = day.payments.some(visit => visit.date !== day.date);
   return <section className="grooming-day" aria-label="선택한 날의 미용 예약">
     <div className="day-money-summary">
@@ -55,7 +57,7 @@ function DayAgenda({ day, compact = false, onAdd, onDetails, onSettle, onEdit, o
         className={`grooming-visit ${appointment.status === 'completed' ? 'is-complete' : ''}`} key={appointment.id}
       >
         <button type="button" className="visit-open" aria-label={`${appointment.dogName} 예약 상세 보기`} onClick={() => onDetails(appointment)}>
-          <time>{appointment.time}</time>
+          <span className="visit-identity"><PetAvatar pet={pets.find(pet => pet.id === appointment.petId) || { id: '', name: appointment.dogName, breed: appointment.breed }} /><time>{appointment.time}</time></span>
           <span className="visit-open-info">
             <strong>{appointment.dogName}</strong>
             <span>{appointment.service}{appointment.weight ? ` · ${appointment.weight}kg` : ''}</span>
@@ -75,7 +77,7 @@ function DayAgenda({ day, compact = false, onAdd, onDetails, onSettle, onEdit, o
         </div>
       </article>)}
     </div> : day.payments.length > 0 ? <div className="calendar-no-visits"><p>이날 방문 예약은 없어요. 아래에서 받은 결제를 확인하세요.</p></div> : <div className="grooming-empty">
-      <span className="calendar-empty-icon"><CalendarDays size={25} /></span>
+      <span className="calendar-empty-icon"><img src="./images/studio-art.webp" alt="" /></span>
       <h3>아직 잡힌 예약이 없어요</h3>
       <p>시간을 비워 두거나 새로운 예약을 등록하세요.</p>
       {!compact && <button className="btn btn-soft" disabled={actionsDisabled} onClick={onAdd}><Plus size={17} />이날 예약 잡기</button>}
@@ -91,7 +93,7 @@ function DayAgenda({ day, compact = false, onAdd, onDetails, onSettle, onEdit, o
 }
 
 export function StudioCalendar(props: Props) {
-  const { selected, appointments, onSelect } = props;
+  const { selected, appointments, pets, onSelect } = props;
   const [amountView, setAmountView] = useState<'income' | 'bookingAmount'>('income');
   const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 1100px)').matches);
   const [previewBudget, setPreviewBudget] = useState(0);
@@ -106,7 +108,7 @@ export function StudioCalendar(props: Props) {
   const completed = days.reduce((sum, day) => sum + day.completedCount, 0);
   const bookingCount = days.reduce((sum, day) => sum + day.appointments.length, 0);
   const currentDay = today();
-  const dayProps = { day: selectedDay, actionsDisabled: props.actionsDisabled, onAdd: props.onAdd, onDetails: props.onDetails, onSettle: props.onSettle, onEdit: props.onEdit, onCancel: props.onCancel };
+  const dayProps = { day: selectedDay, pets, actionsDisabled: props.actionsDisabled, onAdd: props.onAdd, onDetails: props.onDetails, onSettle: props.onSettle, onEdit: props.onEdit, onCancel: props.onCancel };
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 1100px)');
@@ -187,8 +189,9 @@ export function StudioCalendar(props: Props) {
           >
             {day.appointments.slice(0, previewBudget).map((visit, index) => <span
               className={`calendar-cell-event ${visit.paymentStatus === 'paid' ? 'is-paid' : ''} ${index === Math.min(day.appointments.length, previewBudget) - 1 ? 'is-last-preview' : ''}`}
+              title={`${visit.time} · ${visit.dogName} · ${visit.service}`}
               key={visit.id}
-            ><time>{visit.time}</time><span className="calendar-cell-name">{visit.dogName}</span>
+            ><PetAvatar pet={pets.find(pet => pet.id === visit.petId) || { id: '', name: visit.dogName, breed: visit.breed }} /><time>{visit.time}</time><span className="calendar-cell-name">{visit.dogName.replace(/ \(체험\)$/, '')}</span>
               {index === previewBudget - 1 && day.appointments.length > previewBudget && <span className="calendar-cell-more">+{day.appointments.length - previewBudget}</span>}
             </span>)}
           </span>}
