@@ -1,1 +1,0 @@
-import{a as i}from"./types-DcDSkdCb.js";import{v as a}from"./price-menu-Dp5A4nQ9.js";async function t(){const e=await i("/public/price-menu");if(e)return a(e);const r=await fetch("images/demo-price-menu.json");if(!r.ok)throw Error("요금표를 불러오지 못했어요.");return a(await r.json())}export{t as l};
