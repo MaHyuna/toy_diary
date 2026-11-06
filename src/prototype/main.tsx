@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, ButtonGroup, Cell, Checkbox, Column, Heading, LinkButton, Picker, PickerItem, Row, TableBody, TableHeader, TableView, TextArea, TextField } from '@react-spectrum/s2';
+import { Button, ButtonGroup, Cell, Checkbox, Column, Content, Dialog, DialogContainer, Heading, LinkButton, Picker, PickerItem, Row, TableBody, TableHeader, TableView, TextArea, TextField } from '@react-spectrum/s2';
 import { SpectrumSurface } from '../ui/SpectrumSurface';
 import { ScenarioScreen } from './ScenarioScreen';
 import { FlowBoard } from './FlowBoard';
 import { flows } from './flows';
 import type { Screen } from './flows';
 import '../ui/prototype.css';
-const initial=()=>{const p=new URLSearchParams(location.hash.slice(1));const flow=flows.find(f=>f.id===p.get('flow'))??flows.find(f=>f.id==='booking')!;return {flow:flow.id,screen:flow.steps.find(s=>s.id===p.get('screen'))?.id??flow.steps[0].id,mode:p.get('mode')==='play'?'play':'map'};};
+const initial=()=>{const p=new URLSearchParams(location.hash.slice(1));const flow=flows.find(f=>f.id===p.get('flow'))??flows.find(f=>f.id==='booking')!;return {flow:flow.id,screen:flow.steps.find(s=>s.id===p.get('screen'))?.id??flow.steps[0].id,mode:p.get('mode')==='modal'?'modal':p.get('mode')==='play'?'play':'map'};};
 function Prototype(){
+ const [trail,setTrail]=useState<{flow:string;screen:string;mode:string}[]>([]);
  const [cancelReturn,setCancelReturn]=useState('booking-pending');
  const [scenarioDraft,setScenarioDraft]=useState<Record<string,string>>({});
  const [position,setPosition]=useState(initial),[device,setDevice]=useState<'phone'|'desktop'>('phone'),[notice,setNotice]=useState('');
@@ -16,7 +17,15 @@ function Prototype(){
  const [savedNotice,setSavedNotice]=useState({title:'11월 휴무 안내',memo:'11월 16일은 매장 정기 휴무입니다.',published:true});
  const flow=flows.find(f=>f.id===position.flow)!,screen=flow.steps.find(s=>s.id===position.screen)??flow.steps[0];
  useEffect(()=>{const update=()=>setPosition(initial());window.addEventListener('hashchange',update);return()=>window.removeEventListener('hashchange',update);},[]);
- function move(screenId:string,mode=position.mode,flowId=flow.id){const next={flow:flowId,screen:screenId,mode};setPosition(next);location.hash=new URLSearchParams(next).toString();setNotice('');}
+ function move(screenId:string,mode=position.mode,flowId=flow.id){
+  if(position.mode==='modal'&&mode==='play')mode='modal';
+  if(flowId!==position.flow||mode==='map'||position.mode==='map')setTrail([]);
+  else if(screenId!==position.screen)setTrail(t=>[...t,position]);
+  const next={flow:flowId,screen:screenId,mode};setPosition(next);location.hash=new URLSearchParams(next).toString();setNotice('');
+ }
+ function previous(){const last=trail.at(-1);if(!last)return;setTrail(t=>t.slice(0,-1));setPosition(last);history.replaceState(history.state,'','#'+new URLSearchParams(last));setNotice('');}
+ function closePreview(){move(screen.id,'map');}
+
  function perform(label:string,to:string){
   if(to==='booking-cancel')setCancelReturn(screen.id);
   if(screen.id==='booking-cancel'&&label==='예약 유지'){move(cancelReturn,'play');return;}
@@ -32,18 +41,34 @@ function Prototype(){
   if(/저장|등록|접수|확정|공개|기록$/.test(label))setNotice('프로토타입에서만 처리했습니다. 실제 데이터는 바뀌지 않습니다.');
  }
  function reset(){setScenarioDraft({});setPrice('18000');setSavedPrice('18000');setRevision(2);setTitle('11월 휴무 안내');setMemo('11월 16일은 매장 정기 휴무입니다.');setPublished(true);setSavedNotice({title:'11월 휴무 안내',memo:'11월 16일은 매장 정기 휴무입니다.',published:true});move(flow.steps[0].id);}
+ useEffect(()=>{
+  if(position.mode==='map')return;
+  const keydown=(event:KeyboardEvent)=>{
+   if(event.defaultPrevented||event.repeat||event.ctrlKey||event.metaKey||event.altKey||event.shiftKey)return;
+   const target=event.target as HTMLElement|null;
+   if(event.key==='Escape'){event.preventDefault();closePreview();return;}
+   if(target?.closest('input,textarea,select,[contenteditable="true"],[role="combobox"],[role="spinbutton"],[role="grid"],[role="listbox"],[role="menu"],[role="slider"],[aria-haspopup]'))return;
+   if(document.querySelector('[role="listbox"],[role="menu"]'))return;
+   if(event.key==='ArrowLeft'){event.preventDefault();previous();}
+   if(event.key==='ArrowRight'){event.preventDefault();const next=screen.actions[0];if(next)perform(next.label,next.to);}
+  };
+  window.addEventListener('keydown',keydown);return()=>window.removeEventListener('keydown',keydown);
+ });
  const extras={price,savedPrice,revision,title,memo,published,savedNotice,setPrice,setTitle,setMemo,setPublished};
+ const workbench=(<main className={`proto-workbench ${position.mode==='modal'?'is-modal':''}`} aria-label="클릭형 화면 프로토타입">
+   <aside className="proto-steps"><h3>화면 목록 <span>{flow.steps.length}</span></h3><nav aria-label="흐름 안의 화면">{flow.steps.map((s,i)=><a key={s.id} href={`#flow=${flow.id}&screen=${s.id}&mode=play`} aria-current={screen.id===s.id?'step':undefined} onClick={e=>{e.preventDefault();move(s.id,'play');}}><span>{String(i+1).padStart(2,'0')}</span>{s.name}{s.future&&<small>제안</small>}</a>)}</nav></aside>
+   <section className="proto-stage"><div className="proto-stage-toolbar"><span>{screen.future?'검토 제안':'현재 구현 기반 · 단순화'}</span><ButtonGroup><Button size="S" variant={device==='phone'?'accent':'secondary'} onPress={()=>setDevice('phone')}>모바일</Button><Button size="S" variant={device==='desktop'?'accent':'secondary'} onPress={()=>setDevice('desktop')}>PC</Button></ButtonGroup></div><div className={`proto-device ${device}`}><header className="proto-app-header"><strong>✿ 몽글</strong><span>{(screen.actor??flow.role)==='고객'?'고객 · 미용수첩':'사장님 · 매장 관리'}</span></header><div className="proto-screen" key={screen.id}><div className="proto-screen-title"><span>{screen.kind}</span><h2>{screen.name}</h2></div>{screen.ui?<ScenarioScreen screen={screen} draft={scenarioDraft} onChange={(key,value)=>setScenarioDraft(d=>({...d,[key]:value}))}/>:<ScreenContents screen={screen} values={extras} go={to=>move(to,'play')}/>}<div className="proto-screen-actions">{screen.actions.map(a=><Button key={a.label} variant={a.primary?'accent':'secondary'} onPress={()=>perform(a.label,a.to)}>{a.label}</Button>)}</div></div><footer className="proto-app-footer">{(screen.actor??flow.role)==='고객'?'미용수첩 · 예약 · 요금표':'예약 · 고객 · 장부 · 매장관리'}</footer></div></section>
+   <aside className="proto-inspector"><p className="proto-eyebrow">이 화면의 역할</p><h3>{screen.name}</h3><p>{screen.purpose}</p><hr/><h4>동작과 데이터 규칙</h4><p>{screen.rule}</p><h4>다음 화면</h4><ul>{screen.actions.map(a=><li key={a.label}>{a.label}<span>→ {flow.steps.find(s=>s.id===a.to)?.name}</span></li>)}</ul><div className="proto-inspector-status">{screen.future?'후속 설계 · 실제 기능 미구현':'구현된 동작을 검토용으로 재현'}<small>{screen.future?'확장 설계 화면입니다. 실제 결제·인증·알림·백업 처리는 연결하지 않았습니다.':'실제 서비스의 전체 필드·권한 검사는 서비스에서 확인합니다.'}</small></div></aside>
+  </main>);
  return <SpectrumSurface><div className="proto-shell">
   <header className="proto-mast"><div className="proto-wordmark"><span aria-hidden="true">✿</span><div><strong>몽글</strong><small>SCREEN FLOW / 2026.11.06</small></div></div><div className="proto-head-actions"><span className="proto-version">검토용 프로토타입</span><Button variant="secondary" onPress={async()=>{try{await navigator.clipboard.writeText(location.href);setNotice('현재 화면 링크를 복사했어요.');}catch{setNotice('주소창의 링크를 복사해 공유할 수 있어요.');}}}>화면 링크 복사</Button></div></header>
   <div className="proto-intro"><div><p className="proto-eyebrow">화면을 따라가며, 흐름을 확인하세요.</p><h1>몽글 · 서비스 화면 흐름도</h1><p>예약부터 미용수첩까지. 각 화면에서 무엇을 보고, 어떤 행동으로 다음 화면에 가는지 검토하는 공간입니다.</p></div><div className="proto-boundary"><strong>서비스와 분리된 예시입니다.</strong><p>입력·저장·결제는 시뮬레이션이며 실제 전송하지 않습니다. 기존 구현과 확장 설계를 함께 담았습니다. 확장 화면은 실제 서비스 구현 전인 것으로 표시합니다.</p></div></div>
   <div className="proto-controls"><details className="scenario-catalog"><summary><span>시나리오 선택 · {flows.length}개 흐름 / {flows.reduce((n,f)=>n+f.steps.length,0)}개 화면</span><strong>{flow.role} · {flow.name}</strong></summary><nav aria-label="사용자 흐름 선택">{(['고객','사장님'] as const).map(role=><section key={role}><h3>{role} 시나리오</h3><div className="proto-flow-options">{flows.filter(f=>f.role===role).map(f=><Button key={f.id} variant={flow.id===f.id?'accent':'secondary'} aria-pressed={flow.id===f.id} onPress={()=>{move(f.steps[0].id,position.mode,f.id);document.querySelector('.scenario-catalog')?.removeAttribute('open');}}>{({visit:'예약·미용',pricing:'요금표·이력',customer:'고객 수첩',notice:'공지 관리'} as Record<string,string>)[f.id]??f.name}</Button>)}</div></section>)}</nav></details><div className="proto-control-buttons"><ButtonGroup><Button variant={position.mode==='map'?'accent':'secondary'} onPress={()=>move(screen.id,'map')}>전체 흐름보드</Button><Button variant={position.mode==='play'?'accent':'secondary'} onPress={()=>move(screen.id,'play')}>눌러보는 화면</Button></ButtonGroup><Button variant="secondary" onPress={reset}>처음부터</Button></div></div>
   <div className="proto-flow-heading"><div><span className="proto-role">{flow.role} 영역</span><h2>{flow.name}</h2><p>{flow.summary}</p></div><LinkButton href={`..${flow.path}`} target="_blank" variant="secondary">실제 서비스 열기 ↗</LinkButton></div>
-  {notice&&<p className="proto-notice" role="status">{notice}</p>}
-  {position.mode==='map'?<FlowBoard flow={flow} onOpen={id=>move(id,'play')}/>:<main className="proto-workbench" aria-label="클릭형 화면 프로토타입">
-   <aside className="proto-steps"><h3>화면 목록 <span>{flow.steps.length}</span></h3><nav aria-label="흐름 안의 화면">{flow.steps.map((s,i)=><a key={s.id} href={`#flow=${flow.id}&screen=${s.id}&mode=play`} aria-current={screen.id===s.id?'step':undefined} onClick={e=>{e.preventDefault();move(s.id,'play');}}><span>{String(i+1).padStart(2,'0')}</span>{s.name}{s.future&&<small>제안</small>}</a>)}</nav></aside>
-   <section className="proto-stage"><div className="proto-stage-toolbar"><span>{screen.future?'검토 제안':'현재 구현 기반 · 단순화'}</span><ButtonGroup><Button size="S" variant={device==='phone'?'accent':'secondary'} onPress={()=>setDevice('phone')}>모바일</Button><Button size="S" variant={device==='desktop'?'accent':'secondary'} onPress={()=>setDevice('desktop')}>PC</Button></ButtonGroup></div><div className={`proto-device ${device}`}><header className="proto-app-header"><strong>✿ 몽글</strong><span>{(screen.actor??flow.role)==='고객'?'고객 · 미용수첩':'사장님 · 매장 관리'}</span></header><div className="proto-screen" key={screen.id}><div className="proto-screen-title"><span>{screen.kind}</span><h2>{screen.name}</h2></div>{screen.ui?<ScenarioScreen screen={screen} draft={scenarioDraft} onChange={(key,value)=>setScenarioDraft(d=>({...d,[key]:value}))}/>:<ScreenContents screen={screen} values={extras} go={to=>move(to,'play')}/>}<div className="proto-screen-actions">{screen.actions.map(a=><Button key={a.label} variant={a.primary?'accent':'secondary'} onPress={()=>perform(a.label,a.to)}>{a.label}</Button>)}</div></div><footer className="proto-app-footer">{(screen.actor??flow.role)==='고객'?'미용수첩 · 예약 · 요금표':'예약 · 고객 · 장부 · 매장관리'}</footer></div></section>
-   <aside className="proto-inspector"><p className="proto-eyebrow">이 화면의 역할</p><h3>{screen.name}</h3><p>{screen.purpose}</p><hr/><h4>동작과 데이터 규칙</h4><p>{screen.rule}</p><h4>다음 화면</h4><ul>{screen.actions.map(a=><li key={a.label}>{a.label}<span>→ {flow.steps.find(s=>s.id===a.to)?.name}</span></li>)}</ul><div className="proto-inspector-status">{screen.future?'후속 설계 · 실제 기능 미구현':'구현된 동작을 검토용으로 재현'}<small>{screen.future?'확장 설계 화면입니다. 실제 결제·인증·알림·백업 처리는 연결하지 않았습니다.':'실제 서비스의 전체 필드·권한 검사는 서비스에서 확인합니다.'}</small></div></aside>
-  </main>}
+  {notice&&position.mode!=='modal'&&<p className="proto-notice" role="status">{notice}</p>}
+  {position.mode!=='play'&&<FlowBoard flow={flow} onOpen={id=>move(id,'modal')}/>}
+  {position.mode==='play'&&<><div className="proto-preview-navigation"><Button variant="secondary" isDisabled={!trail.length} onPress={previous}>← 이전 화면</Button><Button variant="secondary" onPress={closePreview}>흐름도로 돌아가기</Button><span>← 이전 · → 기본 경로 · Esc 닫기</span></div>{workbench}</>}
+  <DialogContainer onDismiss={closePreview}>{position.mode==='modal'&&<Dialog size="XL"><Heading slot="title">화면 미리보기 · {screen.name}</Heading><Content><div className="proto-preview-navigation"><Button variant="secondary" isDisabled={!trail.length} onPress={previous}>← 이전 화면</Button><Button variant="secondary" onPress={()=>perform(screen.actions[0].label,screen.actions[0].to)}>다음 화면 →</Button><Button variant="secondary" onPress={closePreview}>닫기 · 흐름도로</Button><span>← 이전 · → {screen.actions[0].label} · Esc 닫기</span></div>{notice&&<p className="proto-notice" role="status">{notice}</p>}{workbench}</Content></Dialog>}</DialogContainer>
   <footer className="proto-footer"><p><strong>공통 원칙</strong> 목록 → 상세 → 명시적인 등록·수정 → 확인 → 결과. 고객용 조회 화면에는 내부 관리 기능을 노출하지 않습니다.</p><p>공유 링크는 현재 흐름과 화면 위치를 포함합니다. 예시 입력값은 새로고침하면 초기화됩니다. <a href="scenarios.md" download="몽글-서비스-시나리오.md">전체 시나리오 명세 다운로드</a> ·  <a href="../images/pets/credits.html" target="_blank" rel="noreferrer">예시 사진 출처</a></p></footer>
  </div></SpectrumSurface>;
 }

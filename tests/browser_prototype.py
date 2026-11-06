@@ -35,6 +35,24 @@ try:
     for width in [390,1440]:
      page.set_viewport_size({'width':width,'height':1000});page.wait_for_timeout(50);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),(screen['id'],width)
     first=screen['actions'][0];page.locator('.proto-screen-actions').get_by_role('button',name=first['label'],exact=True).click();expect(page.locator('.proto-screen-title h2')).to_have_text(next(s['name'] for s in flow['steps'] if s['id']==first['to']))
+  # Modal preview preserves the board and supports keyboard history without editing shortcuts.
+  page.goto(base+'/prototype/#flow=pricing&screen=price-list&mode=map')
+  page.get_by_role('button',name='100%',exact=True).click()
+  link=page.get_by_role('link',name='요금 분류 목록 화면 열기',exact=True);link.scroll_into_view_if_needed()
+  board=page.locator('.flow-board-viewport');before=board.evaluate('(el)=>({x:el.scrollLeft,y:el.scrollTop})');zoom=page.get_by_label('흐름도 배율').inner_text()
+  link.click();dialog=page.get_by_role('dialog');expect(dialog).to_be_visible();expect(dialog.get_by_role('button',name='← 이전 화면',exact=True)).to_be_disabled()
+  expect(page.locator('.flow-board-viewport')).to_have_count(1)
+  dialog.get_by_role('button',name='다음 화면 →',exact=True).focus();page.keyboard.press('ArrowRight');expect(dialog.locator('.proto-screen-title h2')).to_have_text('요금 분류 상세')
+  page.keyboard.press('ArrowRight');expect(dialog.locator('.proto-screen-title h2')).to_have_text('요금표 수정')
+  field=dialog.get_by_label('소형견 · 4kg 미만 · 목욕 (원)',exact=True);field.focus();page.keyboard.press('ArrowRight');page.keyboard.press('ArrowLeft');expect(dialog.locator('.proto-screen-title h2')).to_have_text('요금표 수정')
+  dialog.get_by_role('button',name='다음 화면 →',exact=True).focus();page.keyboard.press('ArrowLeft');expect(dialog.locator('.proto-screen-title h2')).to_have_text('요금 분류 상세')
+  dialog.get_by_role('button',name='← 이전 화면',exact=True).click();expect(dialog.locator('.proto-screen-title h2')).to_have_text('요금 분류 목록')
+  page.keyboard.press('Escape');expect(dialog).to_have_count(0);assert board.evaluate('(el)=>({x:el.scrollLeft,y:el.scrollTop})')==before;assert page.get_by_label('흐름도 배율').inner_text()==zoom
+  expect(link).to_be_focused()
+  for width in [390,1440]:
+   page.set_viewport_size({'width':width,'height':900});link.click();expect(dialog).to_be_visible();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=f'/tmp/prototype-modal-{width}.png');dialog.get_by_role('button',name='닫기 · 흐름도로',exact=True).click();expect(dialog).to_have_count(0)
+  # Shared modal URLs open directly and can always close to a board.
+  page.goto(base+'/prototype/#flow=booking&screen=booking-date&mode=modal');expect(dialog).to_be_visible();page.reload();expect(dialog).to_be_visible();page.keyboard.press('Escape');expect(dialog).to_have_count(0)
   page.goto(base+'/prototype/#flow=booking&screen=booking-date&mode=play')
   def act(name):page.locator('.proto-screen-actions').get_by_role('button',name=name,exact=True).click()
   page.get_by_label('예약 날짜',exact=True).fill('2026-11-15');act('항목 선택')
