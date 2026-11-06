@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Button, ButtonGroup, Cell, Checkbox, Column, Content, Dialog, DialogContainer, Heading, LinkButton, Picker, PickerItem, Row, TableBody, TableHeader, TableView, TextArea, TextField } from '@react-spectrum/s2';
 import { SpectrumSurface } from '../ui/SpectrumSurface';
 import { ScenarioScreen } from './ScenarioScreen';
+import { FlowSelector } from './FlowSelector';
 import { FlowBoard } from './FlowBoard';
 import { flows } from './flows';
 import type { Screen } from './flows';
@@ -44,6 +45,7 @@ function Prototype(){
  useEffect(()=>{
   if(position.mode==='map')return;
   const keydown=(event:KeyboardEvent)=>{
+   if(document.querySelector('[data-scenario-selector]'))return;
    if(event.defaultPrevented||event.repeat||event.ctrlKey||event.metaKey||event.altKey||event.shiftKey)return;
    const target=event.target as HTMLElement|null;
    if(event.key==='Escape'){event.preventDefault();closePreview();return;}
@@ -61,10 +63,10 @@ function Prototype(){
    <aside className="proto-inspector"><p className="proto-eyebrow">이 화면의 역할</p><h3>{screen.name}</h3><p>{screen.purpose}</p><hr/><h4>동작과 데이터 규칙</h4><p>{screen.rule}</p><h4>다음 화면</h4><ul>{screen.actions.map(a=><li key={a.label}>{a.label}<span>→ {flow.steps.find(s=>s.id===a.to)?.name}</span></li>)}</ul><div className="proto-inspector-status">{screen.future?'후속 설계 · 실제 기능 미구현':'구현된 동작을 검토용으로 재현'}<small>{screen.future?'확장 설계 화면입니다. 실제 결제·인증·알림·백업 처리는 연결하지 않았습니다.':'실제 서비스의 전체 필드·권한 검사는 서비스에서 확인합니다.'}</small></div></aside>
   </main>);
  return <SpectrumSurface><div className="proto-shell">
-  <header className="proto-mast"><div className="proto-wordmark"><span aria-hidden="true">✿</span><div><strong>몽글</strong><small>SCREEN FLOW / 2026.11.06</small></div></div><div className="proto-head-actions"><span className="proto-version">검토용 프로토타입</span><Button variant="secondary" onPress={async()=>{try{await navigator.clipboard.writeText(location.href);setNotice('현재 화면 링크를 복사했어요.');}catch{setNotice('주소창의 링크를 복사해 공유할 수 있어요.');}}}>화면 링크 복사</Button></div></header>
-  <div className="proto-intro"><div><p className="proto-eyebrow">화면을 따라가며, 흐름을 확인하세요.</p><h1>몽글 · 서비스 화면 흐름도</h1><p>예약부터 미용수첩까지. 각 화면에서 무엇을 보고, 어떤 행동으로 다음 화면에 가는지 검토하는 공간입니다.</p></div><div className="proto-boundary"><strong>서비스와 분리된 예시입니다.</strong><p>입력·저장·결제는 시뮬레이션이며 실제 전송하지 않습니다. 기존 구현과 확장 설계를 함께 담았습니다. 확장 화면은 실제 서비스 구현 전인 것으로 표시합니다.</p></div></div>
-  <div className="proto-controls"><details className="scenario-catalog"><summary><span>시나리오 선택 · {flows.length}개 흐름 / {flows.reduce((n,f)=>n+f.steps.length,0)}개 화면</span><strong>{flow.role} · {flow.name}</strong></summary><nav aria-label="사용자 흐름 선택">{(['고객','사장님'] as const).map(role=><section key={role}><h3>{role} 시나리오</h3><div className="proto-flow-options">{flows.filter(f=>f.role===role).map(f=><Button key={f.id} variant={flow.id===f.id?'accent':'secondary'} aria-pressed={flow.id===f.id} onPress={()=>{move(f.steps[0].id,position.mode,f.id);document.querySelector('.scenario-catalog')?.removeAttribute('open');}}>{({visit:'예약·미용',pricing:'요금표·이력',customer:'고객 수첩',notice:'공지 관리'} as Record<string,string>)[f.id]??f.name}</Button>)}</div></section>)}</nav></details><div className="proto-control-buttons"><ButtonGroup><Button variant={position.mode==='map'?'accent':'secondary'} onPress={()=>move(screen.id,'map')}>전체 흐름보드</Button><Button variant={position.mode==='play'?'accent':'secondary'} onPress={()=>move(screen.id,'play')}>눌러보는 화면</Button></ButtonGroup><Button variant="secondary" onPress={reset}>처음부터</Button></div></div>
-  <div className="proto-flow-heading"><div><span className="proto-role">{flow.role} 영역</span><h2>{flow.name}</h2><p>{flow.summary}</p></div><LinkButton href={`..${flow.path}`} target="_blank" variant="secondary">실제 서비스 열기 ↗</LinkButton></div>
+  <header className="proto-mast"><div className="proto-wordmark"><span aria-hidden="true">✿</span><div><strong>몽글</strong><small>SCREEN FLOW / 2026.11.06</small></div></div><div className="proto-head-actions"><span className="proto-version">검토용 · 실제 전송 없음</span><Button variant="secondary" onPress={async()=>{try{await navigator.clipboard.writeText(location.href);setNotice('현재 화면 링크를 복사했어요.');}catch{setNotice('주소창의 링크를 복사해 공유할 수 있어요.');}}}>화면 링크 복사</Button></div></header>
+
+  <div className="proto-controls"><FlowSelector current={flow} onSelect={f=>move(f.steps[0].id,position.mode,f.id)}/><div className="proto-control-buttons"><ButtonGroup><Button variant={position.mode==='map'?'accent':'secondary'} onPress={()=>move(screen.id,'map')}>전체 흐름보드</Button><Button variant={position.mode==='play'?'accent':'secondary'} onPress={()=>move(screen.id,'play')}>눌러보는 화면</Button></ButtonGroup><Button variant="secondary" onPress={reset}>처음부터</Button></div></div>
+  <div className="proto-flow-heading"><div><span className="proto-role">{flow.role} 영역</span><h1>{flow.name}</h1><p>{flow.summary}</p></div><LinkButton href={`..${flow.path}`} target="_blank" variant="secondary">실제 서비스 열기 ↗</LinkButton></div>
   {notice&&position.mode!=='modal'&&<p className="proto-notice" role="status">{notice}</p>}
   {position.mode!=='play'&&<FlowBoard flow={flow} onOpen={id=>move(id,'modal')}/>}
   {position.mode==='play'&&<><div className="proto-preview-navigation"><Button variant="secondary" isDisabled={!trail.length} onPress={previous}>← 이전 화면</Button><Button variant="secondary" onPress={closePreview}>흐름도로 돌아가기</Button><span>← 이전 · → 기본 경로 · Esc 닫기</span></div>{workbench}</>}

@@ -9,13 +9,13 @@ const layouts:Record<string,Record<string,Point>>={
  customer:{home:{x:390,y:180},'public-prices':{x:40,y:620},request:{x:390,y:620},notebook:{x:740,y:620},'request-review':{x:390,y:1060},requested:{x:390,y:1500},notification:{x:740,y:1500}},
  notice:{'notice-list':{x:390,y:180},'notice-new':{x:40,y:620},'notice-detail':{x:390,y:620},'notice-edit':{x:40,y:1060},'notice-delete':{x:740,y:1060}}
 };
-const width=380,gap=120,fallbackHeight=780;
+const width=380,gap=100,fallbackHeight=780;
 export function FlowBoard({flow,onOpen}:{flow:Flow;onOpen:(id:string)=>void}){
  const viewport=useRef<HTMLDivElement>(null),canvas=useRef<HTMLDivElement>(null),[scale,setScale]=useState(1),[returns,setReturns]=useState(false),[autoFit,setAutoFit]=useState(()=>matchMedia('(min-width:900px)').matches),[heights,setHeights]=useState<Record<string,number>>({});
  const base=layouts[flow.id]??Object.fromEntries(flow.steps.map((s,i)=>[s.id,{x:i%3,y:Math.floor(i/3)}]));
  const xs=[...new Set(Object.values(base).map(p=>p.x))].sort((a,b)=>a-b),ys=[...new Set(Object.values(base).map(p=>p.y))].sort((a,b)=>a-b);
  const rowHeights=ys.map(y=>Math.max(...flow.steps.filter(s=>base[s.id].y===y).map(s=>heights[s.id]??fallbackHeight)));
- const positions=Object.fromEntries(flow.steps.map(s=>[s.id,{x:40+xs.indexOf(base[s.id].x)*(width+gap),y:180+rowHeights.slice(0,ys.indexOf(base[s.id].y)).reduce((n,h)=>n+h+gap,0)}]));
+ const positions=Object.fromEntries(flow.steps.map(s=>[s.id,{x:40+xs.indexOf(base[s.id].x)*(width+gap),y:148+rowHeights.slice(0,ys.indexOf(base[s.id].y)).reduce((n,h)=>n+h+gap,0)}]));
  const canvasWidth=40+xs.length*(width+gap)-gap+50,canvasHeight=Math.max(...flow.steps.map(s=>positions[s.id].y+(heights[s.id]??fallbackHeight)))+60;
  useLayoutEffect(()=>{const nodes=canvas.current?.querySelectorAll<HTMLElement>('[data-screen-id]');if(!nodes)return;const measure=()=>{const sizes=Object.fromEntries([...nodes].map(node=>[node.dataset.screenId!,node.offsetHeight]));setHeights(old=>Object.entries(sizes).every(([id,h])=>old[id]===h)?old:{...old,...sizes});};measure();const observer=new ResizeObserver(measure);nodes.forEach(node=>observer.observe(node));return()=>observer.disconnect();},[flow.id]);
  useEffect(()=>{const el=viewport.current;if(!el)return;const resize=()=>{if(autoFit)setScale(Math.min(1,(el.clientWidth-24)/canvasWidth));};resize();const observer=new ResizeObserver(resize);observer.observe(el);return()=>observer.disconnect();},[canvasWidth,autoFit,flow.id]);

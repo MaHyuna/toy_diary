@@ -16,7 +16,8 @@ try:
   page.goto(base+'/prototype/',wait_until='networkidle');page.evaluate("localStorage.setItem('mongle-demo-v1','prototype-must-not-touch')")
   expect(page.get_by_role('region',name='전체 화면 흐름보드')).to_be_visible();expect(page.locator('.flow-connectors')).to_be_visible();assert page.locator('.flow-connectors path[marker-end]').count()>10
   page.get_by_role('button',name='흐름도 확대',exact=True).click();page.get_by_role('button',name='너비에 맞추기',exact=True).click();page.screenshot(path='/tmp/prototype-board-desktop.png',full_page=True)
-  page.locator('.scenario-catalog').evaluate('(el)=>el.open=true')
+  assert page.locator('.flow-board-section').bounding_box()['y']<260
+  assert page.locator('.text-node p').first.evaluate('(el)=>parseFloat(getComputedStyle(el).fontSize)')>=14
   assert page.locator('.flow-board-canvas img').count()==0
   expect(page.get_by_role('region',name='전체 화면 흐름보드')).to_contain_text('진입 경로')
   expect(page.get_by_role('region',name='전체 화면 흐름보드')).to_contain_text('처리·검증 규칙')
@@ -25,13 +26,20 @@ try:
   assert page.locator('.text-node').evaluate_all('(nodes)=>nodes.every((a,i)=>nodes.every((b,j)=>i===j||a.offsetLeft+a.offsetWidth<=b.offsetLeft||b.offsetLeft+b.offsetWidth<=a.offsetLeft||a.offsetTop+a.offsetHeight<=b.offsetTop||b.offsetTop+b.offsetHeight<=a.offsetTop))')
   for width in [320,390,768,1440]:
    page.set_viewport_size({'width':width,'height':1000})
-   for label,flow_id in [('예약·미용','visit'),('요금표·이력','pricing'),('고객 수첩','customer'),('공지 관리','notice')]:
-    page.locator('.scenario-catalog').evaluate('(el)=>el.open=true')
-    button=page.get_by_role('navigation',name='사용자 흐름 선택').get_by_role('button',name=label,exact=True)
-    assert button.bounding_box()['height']<=56;button.click();expect(page.locator('.proto-flow-options button[aria-pressed="true"]')).to_contain_text(label);assert 'flow='+flow_id in page.url
-    assert page.get_by_role('listbox').count()==0
+   for label,flow_id in [('미용 기록·결제','visit'),('요금표·이력','pricing'),('고객 홈','customer'),('공지 관리','notice')]:
+    trigger=page.locator('.flow-selector button');assert trigger.bounding_box()['height']<=56;trigger.click()
+    selector=page.get_by_role('dialog',name='시나리오 선택',exact=True);expect(selector).to_be_visible()
+    selector.get_by_role('button',name='전체',exact=True).click();selector.get_by_label('시나리오 검색',exact=True).fill(label)
+    expect(selector.get_by_role('row')).to_have_count(2)
+    if width==390:page.wait_for_timeout(250);page.screenshot(path='/tmp/prototype-selector-mobile.png')
+    if width==1440:page.wait_for_timeout(250);page.screenshot(path='/tmp/prototype-selector-desktop.png')
+    selector.get_by_text(label,exact=True).click();expect(selector).to_have_count(0);assert 'flow='+flow_id in page.url
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-   if width==390:page.screenshot(path='/tmp/prototype-flow-selector-mobile.png')
+  page.locator('.flow-selector button').click();selector=page.get_by_role('dialog',name='시나리오 선택',exact=True)
+  selector.get_by_label('시나리오 검색',exact=True).fill('일치하지않는검색어');expect(selector.get_by_role('status')).to_contain_text('일치하는 시나리오가 없습니다')
+  page.keyboard.press('Escape');expect(selector).to_have_count(0);expect(page.locator('.flow-selector button')).to_be_focused()
+  page.goto(base+'/prototype/#flow=pricing&screen=price-list&mode=play')
+  page.locator('.flow-selector button').click();selector=page.get_by_role('dialog',name='시나리오 선택',exact=True);selector.get_by_label('시나리오 검색',exact=True).focus();page.keyboard.press('ArrowRight');page.keyboard.press('Escape');expect(selector).to_have_count(0);expect(page.locator('.proto-screen-title h2')).to_have_text('요금 분류 목록')
   for flow in (flows if not os.environ.get('MONGLE_PROTO_FOCUSED') else []):
    ids={s['id'] for s in flow['steps']}
    for screen in flow['steps']:
