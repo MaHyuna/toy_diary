@@ -52,3 +52,17 @@ test('A4 balances whole sections across pages without changing their order', asy
  assert.ok(Math.abs(measure(pages[0])-measure(pages[1]))<400);
  assert.ok(pages.every(page=>measure(page)<=1273));
 });
+
+test('poster renders supplementary items and descriptions saved with a matrix section', async()=>{
+ const {renderPoster}=await import('../public/planning/price-studio-render.js');
+ const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(obj,key)=>key in obj?obj[key]:()=>{}}),canvas={getContext:()=>ctx};
+ const p=createDefaultProject(),section=p.sections[0];
+ section.content='방문 전에 털 상태를 알려 주세요.';section.items=[{label:'추가 관리',value:'상담'}];section.rows[0].prices[0]='상담';
+ assert.equal(validateProject(p).sections[0].content,section.content);
+ assert.deepEqual(semantic(fromCSV(toCSV(p))),semantic(p));
+ const rendered=renderPoster(canvas,p,null);
+ assert.equal(rendered.error,'');
+ assert.ok(rendered.elements.some(e=>e.binding?.sectionId===section.id&&e.binding?.key==='content'));
+ assert.ok(rendered.elements.some(e=>e.binding?.sectionId===section.id&&e.binding?.type==='item'&&e.binding?.key==='value'));
+ assert.ok(rendered.elements.some(e=>e.binding?.sectionId===section.id&&e.binding?.type==='price'));
+});

@@ -1,19 +1,17 @@
-import './ui/price-menu-layout.css';
-import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { PriceMenu } from './price-menu';
+import './ui/price-menu-layout.css';
+export type PriceCellAddress = {section:number;row:number;column:number} | {section:number;item:number};
+type MenuProps={menu:PriceMenu;renderPrice?:(value:string,label:string,address:PriceCellAddress)=>ReactNode;sectionActions?:(index:number)=>ReactNode};
 const price=(value:string)=>/^\d+$/.test(value)?Number(value).toLocaleString('ko-KR'):value;
-type MenuProps={menu:PriceMenu;onChange?:(menu:PriceMenu)=>void};
-export function MobilePriceMenu(props:MenuProps){return <div className="price-menu-sections">{props.menu.sections.map((_,index)=><PriceMenuSection key={index} {...props} selected={index}/>)}</div>;}
-function PriceMenuSection({menu,onChange,selected}:MenuProps&{selected:number}) {
- const [desktop,setDesktop]=useState(()=>window.matchMedia('(min-width:701px)').matches);
- useEffect(()=>{const media=window.matchMedia('(min-width:701px)'),change=()=>setDesktop(media.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change);},[]);
- function cell(row:number,column:number,value:string){onChange?.({...menu,sections:menu.sections.map((s,i)=>i===selected?{...s,rows:s.rows.map((r,j)=>j===row?{...r,prices:r.prices.map((p,k)=>k===column?value:p)}:r)}:s)});}
- const section=menu.sections[selected];if(!section)return null;
- return <div className="mobile-price-menu"><section className="mobile-price-section" aria-label={section.title}>
- <header className="mobile-price-heading"><span className="price-flower" aria-hidden="true">✿</span><h2>{section.title}</h2></header>
- {section.breeds&&<p className="mobile-price-breeds">{section.breeds}</p>}{section.note&&<p className="mobile-price-note">{section.note}</p>}
- {desktop&&section.rows.length>0&&<><p className="price-table-hint">단위: 원</p><table className="mobile-price-table"><thead><tr><th scope="col">몸무게</th>{menu.columns.map((name,i)=><th scope="col" key={i}>{name}</th>)}</tr></thead><tbody>{section.rows.map((row,i)=><tr key={i}><th scope="row">{row.weight}</th>{menu.columns.map((name,j)=><td key={j}>{onChange?<input className="shared-price-input" aria-label={`${section.title} ${row.weight} ${name} 금액`} inputMode="numeric" maxLength={30} value={row.prices[j]??''} onChange={e=>cell(i,j,e.target.value)}/>:price(row.prices[j]??'상담')}</td>)}</tr>)}</tbody></table></>}
- {!desktop&&section.rows.length>0&&<><p className="price-table-hint">단위: 원</p>{Array.from({length:Math.ceil(section.rows.length/4)},(_,group)=>{const rows=section.rows.slice(group*4,group*4+4);return <div className="mobile-price-table-block" key={group}><table className="mobile-price-table"><caption className="sr-only">{section.title} · {rows.map(row=>row.weight).join(', ')}</caption><thead><tr><th scope="col">미용</th>{rows.map((row,i)=><th scope="col" key={i}>{row.weight}</th>)}</tr></thead><tbody>{menu.columns.map((name,i)=><tr key={i}><th scope="row">{name}</th>{rows.map((row,j)=><td key={j}>{onChange?<input className="shared-price-input" aria-label={`${section.title} ${row.weight} ${name} 금액`} inputMode="numeric" maxLength={30} value={row.prices[i]??''} onChange={e=>cell(group*4+j,i,e.target.value)}/>:price(row.prices[i]??'상담')}</td>)}</tr>)}</tbody></table></div>;})}</>}
- {section.items.length>0&&<dl className="mobile-price-services">{section.items.map((item,i)=><div key={i}><dt>{item.label}</dt><dd>{onChange?<input className="shared-price-input" aria-label={`${section.title} ${item.label} 금액`} maxLength={80} value={item.value} onChange={e=>onChange({...menu,sections:menu.sections.map((s,j)=>j===selected?{...s,items:s.items.map((v,k)=>k===i?{...v,value:e.target.value}:v)}:s)})}/>:price(item.value)}</dd></div>)}</dl>}{section.content&&<p className="price-section-content">{section.content}</p>}
- </section></div>;
+/** The same printable matrix is used for customer reading and owner editing. */
+export function MobilePriceMenu({menu,renderPrice,sectionActions}:MenuProps){
+ return <div className="price-menu-sections">{menu.sections.map((section,si)=><div key={si} className="mobile-price-menu" data-layout={section.rows.length?'matrix':'list'}><section className="mobile-price-section" aria-label={section.title}>
+  <div className="price-section-heading-row"><header className="mobile-price-heading"><span className="price-flower" aria-hidden="true">✿</span><h2>{section.title}</h2></header>{sectionActions?.(si)}</div>
+  {section.breeds&&<p className="mobile-price-breeds">{section.breeds}</p>}{section.rows.length>0&&section.note&&<p className="mobile-price-note">{section.note}</p>}
+  {section.rows.length>0&&<><p className="price-table-hint">단위: 원</p><table className="mobile-price-table"><caption className="sr-only">{section.title} · 서비스별 체중 요금</caption><thead><tr><th scope="col">몸무게</th>{menu.columns.map((name,ci)=><th key={ci} scope="col">{name}</th>)}</tr></thead><tbody>{section.rows.map((row,ri)=><tr key={ri}><th scope="row">{row.weight}</th>{menu.columns.map((name,ci)=><td key={ci}>{renderPrice?renderPrice(row.prices[ci],`${section.title} ${row.weight} ${name} 금액`,{section:si,row:ri,column:ci}):price(row.prices[ci])}</td>)}</tr>)}</tbody></table></>}
+  {section.items.length>0&&<dl className="mobile-price-services">{section.items.map((item,ii)=><div key={ii}><dt>{item.label}</dt><dd>{renderPrice?renderPrice(item.value,`${section.title} ${item.label} 금액`,{section:si,item:ii}):price(item.value)}</dd></div>)}</dl>}
+  {!section.rows.length&&section.note&&<p className="mobile-price-note">{section.note}</p>}
+  {section.content&&<p className="price-section-content">{section.content}</p>}
+ </section></div>)}</div>;
 }

@@ -1,3 +1,40 @@
-/* Section layout only: all published menu categories remain in document order. */
-.price-menu-sections{display:grid;gap:36px;min-width:0}
-.price-menu-sections>section,.price-menu-sections>div{min-width:0}
+/* Printable price-board layout, shared by owner/customer. Controls remain Spectrum 2.
+   Exception to the generic virtual table: preserve the reference poster's row/column geometry. */
+.price-menu-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 28px;min-width:0}
+.price-menu-sections>.mobile-price-menu{display:block;min-width:0}
+.price-menu-sections>[data-layout=matrix]{grid-column:1/-1}
+.price-menu-sections .mobile-price-section{min-height:0;padding:0;background:transparent}
+.price-section-heading-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.price-menu-sections .mobile-price-heading{display:flex;align-items:center;gap:8px;min-width:0}
+.price-menu-sections .mobile-price-heading h2{font-family:PriceJua,sans-serif;font-size:clamp(20px,2.8vw,30px);line-height:1.4;margin:0;overflow-wrap:anywhere}
+.price-menu-sections .price-flower{color:#d98487;font-size:24px}
+.price-menu-sections .mobile-price-table{table-layout:fixed;width:100%;min-width:0;border-collapse:collapse;margin:12px 0;font-variant-numeric:tabular-nums}
+.price-menu-sections .mobile-price-table th,.price-menu-sections .mobile-price-table td{min-width:0;padding:10px 3px;white-space:normal;overflow-wrap:anywhere;text-align:center;background:transparent;border:0}
+.price-menu-sections .mobile-price-table tr>:first-child{position:static;width:15%;min-width:0;padding:10px 3px;text-align:left;border-right:0}
+.price-menu-sections .mobile-price-table thead th{font-size:12px;border-bottom:1px solid #756b70;font-weight:500}
+.price-menu-sections .mobile-price-table tbody td{font-size:14px;font-weight:650;letter-spacing:0}
+.price-menu-sections .mobile-price-table tbody th{font-size:12px;font-weight:500}
+.price-menu-sections .mobile-price-breeds,.price-menu-sections .mobile-price-note{margin:10px 0;line-height:1.6;font-size:13px;overflow-wrap:anywhere}
+.price-menu-sections .mobile-price-note{color:#b44454}
+.price-menu-sections .mobile-price-services{margin:14px 0;display:grid;gap:10px;font-size:13px}
+.price-menu-sections .mobile-price-services>div{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:0;overflow-wrap:anywhere}
+.price-menu-sections .mobile-price-services dd{margin:0;font-weight:650;flex-shrink:0;max-width:60%}
+.price-menu-sections .price-table-hint{font-size:11px;margin:8px 0;text-align:right}
+.price-sheet-editor{background:#faeeee;padding:24px;border-radius:12px;color:#302c32}
+.price-edit-toolbar,.price-section-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.price-edit-toolbar{justify-content:space-between}
+.price-sheet-editor .price-menu-sections{margin-top:20px}
+.price-cell-control{width:100%;min-width:0}
+.price-section-draft-rows{display:grid;gap:12px}
+.price-section-draft-row{display:flex;gap:12px;align-items:end;min-width:0}
+.price-section-draft-row>div:first-child{flex:1;min-width:0}
+.price-save-toolbar{position:sticky;top:0;z-index:5;background:var(--s2-container-bg,#fff);padding:12px 0}
+.show-original .price-menu-sections{display:none}
+@media(max-width:700px){
+ .price-menu-sections{grid-template-columns:minmax(0,1fr);gap:30px}
+ .price-sheet-editor{padding:14px 8px}
+ .price-menu-sections .mobile-price-table th,.price-menu-sections .mobile-price-table td,.price-menu-sections .mobile-price-table tr>:first-child{padding:9px 1px}
+ .price-menu-sections .mobile-price-table thead th,.price-menu-sections .mobile-price-table tbody th{font-size:10px;line-height:1.5}
+ .price-menu-sections .mobile-price-table tbody td{font-size:clamp(8px,2.5vw,12px);letter-spacing:-.3px}
+ .price-menu-sections .mobile-price-breeds,.price-menu-sections .mobile-price-note{font-size:12px}
+}
