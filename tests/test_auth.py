@@ -58,6 +58,16 @@ class AuthTest(unittest.TestCase):
             "phone": "010-9999-8888", "breed": "말티즈", "weight": 3.2, "service": "전체 미용",
             "date": "2026-01-15", "time": "10:00", "duration": 60, "basePrice": 65000, "notes": "PRIVATE_NOTE"})
 
+    def test_price_history_is_owner_only_and_restoration_checks_version(self):
+        from tests.menu_fixture import MENU
+        for method, path, body in [('GET','/api/price-menu/state',None),('GET','/api/price-menu/history',None),('GET','/api/price-menu/history/1',None),('POST','/api/price-menu/revisions',{'menu':MENU,'expectedVersion':0}),('POST','/api/price-menu/history/1/restore',{'expectedVersion':1})]:
+            self.assertEqual(self.request(method,path,body)[0],401)
+        owner,_=self.login()
+        self.assertEqual(self.request('POST','/api/price-menu/revisions',{'menu':MENU,'expectedVersion':0},cookie=owner)[0],200)
+        self.assertEqual(self.request('GET','/api/price-menu/history',cookie=owner)[1]['total'],1)
+        self.assertEqual(self.request('POST','/api/price-menu/history/1/restore',{'expectedVersion':0},cookie=owner)[0],409)
+        self.assertEqual(self.request('POST','/api/price-menu/history/1/restore',{'expectedVersion':1},cookie=owner)[1]['version'],2)
+
     def test_shared_price_matrix_requires_owner_and_preserves_old_booking_rates(self):
         owner, _ = self.login()
         menu = {"columns": ["목욕"], "sections": [{"title": "소형견 미용", "breeds": "말티즈", "note": "", "content": "", "rows": [{"weight": "4kg 미만", "prices": ["15000"]}], "items": []}]}

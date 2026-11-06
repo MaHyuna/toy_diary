@@ -1,6 +1,6 @@
 import type { Appointment, Customer, Pet, Shampoo, ShampooUsage, State } from '../types.ts';
 
-export type DemoData = Omit<State, 'summary'> & { menuBooking?:import('../menu-booking').BookingRule[]; priceMenu?:import('../price-menu').PriceMenu; pricePoster?: {image:string;description:string;menu?:import('../price-menu').PriceMenu}; notices?: import('../types').ShopNotice[] };
+export type DemoData = Omit<State, 'summary'> & { priceHistory?:import('../price-history').PriceRevision[]; menuBooking?:import('../menu-booking').BookingRule[]; priceMenu?:import('../price-menu').PriceMenu; pricePoster?: {image:string;description:string;menu?:import('../price-menu').PriceMenu}; notices?: import('../types').ShopNotice[] };
 export const DEMO_SEED_REVISION = 2;
 
 /** Fictional, independent sample records. This module never reads stored data. */

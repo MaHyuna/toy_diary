@@ -395,6 +395,8 @@ class Store:
                     notes TEXT NOT NULL, archived INTEGER NOT NULL, createdAt TEXT NOT NULL
                 );
             """)
+            from server.price_history import SCHEMA
+            connection.executescript(SCHEMA)
             # executescript commits its surrounding transaction. Keep all migrations atomic.
             connection.execute("BEGIN IMMEDIATE")
             shampoo_columns = {row["name"] for row in connection.execute("PRAGMA table_info(shampoos)")}
@@ -426,6 +428,8 @@ class Store:
                 (json.dumps(DEFAULT_PRICING, ensure_ascii=False),),
             )
             connection.execute("CREATE INDEX IF NOT EXISTS appointment_pet ON appointments(petId)")
+            from server.price_history import ensure_baseline
+            ensure_baseline(connection, self.menu_in(connection))
 
     @contextmanager
     def connect(self, *, write=False):
@@ -609,12 +613,41 @@ class Store:
         from server.menu_booking import catalog
         return catalog(self.menu_in(connection), self.booking_rules_in(connection))
 
-    def save_price_menu(self, data):
-        from server.price_menu import validate_menu
-        menu = validate_menu(data, APIError)
+    def price_menu_state(self):
+        from server.price_history import ensure_baseline, state
         with self.connect(write=True) as connection:
-            connection.execute("INSERT INTO settings(key,value) VALUES('price-menu',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(menu, ensure_ascii=False),))
-        return menu
+            menu = self.menu_in(connection)
+            ensure_baseline(connection, menu)
+            return state(connection, menu)
+
+    def price_menu_history(self, offset=0):
+        if type(offset) is not int or offset < 0:
+            raise APIError("이력 페이지를 확인해 주세요.")
+        from server.price_history import ensure_baseline, current_version
+        with self.connect(write=True) as connection:
+            ensure_baseline(connection, self.menu_in(connection))
+            rows = connection.execute("SELECT version,savedAt,kind,restoredFrom,note FROM price_menu_history ORDER BY version DESC LIMIT 20 OFFSET ?", (offset,)).fetchall()
+            return {'entries': [dict(row) for row in rows], 'total': connection.execute('SELECT COUNT(*) FROM price_menu_history').fetchone()[0], 'currentVersion': current_version(connection)}
+
+    def price_menu_version(self, version):
+        from server.price_history import detail
+        with self.connect() as connection:
+            return detail(connection, version, APIError)
+
+    def save_price_menu(self, data, *, versioned=False, restore=None):
+        from server.price_menu import validate_menu
+        from server.price_history import ensure_baseline, check_version, note_value, detail, append, state
+        with self.connect(write=True) as connection:
+            current = self.menu_in(connection)
+            ensure_baseline(connection, current)
+            if versioned:
+                check_version(connection, data.get('expectedVersion'), APIError)
+            note = note_value(data, APIError) if versioned else ''
+            menu = validate_menu(detail(connection, restore, APIError)['menu'] if restore is not None else data.get('menu') if versioned else data, APIError)
+            if menu != current or restore is not None:
+                connection.execute("INSERT INTO settings(key,value) VALUES('price-menu',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(menu, ensure_ascii=False),))
+                append(connection, menu, 'restore' if restore is not None else 'save', note, restore)
+            return state(connection, menu) if versioned else menu
 
     def price_poster(self):
         with self.connect() as connection:
@@ -658,10 +691,16 @@ class Store:
             if menu is not None:
                 data["menu"] = menu
         with self.connect(write=True) as connection:
+            from server.price_history import ensure_baseline
+            previous = self.menu_in(connection)
+            ensure_baseline(connection, previous)
+            if previous is not None:
+                connection.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('price-menu',?)", (json.dumps(previous, ensure_ascii=False),))
             if data is None:
                 connection.execute("DELETE FROM settings WHERE key='price-poster'")
             else:
                 connection.execute("INSERT INTO settings(key,value) VALUES('price-poster',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(data, ensure_ascii=False),))
+            ensure_baseline(connection, self.menu_in(connection))
         return data
 
     def notices(self):
@@ -1204,6 +1243,19 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
                     return self.send_json(store.menu_booking())
                 if method == "PUT" and path == "/api/menu-booking":
                     return self.send_json(store.save_menu_booking(self.read_json()))
+                if method == "GET" and path == "/api/price-menu/state":
+                    return self.send_json(store.price_menu_state())
+                if method == "GET" and path == "/api/price-menu/history":
+                    offset = parse_qs(parsed.query).get('offset', ['0'])[0]
+                    if not offset.isdigit(): raise APIError('이력 페이지를 확인해 주세요.')
+                    return self.send_json(store.price_menu_history(int(offset)))
+                history_match = re.fullmatch(r"/api/price-menu/history/([1-9][0-9]*)(/restore)?", path)
+                if history_match and method == 'GET' and not history_match.group(2):
+                    return self.send_json(store.price_menu_version(int(history_match.group(1))))
+                if history_match and method == 'POST' and history_match.group(2):
+                    return self.send_json(store.save_price_menu(self.read_json(), versioned=True, restore=int(history_match.group(1))))
+                if method == 'POST' and path == '/api/price-menu/revisions':
+                    return self.send_json(store.save_price_menu(self.read_json(), versioned=True))
                 if method == "GET" and path == "/api/public/price-menu":
                     return self.send_json(store.price_menu())
                 if method == "PUT" and path == "/api/price-menu":

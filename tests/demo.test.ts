@@ -579,3 +579,34 @@ test('published menu revision blocks stale requests, owner acceptance keeps the 
  menu.sections[0].rows[0].prices[0]='상담';await api.request('/price-menu','PUT',menu);
  assert.equal((await api.request<{booking:BookingCatalog}>('/public/catalog')).booking.offers.length,0);
 });
+
+test('price revisions preserve history, reject stale writes and restore as a new version atomically', async()=>{
+ const storage=new MemoryStorage(),api=createDemoApi(storage,{today:()=>TODAY});
+ const menu={columns:['목욕'],sections:[{title:'소형견',breeds:'말티즈',note:'',content:'',rows:[{weight:'4kg 미만',prices:['15000']}],items:[]}]};
+ const original=await api.request<State>('/state?month=2030-01');
+ await api.request('/price-menu','PUT',menu);
+ const first=await api.request('/price-menu/history/1');
+ const changed=structuredClone(menu);changed.sections[0].rows[0].prices[0]='18000';
+ await api.request('/price-menu/revisions','POST',{menu:changed,expectedVersion:1,note:'요금 조정'});
+ await assert.rejects(api.request('/price-menu/revisions','POST',{menu,expectedVersion:1}),/다른 화면/);
+ await assert.rejects(api.request('/price-menu/history/1/restore','POST',{expectedVersion:1}),/다른 화면/);
+ const before=storage.getItem(KEY);storage.failWrites=true;
+ await assert.rejects(api.request('/price-menu/history/1/restore','POST',{expectedVersion:2}),/저장하지 못/);
+ assert.equal(storage.getItem(KEY),before);storage.failWrites=false;
+ const result=await api.request<{version:number;menu:unknown}>('/price-menu/history/1/restore','POST',{expectedVersion:2,note:'원래 요금으로'});
+ assert.equal(result.version,3);assert.deepEqual(result.menu,menu);
+ assert.deepEqual(await api.request('/price-menu/history/1'),first);
+ assert.deepEqual((await api.request<State>('/state?month=2030-01')).appointments,original.appointments);
+ const reopened=createDemoApi(storage,{today:()=>TODAY});
+ assert.equal((await reopened.request<{total:number}>('/price-menu/history')).total,3);
+ assert.equal((await reopened.request<{restoredFrom:number}>('/price-menu/history/3')).restoredFrom,1);
+});
+
+test('pre-history demo storage is captured once and remains readable',async()=>{
+ const storage=new MemoryStorage(),api=createDemoApi(storage,{today:()=>TODAY});
+ await api.request('/price-menu','PUT',{columns:['목욕'],sections:[]});
+ const wrapper=JSON.parse(storage.getItem(KEY)!);delete wrapper.data.priceHistory;storage.setItem(KEY,JSON.stringify(wrapper));
+ const state=await api.request<{version:number}>('/price-menu/state');assert.equal(state.version,1);
+ const baseline=await api.request<{kind:string}>('/price-menu/history/1');assert.equal(baseline.kind,'baseline');
+ await api.request('/price-menu/state');assert.equal((await api.request<{total:number}>('/price-menu/history')).total,1);
+});

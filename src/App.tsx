@@ -139,7 +139,7 @@ export default function App() {
           {view === 'ledger' && <button className="icon-button" disabled={!ledger.length || loading || !!error} aria-label="이번 달 가계부 CSV 내보내기" onClick={exportCsv}><ArrowDownToLine size={18} /></button>}
         </div>
       </div>}
-      {loading && !error && (!showCalendar || !hasLoaded) ? <div className="loading-state" role="status"><span className="loader" />가게의 기록을 가져오고 있어요…</div> : !error && <>
+      {loading && !error && ((!showCalendar && view !== 'pricing') || !hasLoaded) ? <div className="loading-state" role="status"><span className="loader" />가게의 기록을 가져오고 있어요…</div> : (!error || (view === 'pricing' && hasLoaded)) && <>
         {view === 'ledger' && metrics}
         {view === 'settlement' && <div className="grooming-book-summary"><div><span>미용 완료</span><strong>{completedVisits.length}<small>건</small></strong></div><div><span>완료한 미용 금액</span><strong>{money(completedVisits.reduce((sum, visit) => sum + visit.price, 0))}<small>원</small></strong></div><div><span>예약 · 결제 대기</span><strong>{pending.length}<small>건</small></strong></div></div>}
 

@@ -1,3 +1,5 @@
+import { baseline as historyBaseline, currentMenu, version as historyVersion, record as historyRecord, checkVersion, note as historyNote } from './price-history.ts';
+import { sameMenu } from '../price-menu.ts';
 import { buildBookingCatalog, validateBookingRules, matchesWeight } from '../menu-booking.ts';
 import { validatePriceMenu } from '../price-menu.ts';
 import type { Appointment, BookingRequest, CarePhoto, Customer, Expense, GroomingRecord, PaymentMethod, Pet, Pricing, PublicCareHistoryItem, PublicCareReport, Shampoo, ShampooUsage, State } from '../types.ts';
@@ -360,6 +362,12 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
           history.sort((a, b) => `${b.date}${b.id}`.localeCompare(`${a.date}${a.id}`));
           return clone({ report, history }) as T;
         }
+        if(method==='GET'&&route.startsWith('/price-menu/')){
+          const count=data.priceHistory?.length??0;historyBaseline(data);if((data.priceHistory?.length??0)!==count)persist(data);
+          if(route==='/price-menu/state')return clone({menu:currentMenu(data),version:historyVersion(data)}) as T;
+          if(route==='/price-menu/history'){const raw=url.searchParams.get('offset')??'0';if(!/^\d+$/.test(raw))fail('이력 페이지를 확인해 주세요.');const offset=Number(raw);return clone({entries:[...(data.priceHistory??[])].reverse().slice(offset,offset+20).map(({menu:_,...r})=>r),total:data.priceHistory?.length??0,currentVersion:historyVersion(data)}) as T;}
+          const match=/^\/price-menu\/history\/([1-9][0-9]*)$/.exec(route);if(match){const entry=data.priceHistory?.find(r=>r.version===Number(match[1]));if(!entry)fail('요금표 버전을 찾을 수 없습니다.');return clone(entry) as T;}
+        }
         if (method === 'GET' && route === '/public/price-menu') return clone(data.priceMenu ?? data.pricePoster?.menu ?? null) as T;
         if (method === 'GET' && route === '/public/price-poster') return clone(data.pricePoster ?? null) as T;
         if (method === 'GET' && route === '/notices') return clone(data.notices ?? []) as T;
@@ -371,7 +379,16 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         const input = method === 'DELETE' ? {} : object(body);
         let result: unknown;
         const parts = route.split('/').filter(Boolean), [resource, id, action] = parts;
-        if(route==='/menu-booking'&&method==='PUT'){data.menuBooking=validateBookingRules(input,data.priceMenu??data.pricePoster?.menu??null);result={rules:data.menuBooking};} else if(route==='/price-menu'&&method==='PUT'){data.priceMenu=validatePriceMenu(input);result=data.priceMenu;} else if (route === '/price-poster' && method === 'DELETE') {delete data.pricePoster;result=null;} else if (route === '/price-poster' && method === 'PUT') {only(input,['image','description','menu']);const image=text(input,'image','요금표 이미지',2500000,true);if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(image))fail('JPEG 요금표를 사용해 주세요.');let raw='';try{raw=atob(image.split(',')[1]);}catch{fail('이미지를 읽을 수 없어요.');}if(!raw.startsWith('\xff\xd8')||!raw.endsWith('\xff\xd9'))fail('JPEG 요금표를 사용해 주세요.');data.pricePoster={image,description:text(input,'description','요금표 내용',30000,true),...(input.menu===undefined?{}:{menu:validatePriceMenu(input.menu)})};result=data.pricePoster;} else if (method === 'PUT' && route === '/notices') {
+        const restoreMatch=/^\/price-menu\/history\/([1-9][0-9]*)\/restore$/.exec(route);
+        if(method==='POST'&&(route==='/price-menu/revisions'||restoreMatch)){
+          historyBaseline(data);checkVersion(data,input);const note=historyNote(input);
+          const restored=restoreMatch?data.priceHistory?.find(r=>r.version===Number(restoreMatch[1])):null;
+          if(restoreMatch&&!restored)fail('요금표 버전을 찾을 수 없습니다.');
+          const next=validatePriceMenu(restored?restored.menu:input.menu);
+          if(restored||!sameMenu(currentMenu(data)??undefined,next)){data.priceMenu=next;historyRecord(data,next,restored?'restore':'save',note,restored?.version??null);}
+          persist(data);return clone({menu:currentMenu(data),version:historyVersion(data)}) as T;
+        }
+        if(route==='/menu-booking'&&method==='PUT'){data.menuBooking=validateBookingRules(input,data.priceMenu??data.pricePoster?.menu??null);result={rules:data.menuBooking};} else if(route==='/price-menu'&&method==='PUT'){const next=validatePriceMenu(input);historyBaseline(data);if(!sameMenu(currentMenu(data)??undefined,next)){data.priceMenu=next;historyRecord(data,next,'save');}result=next;} else if (route === '/price-poster' && method === 'DELETE') {historyBaseline(data);data.priceMenu??=data.pricePoster?.menu;delete data.pricePoster;result=null;} else if (route === '/price-poster' && method === 'PUT') {only(input,['image','description','menu']);const image=text(input,'image','요금표 이미지',2500000,true);if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(image))fail('JPEG 요금표를 사용해 주세요.');let raw='';try{raw=atob(image.split(',')[1]);}catch{fail('이미지를 읽을 수 없어요.');}if(!raw.startsWith('\xff\xd8')||!raw.endsWith('\xff\xd9'))fail('JPEG 요금표를 사용해 주세요.');historyBaseline(data);data.priceMenu??=data.pricePoster?.menu;data.pricePoster={image,description:text(input,'description','요금표 내용',30000,true),...(input.menu===undefined?{}:{menu:validatePriceMenu(input.menu)})};historyBaseline(data);result=data.pricePoster;} else if (method === 'PUT' && route === '/notices') {
           only(input, ['notices']);
           const notices = list(input.notices, 20, '공지').map(value => { const item = object(value); only(item, ['id','title','body','published']); const id = text(item, 'id', '공지 ID', 80, true); if (!/^[A-Za-z0-9_-]+$/.test(id) || typeof item.published !== 'boolean') fail('공지 ID와 공개 상태를 확인해 주세요.'); return { id, title: text(item, 'title', '공지 제목', 80, true), body: text(item, 'body', '공지 내용', 2000, true), published: item.published as boolean }; });
           if (new Set(notices.map(item=>item.id)).size !== notices.length) fail('공지 ID가 중복됩니다.');
