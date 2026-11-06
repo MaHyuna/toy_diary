@@ -7,10 +7,10 @@ import './price-poster.css';
 import './ui/price-menu-layout.css';
 type Section=PriceMenu['sections'][number];
 type Edit={type:'section';index:number;draft:Section;kind:'table'|'list'}|{type:'cell';address:PriceCellAddress;label:string;value:string}|{type:'columns';draft:PriceMenu};
-type Props={menu:PriceMenu;onChange:(m:PriceMenu)=>void;disabled:boolean};
+type Props={menu:PriceMenu;onChange:(m:PriceMenu)=>void;disabled:boolean;initialSection?:number};
 const blank=(kind:'table'|'list',columns:string[]):Section=>({title:'',breeds:'',note:'',content:'',rows:kind==='table'?[{weight:'체중 기준',prices:columns.map(()=>'상담')}]:[],items:kind==='list'?[{label:'서비스',value:'상담'}]:[]});
-export function SpectrumPriceEditor({menu,onChange,disabled}:Props){
- const [edit,setEdit]=useState<Edit|null>(null),[error,setError]=useState(''),[confirmDelete,setConfirmDelete]=useState(false);
+export function SpectrumPriceEditor({menu,onChange,disabled,initialSection}:Props){
+ const [edit,setEdit]=useState<Edit|null>(()=>initialSection===undefined?null:{type:'section',index:initialSection,kind:initialSection<0||menu.sections[initialSection]?.rows.length?'table':'list',draft:initialSection<0?blank('table',menu.columns):structuredClone(menu.sections[initialSection])}),[error,setError]=useState(''),[confirmDelete,setConfirmDelete]=useState(false);
  const [wide,setWide]=useState(()=>matchMedia('(min-width:900px)').matches);
  useEffect(()=>{const q=matchMedia('(min-width:900px)'),change=()=>setWide(q.matches);q.addEventListener('change',change);return()=>q.removeEventListener('change',change);},[]);
  function open(value:Edit){setError('');setConfirmDelete(false);setEdit(value);}

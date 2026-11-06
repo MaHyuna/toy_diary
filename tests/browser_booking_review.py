@@ -53,14 +53,17 @@ with TemporaryDirectory(prefix='mongle-spectrum-') as folder,sync_playwright() a
   page.goto(base+'/owner/?view=pricing',wait_until='networkidle')
   page.screenshot(path='/tmp/spectrum-owner-debug.png',full_page=True)
   expect(page.get_by_role('heading',name='요금 관리',exact=True)).to_be_visible()
+  page.get_by_role('button',name='요금표 수정',exact=True).click()
   field=page.get_by_role('textbox',name='소형견 미용 4kg 미만 목욕 금액',exact=True)
   field.fill('18000');page.get_by_role('button',name='요금표 저장',exact=True).click();expect(page.get_by_role('status')).to_contain_text('요금표를 저장')
   assert store.booking_catalog()['offers'][0]['price']==18000
   assert requests[0]['price']==35000
+  page.get_by_role('button',name='예약 요금 연결 관리',exact=True).click()
   settings=page.get_by_role('region',name='예약 요금 연결',exact=True)
   settings.get_by_role('button',name='소형견 미용 목욕 4kg 미만 연결 해제',exact=True).click()
   expect(settings.get_by_role('status')).to_contain_text('예약에 사용할 요금 항목을 저장')
   assert len(store.menu_booking()['rules'])==3
+  settings.get_by_role('button',name='예약 항목 등록',exact=True).click()
   pick('예약에 사용할 요금표 항목',r'소형견 미용 · 목욕 · 4kg 미만')
   settings.get_by_role('button',name='예약 항목 연결',exact=True).click()
   expect(settings.get_by_role('button',name='소형견 미용 목욕 4kg 미만 연결 해제',exact=True)).to_be_visible()

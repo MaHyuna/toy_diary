@@ -38,3 +38,5 @@
  .price-menu-sections .mobile-price-table tbody td{font-size:clamp(8px,2.5vw,12px);letter-spacing:-.3px}
  .price-menu-sections .mobile-price-breeds,.price-menu-sections .mobile-price-note{font-size:12px}
 }
+
+.price-management-list{height:440px;min-width:0}
