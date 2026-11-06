@@ -5,3 +5,6 @@
 
 .flow-screenshot-link{height:110px}.flow-screen-node p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.flow-screen-node footer{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .flow-board-space{overflow:hidden}
+
+/* Four persistent choices avoid an oversized mobile picker popover. */
+.proto-controls{flex-wrap:wrap}.proto-flow-selection{min-width:0;display:grid;gap:10px}.proto-flow-label{font-size:12px;color:#71695e}.proto-flow-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.proto-flow-options>button{width:100%;min-width:0;white-space:nowrap}@media(max-width:700px){.proto-flow-options{grid-template-columns:repeat(2,minmax(0,1fr))}.proto-flow-options>button{min-height:40px}}

@@ -16,6 +16,14 @@ try:
   page.goto(base+'/prototype/',wait_until='networkidle');page.evaluate("localStorage.setItem('mongle-demo-v1','prototype-must-not-touch')")
   expect(page.get_by_role('region',name='전체 화면 흐름보드')).to_be_visible();expect(page.locator('.flow-connectors')).to_be_visible();assert page.locator('.flow-connectors path[marker-end]').count()>10
   page.get_by_role('button',name='흐름도 확대',exact=True).click();page.get_by_role('button',name='너비에 맞추기',exact=True).click();page.screenshot(path='/tmp/prototype-board-desktop.png',full_page=True)
+  for width in [320,390,768,1440]:
+   page.set_viewport_size({'width':width,'height':1000})
+   for label,flow_id in [('예약·미용','visit'),('요금표·이력','pricing'),('고객 수첩','customer'),('공지 관리','notice')]:
+    button=page.get_by_role('navigation',name='사용자 흐름 선택').get_by_role('button',name=label,exact=True)
+    button.click();expect(button).to_have_attribute('aria-pressed','true');assert 'flow='+flow_id in page.url
+    assert button.bounding_box()['height']<=56;assert page.get_by_role('listbox').count()==0
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+   if width==390:page.screenshot(path='/tmp/prototype-flow-selector-mobile.png')
   for flow in flows:
    ids={s['id'] for s in flow['steps']}
    for screen in flow['steps']:
