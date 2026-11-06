@@ -1,7 +1,10 @@
-export type Screen={id:string;name:string;kind:string;purpose:string;rule:string;actions:{label:string;to:string;primary?:boolean}[];future?:boolean};
+import { scenarios } from './scenarios.ts';
+import type { ScenarioUI } from './scenarios.ts';
+export type Screen={id:string;name:string;kind:string;purpose:string;rule:string;actions:{label:string;to:string;primary?:boolean}[];future?:boolean;actor?:'고객'|'사장님';ui?:ScenarioUI};
 export type Flow={id:string;name:string;role:'사장님'|'고객';summary:string;path:string;steps:Screen[]};
 const action=(label:string,to:string,primary=false)=>({label,to,primary});
 export const flows:Flow[]=[
+ ...scenarios,
  {id:'visit',name:'예약부터 미용 완료까지',role:'사장님',summary:'오늘의 예약을 확인하고, 아이의 관리 기록과 결제를 함께 마무리합니다.',path:'/owner/',steps:[
   {id:'calendar',name:'예약 캘린더',kind:'첫 화면',purpose:'날짜마다 예약 건수와 금액을 한눈에 확인합니다.',rule:'날짜를 선택하면 당일 일정이 열립니다. 새 예약은 + 버튼에서만 시작합니다.',actions:[action('11월 6일 일정 보기','day',true),action('+ 예약 등록','new-visit')]},
   {id:'day',name:'하루 일정',kind:'목록',purpose:'시간순 예약과 미용·결제 상태를 확인합니다.',rule:'목록의 예약을 선택해 상세로 이동합니다. 닫기는 패널 닫기이며 예약 취소와 구분합니다.',actions:[action('09:00 몽이 예약 보기','visit-detail',true),action('+ 예약 등록','new-visit'),action('달력으로','calendar')]},

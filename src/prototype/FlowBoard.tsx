@@ -11,9 +11,9 @@ const layouts:Record<string,Record<string,Point>>={
 const width=290,height=350;
 export function FlowBoard({flow,onOpen}:{flow:Flow;onOpen:(id:string)=>void}){
  const viewport=useRef<HTMLDivElement>(null),[scale,setScale]=useState(.7),[returns,setReturns]=useState(false),[autoFit,setAutoFit]=useState(true);
- const positions=layouts[flow.id],canvasWidth=Math.max(...Object.values(positions).map(p=>p.x))+width+50,canvasHeight=Math.max(...Object.values(positions).map(p=>p.y))+height+60;
+ const positions=layouts[flow.id]??Object.fromEntries(flow.steps.map((s,i)=>[s.id,{x:40+(i%3)*350,y:180+Math.floor(i/3)*440}])),canvasWidth=Math.max(...Object.values(positions).map(p=>p.x))+width+50,canvasHeight=Math.max(...Object.values(positions).map(p=>p.y))+height+60;
  useEffect(()=>{const el=viewport.current;if(!el)return;const resize=()=>{if(autoFit)setScale(Math.min(1,(el.clientWidth-24)/canvasWidth));};resize();const observer=new ResizeObserver(resize);observer.observe(el);return()=>observer.disconnect();},[canvasWidth,autoFit,flow.id]);
- const edges=flow.steps.flatMap(s=>s.actions.filter(a=>{const p=positions[s.id],q=positions[a.to];return returns||q.y>p.y||q.y===p.y&&flow.steps.findIndex(v=>v.id===a.to)>flow.steps.findIndex(v=>v.id===s.id);}).map(a=>({from:s.id,to:a.to,label:a.label,back:positions[a.to].y<=positions[s.id].y&&positions[a.to].x<=positions[s.id].x})));
+ const edges=flow.steps.flatMap(s=>s.actions.filter(a=>{const p=positions[s.id],q=positions[a.to];const navigationBack=/^(취소|작성 취소|목록|목록으로|예약 유지|공지 유지|계속 검토|검토 유지|선택 취소)$/.test(a.label)||/돌아가기|돌아오기/.test(a.label);return (!!s.ui&&!navigationBack)||returns||(!s.ui&&(q.y>p.y||q.y===p.y&&flow.steps.findIndex(v=>v.id===a.to)>flow.steps.findIndex(v=>v.id===s.id)));}).map(a=>({from:s.id,to:a.to,label:a.label,back:positions[a.to].y<=positions[s.id].y&&positions[a.to].x<=positions[s.id].x})));
  const rootX=canvasWidth/2-145,rootY=24;
  function connector(from:Point,to:Point){
   if(to.y>from.y){const x1=from.x+width/2,y1=from.y+height,x2=to.x+width/2,y2=to.y,mid=(y1+y2)/2;return {path:`M ${x1} ${y1} C ${x1} ${mid} ${x2} ${mid} ${x2} ${y2-8}`,x:(x1+x2)/2,y:mid};}
@@ -30,9 +30,9 @@ export function FlowBoard({flow,onOpen}:{flow:Flow;onOpen:(id:string)=>void}){
      {edges.map((e,i)=>{const c=connector(positions[e.from],positions[e.to]),w=Math.max(55,e.label.length*10+20);return <g key={e.from+e.to+i} className={e.back?'flow-return':''}><path d={c.path} markerEnd="url(#flow-arrow)"/><rect x={c.x-w/2} y={c.y-12} width={w} height="24" rx="12"/><text x={c.x} y={c.y+4}>{e.label}</text></g>;})}
     </svg>
     <div className="flow-root" style={{left:rootX,top:rootY,width:290,height:76}}><strong>{flow.name}</strong><span>{flow.role} · {flow.path}</span></div>
-    {flow.steps.map((s,i)=><article key={s.id} className={`flow-screen-node ${flow.role==='고객'?'customer-node':''} ${s.future?'future-node':''}`} style={{left:positions[s.id].x,top:positions[s.id].y,width,height}}>
+    {flow.steps.map((s,i)=><article key={s.id} className={`flow-screen-node ${(s.actor??flow.role)==='고객'?'customer-node':''} ${s.future?'future-node':''}`} style={{left:positions[s.id].x,top:positions[s.id].y,width,height}}>
       <a className="flow-screenshot-link" href={`#flow=${flow.id}&screen=${s.id}&mode=play`} onClick={e=>{e.preventDefault();onOpen(s.id);}} aria-label={`${s.name} 화면 열기`}><img src={`screens/${s.id}.jpg`} alt={`${s.name} 화면 미리보기`} loading="lazy"/></a>
-      <div className="flow-screen-title"><h3>{s.name}</h3><span>{s.kind}</span></div><code>{flow.id.toUpperCase()}-{String(i+1).padStart(2,'0')} · {s.id}</code><a className="flow-screen-url" href={`#flow=${flow.id}&screen=${s.id}&mode=play`} onClick={e=>{e.preventDefault();onOpen(s.id);}}>{flow.path} · {s.name}</a><p>{s.purpose}</p><footer>{s.future?'미구현 · 검토 제안':s.rule}</footer>
+      <div className="flow-screen-title"><h3>{s.name}</h3><span>{s.actor??flow.role} · {s.kind}</span></div><code>{flow.id.toUpperCase()}-{String(i+1).padStart(2,'0')} · {s.id}</code><a className="flow-screen-url" href={`#flow=${flow.id}&screen=${s.id}&mode=play`} onClick={e=>{e.preventDefault();onOpen(s.id);}}>{flow.path} · {s.name}</a><p>{s.purpose}</p><footer>{s.future?'미구현 · 검토 제안':s.rule}</footer>
     </article>)}
    </div></div>
   </div><p className="flow-board-caption">실선: 진행 경로 · 점선: 복귀 경로(선택 표시) · 썸네일: 화면 흐름 확인용 프로토타입 · 카드의 주소는 해당 업무의 서비스 진입 경로입니다.</p>

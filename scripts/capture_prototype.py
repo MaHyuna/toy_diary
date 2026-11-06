@@ -21,5 +21,5 @@ try:
     page.goto(f'http://127.0.0.1:{server.server_port}/prototype/#flow={flow["id"]}&screen={screen["id"]}&mode=play');page.wait_for_timeout(120)
     page.locator('.proto-device').screenshot(path=str(root/'public/prototype/screens'/f'{screen["id"]}.jpg'),type='jpeg',quality=80)
   b.close()
- print('Captured 32 prototype screen thumbnails')
+ print('Captured',sum(len(f['steps']) for f in flows),'prototype screen thumbnails')
 finally:server.shutdown();thread.join();server.server_close()
