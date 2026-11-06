@@ -1,3 +1,4 @@
+import { buildBookingCatalog, validateBookingRules, matchesWeight } from '../menu-booking.ts';
 import { validatePriceMenu } from '../price-menu.ts';
 import type { Appointment, BookingRequest, CarePhoto, Customer, Expense, GroomingRecord, PaymentMethod, Pet, Pricing, PublicCareHistoryItem, PublicCareReport, Shampoo, ShampooUsage, State } from '../types.ts';
 import { addExpandedDemoData, createDemoData, DEMO_SEED_REVISION } from './seed.ts';
@@ -321,13 +322,13 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
   const requestRows=(data: DemoData)=> (data.bookingRequests??=[]) as RequestRecord[];
   function publicDay(value: unknown){const date=day(value),current=day(getToday()),last=new Date(`${current}T12:00:00Z`);last.setUTCDate(last.getUTCDate()+90);if(date<current||date>last.toISOString().slice(0,10))fail('예약은 오늘부터 90일 이내로 선택해 주세요.');return date;}
   function slots(data:DemoData,date:string,duration:number,exclude=''){const occupied=[...data.appointments.filter(a=>a.status!=='cancelled'),...requestRows(data).filter(r=>r.status==='pending'&&r.id!==exclude)].filter(a=>a.date===date);const now=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());const times:string[]=[];for(let start=540;start+duration<=1140;start+=30){const time=`${String(Math.floor(start/60)).padStart(2,'0')}:${String(start%60).padStart(2,'0')}`;if(date===day(getToday())&&time<=now)continue;if(!occupied.some(a=>start<minutes(a.time)+a.duration&&start+duration>minutes(a.time)))times.push(time);}return times;}
-  function locked<T>(operation: () => T): Promise<T> {
+  async function locked<T>(operation: () => T | Promise<T>): Promise<T> {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.locks) return navigator.locks.request(KEY, operation);
     return Promise.resolve().then(operation);
   }
   return {
     request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
-      return locked(() => {
+      return locked(async () => {
         const url = new URL(path, 'https://demo.invalid');
         const route = url.pathname.replace(/^\/api(?=\/)/, '');
         if (method === 'GET' && route === '/health') return { status: 'ok', mode: 'demo' } as T;
@@ -345,7 +346,7 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
           fail('Pages에서는 체험 보호자로 이용해 주세요.');
         }
         if (method === 'GET' && route === '/state') return clone(summary(data, url.searchParams.get('month') ?? today.slice(0, 7), url.searchParams.get('care') === 'summary')) as T;
-        if(method==='GET'&&route==='/public/catalog')return clone({pricing:data.pricing,name:'몽글 미용실',hours:'09:00–19:00',notices:(data.notices??[]).filter(item=>item.published)}) as T;
+        if(method==='GET'&&route==='/public/catalog')return clone({booking:await buildBookingCatalog(data.priceMenu??data.pricePoster?.menu??null,data.menuBooking??[]),name:'몽글 미용실',hours:'09:00–19:00',notices:(data.notices??[]).filter(item=>item.published)}) as T;
         if (method === 'GET' && /^\/public\/care\/[^/]+$/.test(route)) {
           const token = route.split('/').at(-1)!;
           const current = data.careRecords?.find(row => /^[a-f0-9]{32}$/.test(token) && row.published && row.shareToken === token && row.publishedSnapshot);
@@ -365,11 +366,12 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         const careGet = /^\/appointments\/([^/]+)\/care$/.exec(route);
         if (method === 'GET' && careGet) { existing(data.appointments, careGet[1], '예약'); return clone(data.careRecords?.find(row => row.appointmentId === careGet[1]) ?? null) as T; }
         if(method==='GET'&&route==='/booking-requests')return clone(requestRows(data).map(({booking:_,...row})=>row)) as T;
-        if(method==='GET'&&route==='/public/availability'){const date=publicDay(url.searchParams.get('date')),service=existing(data.pricing.services,url.searchParams.get('serviceId'),'서비스');return {slots:slots(data,date,service.duration)} as T;}
+        if(method==='GET'&&route==='/menu-booking')return clone({rules:data.menuBooking??[]}) as T;
+        if(method==='GET'&&route==='/public/availability'){const date=publicDay(url.searchParams.get('date')),service=existing((await buildBookingCatalog(data.priceMenu??data.pricePoster?.menu??null,data.menuBooking??[])).offers,url.searchParams.get('serviceId'),'예약 요금');return {slots:slots(data,date,service.duration)} as T;}
         const input = method === 'DELETE' ? {} : object(body);
         let result: unknown;
         const parts = route.split('/').filter(Boolean), [resource, id, action] = parts;
-        if(route==='/price-menu'&&method==='PUT'){data.priceMenu=validatePriceMenu(input);result=data.priceMenu;} else if (route === '/price-poster' && method === 'DELETE') {delete data.pricePoster;result=null;} else if (route === '/price-poster' && method === 'PUT') {only(input,['image','description','menu']);const image=text(input,'image','요금표 이미지',2500000,true);if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(image))fail('JPEG 요금표를 사용해 주세요.');let raw='';try{raw=atob(image.split(',')[1]);}catch{fail('이미지를 읽을 수 없어요.');}if(!raw.startsWith('\xff\xd8')||!raw.endsWith('\xff\xd9'))fail('JPEG 요금표를 사용해 주세요.');data.pricePoster={image,description:text(input,'description','요금표 내용',30000,true),...(input.menu===undefined?{}:{menu:validatePriceMenu(input.menu)})};result=data.pricePoster;} else if (method === 'PUT' && route === '/notices') {
+        if(route==='/menu-booking'&&method==='PUT'){data.menuBooking=validateBookingRules(input,data.priceMenu??data.pricePoster?.menu??null);result={rules:data.menuBooking};} else if(route==='/price-menu'&&method==='PUT'){data.priceMenu=validatePriceMenu(input);result=data.priceMenu;} else if (route === '/price-poster' && method === 'DELETE') {delete data.pricePoster;result=null;} else if (route === '/price-poster' && method === 'PUT') {only(input,['image','description','menu']);const image=text(input,'image','요금표 이미지',2500000,true);if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(image))fail('JPEG 요금표를 사용해 주세요.');let raw='';try{raw=atob(image.split(',')[1]);}catch{fail('이미지를 읽을 수 없어요.');}if(!raw.startsWith('\xff\xd8')||!raw.endsWith('\xff\xd9'))fail('JPEG 요금표를 사용해 주세요.');data.pricePoster={image,description:text(input,'description','요금표 내용',30000,true),...(input.menu===undefined?{}:{menu:validatePriceMenu(input.menu)})};result=data.pricePoster;} else if (method === 'PUT' && route === '/notices') {
           only(input, ['notices']);
           const notices = list(input.notices, 20, '공지').map(value => { const item = object(value); only(item, ['id','title','body','published']); const id = text(item, 'id', '공지 ID', 80, true); if (!/^[A-Za-z0-9_-]+$/.test(id) || typeof item.published !== 'boolean') fail('공지 ID와 공개 상태를 확인해 주세요.'); return { id, title: text(item, 'title', '공지 제목', 80, true), body: text(item, 'body', '공지 내용', 2000, true), published: item.published as boolean }; });
           if (new Set(notices.map(item=>item.id)).size !== notices.length) fail('공지 ID가 중복됩니다.');
@@ -396,10 +398,17 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
             careRecords[careRecords.indexOf(current)] = unpublished; result = unpublished;
           } else fail('요청한 경로를 찾을 수 없습니다.');
         } else if(method==='POST'&&route==='/public/requests'){
-          only(input,['serviceId','date','time','dogName','guardianName','phone','breed','weight','notes','consent']);if(input.consent!==true)fail('개인정보 수집에 동의해 주세요.');const date=publicDay(input.date),service=existing(data.pricing.services,input.serviceId,'서비스'),phone=text(input,'phone','연락처',40,true);if(!/^[0-9]{10,11}$/.test(phone.replace(/\D/g,'')))fail('연락 가능한 전화번호를 입력해 주세요.');const breed=text(input,'breed','견종',80),weight=measure(input.weight,'몸무게',150),breedFee=data.pricing.breedRules.find(r=>r.breed===breed)?.amount??0,weightFee=data.pricing.weightRules.find(r=>weight>=r.minWeight&&(weight<r.maxWeight||weight===r.maxWeight&&weight===150))?.amount??0;
-          if(!slots(data,date,service.duration).includes(String(input.time)))fail('선택한 시간이 마감됐어요. 다른 시간을 선택해 주세요.');
-          const booking=appointment(data,{date,time:input.time,dogName:input.dogName,guardianName:input.guardianName,phone,breed,weight,notes:input.notes,service:service.name,duration:service.duration,basePrice:service.basePrice,breedSurcharge:breedFee,weightSurcharge:weightFee,extraCharges:[],price:service.basePrice+breedFee+weightFee});
-          const id=uid();requestRows(data).push({...booking,id,status:'pending',booking});result={id,status:'pending',date,time:booking.time,price:booking.price};
+          only(input,['serviceId','revision','date','time','dogName','guardianName','phone','breed','weight','notes','consent']);
+          if(input.consent!==true)fail('개인정보 수집에 동의해 주세요.');
+          const catalog=await buildBookingCatalog(data.priceMenu??data.pricePoster?.menu??null,data.menuBooking??[]);
+          if(input.revision!==catalog.revision)fail('요금표가 변경됐어요. 최신 요금과 시간을 다시 확인해 주세요.');
+          const date=publicDay(input.date),service=existing(catalog.offers,input.serviceId,'예약 요금'),phone=text(input,'phone','연락처',40,true);
+          if(!/^[0-9]{10,11}$/.test(phone.replace(/\D/g,'')))fail('연락 가능한 전화번호를 입력해 주세요.');
+          const breed=text(input,'breed','견종',80),weight=measure(input.weight,'몸무게',150);
+          if(!matchesWeight(service,weight))fail('입력한 몸무게에 맞는 요금 항목을 선택해 주세요.');
+          if(!slots(data,date,service.duration).includes(String(input.time)))fail('방금 선택한 시간이 마감됐어요. 다른 시간을 선택해 주세요.');
+          const booking=appointment(data,{date,time:input.time,dogName:input.dogName,guardianName:input.guardianName,phone,breed,weight,notes:input.notes,service:service.name,duration:service.duration,basePrice:service.price,breedSurcharge:0,weightSurcharge:0,extraCharges:[],price:service.price});
+          const id=uid();requestRows(data).push({...booking,id,status:'pending',booking,quoteSnapshot:{revision:catalog.revision,offer:service}} as RequestRecord);result={id,status:'pending',date,time:booking.time,price:booking.price};
         } else if(method==='POST'&&resource==='booking-requests'&&id){only(input,['decision']);const row=existing(requestRows(data),id,'예약 신청');if(row.status!=='pending')fail('이미 처리한 신청입니다.');if(input.decision==='accept'){publicDay(row.date);if(!slots(data,row.date,row.duration,row.id).includes(row.time))fail('다른 예약과 겹칩니다. 시간을 확인해 주세요.');const booking={...row.booking,id:uid(),source:'website',externalId:row.id};data.appointments.push(booking);row.status='accepted';}else if(input.decision==='reject')row.status='rejected';else fail('확정 또는 거절을 선택해 주세요.');result={status:row.status};
         } else if (method === 'PUT' && route === '/pricing') { data.pricing = pricing(input); result = data.pricing; }
         else if (method === 'POST' && route === '/appointments') { result = appointment(data, input); data.appointments.push(result as Appointment); }
@@ -456,7 +465,7 @@ export function createDemoApi(storage: StorageLike, options: { today?: () => str
         return clone(result) as T;
       });
     },
-    reset(): Promise<void> { return locked(() => { persist(createDemoData(day(getToday()))); }); },
+    reset(): Promise<void> { return locked(async () => { persist(createDemoData(day(getToday()))); }); },
   };
 }
 

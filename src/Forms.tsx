@@ -1,3 +1,4 @@
+import { OwnerMenuQuote } from './OwnerMenuQuote';
 import { PetAvatar } from './PetAvatar';
 import { DatePicker } from './DatePicker';
 import { PetPicker } from './PetPicker';
@@ -141,22 +142,17 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
   customers: Customer[]; pets: Pet[]; shampoos: Shampoo[];
 }) {
   const formId = useId();
-  const defaultService = pricing.services[0];
   const defaultPet = initial ? undefined : pets.find((pet) => pet.id === defaultPetId);
   const defaultCustomer = customers.find((customer) => customer.id === defaultPet?.customerId);
-  const findBreedRule = (breed: string) => pricing.breedRules.find((rule) => rule.breed.trim().toLowerCase() === breed.trim().toLowerCase());
-  const findWeightRule = (weight: number | null) => weight === null ? undefined : pricing.weightRules.find((rule) =>
-    weight >= rule.minWeight && (weight < rule.maxWeight || (rule.maxWeight === 150 && weight === 150)),
-  );
   const [petId, setPetId] = useState(initial?.petId ?? defaultPet?.id ?? '');
   const [values, setValues] = useState({
     dogName: initial?.dogName ?? defaultPet?.name ?? '', guardianName: initial?.guardianName ?? defaultCustomer?.name ?? '',
     phone: initial?.phone ?? defaultCustomer?.phone ?? '', breed: initial?.breed ?? defaultPet?.breed ?? '', weight: initial ? initial.weight?.toString() ?? '' : defaultPet?.weight?.toString() ?? '',
-    service: initial?.service ?? defaultService?.name ?? '', date: initial?.date ?? date, time: initial?.time ?? '10:00',
-    duration: String(initial?.duration ?? defaultService?.duration ?? 60),
-    basePrice: String(initial?.basePrice ?? initial?.price ?? defaultService?.basePrice ?? 0),
-    breedSurcharge: String(initial?.breedSurcharge ?? findBreedRule(defaultPet?.breed ?? '')?.amount ?? 0),
-    weightSurcharge: String(initial?.weightSurcharge ?? findWeightRule(defaultPet?.weight ?? null)?.amount ?? 0),
+    service: initial?.service ?? '', date: initial?.date ?? date, time: initial?.time ?? '10:00',
+    duration: String(initial?.duration ?? 60),
+    basePrice: String(initial?.basePrice ?? initial?.price ?? 0),
+    breedSurcharge: String(initial?.breedSurcharge ?? 0),
+    weightSurcharge: String(initial?.weightSurcharge ?? 0),
     notes: initial?.notes ?? '',
   });
   const [extras, setExtras] = useState(() => (initial?.extraCharges ?? []).map((charge, index) => ({
@@ -185,20 +181,7 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
   const total = Number(values.basePrice) + Number(values.breedSurcharge) + Number(values.weightSurcharge)
     + extras.reduce((sum, charge) => sum + Number(charge.amount), 0) + shampooSurcharge;
   function updatePricingInput(key: 'service' | 'breed' | 'weight', value: string) {
-    setValues((current) => {
-      const next = { ...current, [key]: value };
-      const preset = pricing.services.find((service) => service.name.trim().toLowerCase() === next.service.trim().toLowerCase());
-      const breedRule = findBreedRule(next.breed);
-      const weight = next.weight === '' ? null : Number(next.weight);
-      const weightRule = findWeightRule(weight);
-      return {
-        ...next,
-        basePrice: String(preset?.basePrice ?? (key === 'service' ? 0 : Number(current.basePrice))),
-        duration: key === 'service' && preset ? String(preset.duration) : current.duration,
-        breedSurcharge: String(breedRule?.amount ?? 0),
-        weightSurcharge: String(weightRule?.amount ?? 0),
-      };
-    });
+    update(key,value); // Editing identity never silently reprices an existing visit.
   }
   function choosePet(value: string) {
     setPetId(value);
@@ -206,13 +189,9 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
     if (!pet) return;
     const customer = customers.find((item) => item.id === pet.customerId);
     setValues((current) => {
-      const preset = pricing.services.find((service) => service.name.trim().toLowerCase() === current.service.trim().toLowerCase());
       return {
         ...current, dogName: pet.name, guardianName: customer?.name ?? '', phone: customer?.phone ?? '',
         breed: pet.breed, weight: pet.weight?.toString() ?? '',
-        basePrice: String(preset?.basePrice ?? Number(current.basePrice)),
-        breedSurcharge: String(findBreedRule(pet.breed)?.amount ?? 0),
-        weightSurcharge: String(findWeightRule(pet.weight)?.amount ?? 0),
       };
     });
   }
@@ -258,6 +237,7 @@ export function AppointmentForm({ initial, defaultPetId, date, pricing, customer
           <div className="field"><label htmlFor={`${formId}-service`}>미용 서비스 <span aria-hidden="true">*</span></label>
             <input id={`${formId}-service`} list={`${formId}-services`} value={values.service} onChange={(e) => updatePricingInput('service', e.target.value)} required maxLength={100} disabled={busy} />
             <datalist id={`${formId}-services`}>{pricing.services.map((service) => <option key={service.id} value={service.name} />)}</datalist></div>
+          <div className="field-full"><OwnerMenuQuote weight={Number(values.weight)} disabled={busy} onApply={offer=>setValues(current=>({...current,service:offer.name,duration:String(offer.duration),basePrice:String(offer.price),breedSurcharge:'0',weightSurcharge:'0'}))}/></div>
           <h3 className="form-section-title field-full">언제 방문하나요?</h3>
           <div className="field"><label htmlFor={`${formId}-date`}>예약 날짜 <span aria-hidden="true">*</span></label>
             <input id={`${formId}-date`} type="date" value={values.date} onChange={(e) => update('date', e.target.value)} required disabled={busy} /></div>

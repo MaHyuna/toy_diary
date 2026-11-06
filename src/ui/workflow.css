@@ -1,0 +1,13 @@
+/* Layout only. Component colors, focus rings, spacing and interaction states belong to Spectrum 2. */
+.mongle-spectrum{min-width:0}
+.mongle-workflow{max-width:720px;margin-inline:auto;padding:24px;display:grid;gap:24px}
+.mongle-workflow-header,.mongle-workflow-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.mongle-workflow-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.mongle-workflow-stack{display:grid;gap:16px;min-width:0}
+.mongle-workflow-summary{display:grid;gap:12px;margin:0;overflow-wrap:anywhere}
+.mongle-workflow-summary>div{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+.mongle-workflow-summary dd{margin:0;white-space:pre-wrap}
+.mongle-workflow-wide{grid-column:1/-1}
+.mongle-rule-table{height:320px;min-width:0}
+@media(max-width:600px){.mongle-workflow{padding:16px;gap:20px}.mongle-workflow-fields{grid-template-columns:minmax(0,1fr)}}
+.mongle-pricing-workflow{max-width:1200px}

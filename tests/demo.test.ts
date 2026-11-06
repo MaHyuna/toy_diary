@@ -1,3 +1,5 @@
+import {menuSources,sourceIdentity} from '../src/menu-booking.ts';
+import type {BookingCatalog} from '../src/menu-booking.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createDemoApi } from '../src/demo/api.ts';
@@ -379,8 +381,8 @@ test('pet photos persist, survive unrelated edits, reject invalid files and roll
 });
 
 test('customer request holds a slot, stays outside sales, and owner approval creates one unpaid website visit', async()=>{
- const {api}=setup();const catalog=await api.request<{pricing:Pricing}>('/public/catalog');const service=catalog.pricing.services[0];
- const payload={serviceId:service.id,date:'2030-02-10',time:'09:00',dogName:'예약 신청 테스트',guardianName:'체험 보호자',phone:'010-0000-0000',breed:'말티즈',weight:3.2,notes:'',consent:true};
+ const {api}=setup();const menu={columns:['목욕'],sections:[{title:'소형견',breeds:'',note:'',content:'',items:[],rows:[{weight:'4kg 미만',prices:['15000']}]}]};await api.request('/price-menu','PUT',menu);await api.request('/menu-booking','PUT',{rules:[{source:sourceIdentity(menuSources(menu)[0]),minWeight:0,maxWeight:4,duration:60}]});const catalog=await api.request<{booking:BookingCatalog}>('/public/catalog');const service=catalog.booking.offers[0];
+ const payload={revision:catalog.booking.revision,serviceId:service.id,date:'2030-02-10',time:'09:00',dogName:'예약 신청 테스트',guardianName:'체험 보호자',phone:'010-0000-0000',breed:'말티즈',weight:3.2,notes:'',consent:true};
  const before=await api.request<State>('/state?month=2030-02');
  const receipt=await api.request<{id:string}>('/public/requests','POST',payload);
  const slots=await api.request<{slots:string[]}>(`/public/availability?date=${payload.date}&serviceId=${service.id}`);assert.ok(!slots.slots.includes('09:00'));
@@ -545,13 +547,35 @@ test('published price poster persists separately and failed replacements preserv
 
 test('shared customer matrix is editable without overwriting booking presets and failed writes preserve it',async()=>{
  const storage=new MemoryStorage(),adapter=createDemoApi(storage,()=>TODAY);
- const prior=await adapter.request<{pricing:Pricing}>('/public/catalog');
+ const prior=await adapter.request<{pricing:Pricing}>('/state');
  const menu={columns:['목욕'],sections:[{title:'소형견 미용',breeds:'말티즈',note:'',content:'',items:[],rows:[{weight:'4kg 미만',prices:['15000']}]}]};
  await adapter.request('/price-menu','PUT',menu);
  assert.deepEqual(await createDemoApi(storage,()=>TODAY).request('/public/price-menu'),menu);
  storage.failWrites=true;await assert.rejects(adapter.request('/price-menu','PUT',{...menu,columns:['변경']}));storage.failWrites=false;
  assert.deepEqual(await adapter.request('/public/price-menu'),menu);
- assert.deepEqual((await adapter.request<{pricing:Pricing}>('/public/catalog')).pricing,prior.pricing);
+ assert.deepEqual((await adapter.request<{pricing:Pricing}>('/state')).pricing,prior.pricing);
  await assert.rejects(adapter.request('/price-menu','PUT',{columns:[],sections:[{}]}));
  assert.deepEqual(await adapter.request('/public/price-menu'),menu);
+});
+
+
+test('published menu revision blocks stale requests, owner acceptance keeps the original quote',async()=>{
+ const {api}=setup();
+ assert.equal((await api.request<{booking:BookingCatalog}>('/public/catalog')).booking.offers.length,0);
+ const menu={columns:['목욕'],sections:[{title:'소형견',breeds:'',note:'',content:'',items:[],rows:[{weight:'4kg 미만',prices:['15,000원']}]}]};
+ await api.request('/price-menu','PUT',menu);
+ const rule={source:sourceIdentity(menuSources(menu)[0]),minWeight:0,maxWeight:4,duration:60};
+ await api.request('/menu-booking','PUT',{rules:[rule]});
+ const catalog=(await api.request<{booking:BookingCatalog}>('/public/catalog')).booking;
+ assert.equal(catalog.offers[0].price,15000);
+ const payload={revision:catalog.revision,serviceId:catalog.offers[0].id,date:'2030-02-10',time:'09:00',dogName:'두부',guardianName:'보호자',phone:'01000000000',breed:'말티즈',weight:3,consent:true};
+ await assert.rejects(api.request('/public/requests','POST',{...payload,weight:4}));
+ await assert.rejects(api.request('/public/requests','POST',{...payload,price:1}));
+ const receipt=await api.request<{id:string;price:number}>('/public/requests','POST',payload);
+ menu.sections[0].rows[0].prices[0]='18000';await api.request('/price-menu','PUT',menu);
+ await assert.rejects(api.request('/public/requests','POST',{...payload,time:'10:00'}),/변경/);
+ await api.request(`/booking-requests/${receipt.id}`,'POST',{decision:'accept'});
+ assert.equal((await api.request<State>('/state?month=2030-02')).appointments.find(a=>a.externalId===receipt.id)?.price,15000);
+ menu.sections[0].rows[0].prices[0]='상담';await api.request('/price-menu','PUT',menu);
+ assert.equal((await api.request<{booking:BookingCatalog}>('/public/catalog')).booking.offers.length,0);
 });

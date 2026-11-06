@@ -236,12 +236,14 @@ class APITest(unittest.TestCase):
     def test_customer_booking_http_boundary_and_owner_confirmation(self):
         from datetime import date, timedelta
         from server.app import today
+        from tests.menu_fixture import configure
+        configure(self.store)
         status,catalog=self.request("GET","/api/public/catalog")
-        self.assertEqual(status,200);self.assertEqual(set(catalog),{"name","hours","pricing","notices"})
-        service=catalog["pricing"]["services"][0];day=(date.fromisoformat(today())+timedelta(days=20)).isoformat()
+        self.assertEqual(status,200);self.assertEqual(set(catalog),{"name","hours","notices","booking"})
+        service=catalog["booking"]["offers"][0];day=(date.fromisoformat(today())+timedelta(days=20)).isoformat()
         status,availability=self.request("GET",f"/api/public/availability?date={day}&serviceId={service['id']}")
         self.assertEqual(set(availability),{"slots"})
-        payload={"dogName":"체험 두부","guardianName":"체험 보호자","phone":"010-0000-0000","breed":"말티즈","weight":3,"date":day,"time":availability["slots"][0],"serviceId":service["id"],"consent":True}
+        payload={"dogName":"체험 두부","guardianName":"체험 보호자","phone":"010-0000-0000","breed":"말티즈","weight":3,"date":day,"time":availability["slots"][0],"serviceId":service["id"],"revision":catalog["booking"]["revision"],"consent":True}
         status,receipt=self.request("POST","/api/public/requests",payload)
         self.assertEqual(status,201);self.assertNotIn("phone",receipt)
         status,decision=self.request("POST",f"/api/booking-requests/{receipt['id']}",{"decision":"accept"})

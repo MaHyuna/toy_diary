@@ -1,3 +1,7 @@
+> 2026-11-06 구현: [Spectrum 2 UI 기준](docs/SPECTRUM_UI.md) · [게시 요금표–예약 견적 연결](docs/production-plan/MENU_BOOKING_IMPLEMENTATION.md). 코드 반영·검증 단계이며 실서비스 배포 완료를 의미하지 않습니다.
+
+> **제품 방향 갱신 (2026-11-05)**: 목표는 단일 매장 실운영 → 실사용 개선 → SaaS 확장입니다. 현재 운영 준비 상태·제안 구조·우선순위는 [실서비스 전환안](docs/production-plan/README.md), 화면 방향은 [UI/UX 시안](docs/production-plan/preview.html)을 기준으로 검토합니다. 아래 체험판 안내는 현재 구현 설명이며 최종 제품 목표가 아닙니다. 새 계획의 운영 기능은 아직 구현·배포하지 않았습니다.
+
 # 몽글 · 우리 가게의 다정한 기록
 
 **기획부터 검토:** [로고·배경·테두리 요금표 꾸미기 체험](https://mahyuna.github.io/toy_diary/planning/pricelist.html) · [서비스·화면 흐름 정의](docs/PRODUCT.md) · [클릭형 화면 기획](https://mahyuna.github.io/toy_diary/planning/). 아래 기능 설명은 기존 구현 기록입니다. 새 기획에서는 샴푸 원가와 고객 요금, 미용 완료와 결제를 구분합니다.

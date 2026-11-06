@@ -578,12 +578,36 @@ class Store:
             if start < other_start + row["duration"] and end > other_start:
                 raise APIError("같은 시간에 다른 예약이 있습니다. 예약 시간을 확인해 주세요.", 409)
 
+    @staticmethod
+    def menu_in(connection):
+        row = connection.execute("SELECT value FROM settings WHERE key='price-menu'").fetchone()
+        if row: return json.loads(row[0])
+        row = connection.execute("SELECT value FROM settings WHERE key='price-poster'").fetchone()
+        return json.loads(row[0]).get('menu') if row else None
+
     def price_menu(self):
         with self.connect() as connection:
-            row = connection.execute("SELECT value FROM settings WHERE key='price-menu'").fetchone()
-        if row: return json.loads(row[0])
-        poster = self.price_poster()
-        return poster.get("menu") if poster else None
+            return self.menu_in(connection)
+
+    @staticmethod
+    def booking_rules_in(connection):
+        row = connection.execute("SELECT value FROM settings WHERE key='menu-booking'").fetchone()
+        return json.loads(row[0]) if row else []
+
+    def menu_booking(self):
+        with self.connect() as connection:
+            return {'rules': self.booking_rules_in(connection)}
+
+    def save_menu_booking(self, data):
+        from server.menu_booking import validate_rules
+        with self.connect(write=True) as connection:
+            rules = validate_rules(data, self.menu_in(connection), APIError)
+            connection.execute("INSERT INTO settings(key,value) VALUES('menu-booking',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(rules, ensure_ascii=False),))
+        return {'rules': rules}
+
+    def booking_catalog_in(self, connection):
+        from server.menu_booking import catalog
+        return catalog(self.menu_in(connection), self.booking_rules_in(connection))
 
     def save_price_menu(self, data):
         from server.price_menu import validate_menu
@@ -663,9 +687,11 @@ class Store:
         return result
 
     def public_catalog(self):
+        return {"booking": self.booking_catalog(), "hours": "09:00–19:00", "name": "몽글 미용실", "notices": [item for item in self.notices() if item["published"]]}
+
+    def booking_catalog(self):
         with self.connect() as connection:
-            pricing = json.loads(connection.execute("SELECT value FROM settings WHERE key='pricing'").fetchone()[0])
-        return {"pricing": pricing, "hours": "09:00–19:00", "name": "몽글 미용실", "notices": [item for item in self.notices() if item["published"]]}
+            return self.booking_catalog_in(connection)
 
     def booking_requests(self):
         with self.connect() as connection:
@@ -694,29 +720,24 @@ class Store:
     def public_availability(self, day, service_id):
         day = self.public_day(day)
         with self.connect() as connection:
-            pricing = json.loads(connection.execute("SELECT value FROM settings WHERE key='pricing'").fetchone()[0])
-            service = next((s for s in pricing["services"] if s["id"] == service_id), None)
+            service = next((s for s in self.booking_catalog_in(connection)['offers'] if s['id'] == service_id), None)
             if service is None:
-                raise APIError("서비스를 다시 선택해 주세요.")
+                raise APIError("예약 가능한 요금 항목을 다시 선택해 주세요.")
             return {"slots": self.booking_slots(connection, day, service["duration"])}
 
     def request_booking(self, data):
-        if set(data) - {"serviceId","date","time","dogName","guardianName","phone","breed","weight","notes","consent"} or data.get("consent") is not True:
+        from server.menu_booking import select_offer
+        if set(data) - {"serviceId","revision","date","time","dogName","guardianName","phone","breed","weight","notes","consent"} or data.get("consent") is not True:
             raise APIError("예약 정보와 개인정보 수집 동의를 확인해 주세요.")
         day = self.public_day(data.get("date"))
         with self.connect(write=True) as connection:
-            pricing = json.loads(connection.execute("SELECT value FROM settings WHERE key='pricing'").fetchone()[0])
-            service = next((s for s in pricing["services"] if s["id"] == data.get("serviceId")), None)
-            if service is None:
-                raise APIError("서비스를 다시 선택해 주세요.")
-            breed = text_field(data,"breed","견종", maximum=80)
             weight = number(data.get("weight"), "몸무게", maximum=150)
+            service = select_offer(self.booking_catalog_in(connection), data.get('serviceId'), data.get('revision'), weight, APIError)
             phone = text_field(data,"phone","연락처",required=True,maximum=40)
             if len(re.sub(r"\D", "", phone)) not in {10,11}:
                 raise APIError("연락 가능한 전화번호를 입력해 주세요.")
-            breed_fee = next((r["amount"] for r in pricing["breedRules"] if r["breed"] == breed),0)
-            weight_fee = next((r["amount"] for r in pricing["weightRules"] if weight >= r["minWeight"] and (weight < r["maxWeight"] or weight == r["maxWeight"] == 150)),0)
-            booking = validate_appointment({**data,"date":day,"service":service["name"],"duration":service["duration"],"basePrice":service["basePrice"],"breedSurcharge":breed_fee,"weightSurcharge":weight_fee,"extraCharges":[],"price":service["basePrice"]+breed_fee+weight_fee,"breed":breed,"weight":weight,"phone":phone})
+            booking = validate_appointment({**data,"date":day,"service":service["name"],"duration":service["duration"],"basePrice":service["price"],"breedSurcharge":0,"weightSurcharge":0,"extraCharges":[],"price":service["price"],"weight":weight,"phone":phone})
+            booking['quoteSnapshot'] = {'revision': data['revision'], 'offer': service}
             if booking["time"] not in self.booking_slots(connection, day, booking["duration"]):
                 raise APIError("방금 선택한 시간이 마감됐어요. 다른 시간을 선택해 주세요.",409)
             request_id = uuid4().hex
@@ -736,6 +757,7 @@ class Store:
                 if item["time"] not in self.booking_slots(connection,item["date"],item["duration"],request_id):
                     raise APIError("다른 예약과 겹칩니다. 시간을 확인해 주세요.",409)
                 item.update({"id":uuid4().hex,"source":"website","externalId":request_id,"paymentStatus":"unpaid","paymentMethod":None,"paidDate":None,"createdAt":timestamp()})
+                item.pop("quoteSnapshot", None)  # Preserved in booking_requests as the immutable quote audit.
                 columns=", ".join(item);values=", ".join("?" for _ in item)
                 connection.execute(f"INSERT INTO appointments ({columns}) VALUES ({values})",self.appointment_values(item))
             connection.execute("UPDATE booking_requests SET status=? WHERE id=?",("accepted" if data["decision"] == "accept" else "rejected",request_id))
@@ -1178,6 +1200,10 @@ def make_handler(store: Store, static_dir: Path, *, owner_password=None, secure_
                     with store.connect() as connection:
                         connection.execute("SELECT 1").fetchone()
                     return self.send_json({"status": "ok"})
+                if method == "GET" and path == "/api/menu-booking":
+                    return self.send_json(store.menu_booking())
+                if method == "PUT" and path == "/api/menu-booking":
+                    return self.send_json(store.save_menu_booking(self.read_json()))
                 if method == "GET" and path == "/api/public/price-menu":
                     return self.send_json(store.price_menu())
                 if method == "PUT" and path == "/api/price-menu":

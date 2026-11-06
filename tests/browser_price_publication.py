@@ -1,4 +1,4 @@
-"""Owner edits the same reference matrix and styling as the customer menu."""
+"""Owner uses Spectrum to edit the same reference data rendered in the customer menu."""
 from functools import partial
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
@@ -10,9 +10,9 @@ s=ThreadingHTTPServer(('127.0.0.1',0),partial(Quiet,directory=str(Path(__file__)
 try:
  with sync_playwright() as p:
   b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(viewport={'width':1440,'height':1000});page.goto(base+'/owner/?view=pricing',wait_until='networkidle');field=page.get_by_label('소형견 미용 4kg 미만 목욕 금액',exact=True);expect(field).to_have_value('15000')
-  original=page.evaluate("JSON.parse(localStorage.getItem('mongle-demo-v1')).data");field.fill('17123');page.get_by_role('button',name='중형견 미용',exact=True).click();expect(page.get_by_label('중형견 미용 4kg 미만 목욕 금액',exact=True)).to_have_value('20000');page.get_by_role('button',name='소형견 미용',exact=True).click();expect(field).to_have_value('17123')
+  original=page.evaluate("JSON.parse(localStorage.getItem('mongle-demo-v1')).data");field.fill('17123');page.get_by_role('button',name='요금표 분류',exact=False).click();page.get_by_role('option',name='중형견 미용',exact=True).click();expect(page.get_by_label('중형견 미용 4kg 미만 목욕 금액',exact=True)).to_have_value('20000');page.get_by_role('button',name='요금표 분류',exact=False).click();page.get_by_role('option',name='소형견 미용',exact=True).click();expect(field).to_have_value('17123')
   page.evaluate("()=>{window.priceSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='mongle-demo-v1')throw Error('quota');return window.priceSetItem.call(this,k,v);};}")
-  page.get_by_role('button',name='요금표 저장',exact=True).click();expect(page.get_by_role('alert')).to_be_visible();expect(field).to_have_value('17123');page.evaluate('()=>{Storage.prototype.setItem=window.priceSetItem;}');page.get_by_role('button',name='요금표 저장',exact=True).click();expect(page.get_by_role('status')).to_contain_text('같은 요금표로 저장')
+  page.get_by_role('button',name='요금표 저장',exact=True).click();expect(page.get_by_role('alert')).to_be_visible();expect(field).to_have_value('17123');page.evaluate('()=>{Storage.prototype.setItem=window.priceSetItem;}');page.get_by_role('button',name='요금표 저장',exact=True).click();expect(page.get_by_role('status')).to_contain_text('요금표를 저장')
   for width in [320,390,1440]:
    page.set_viewport_size({'width':width,'height':900});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=f'/tmp/shared-owner-price-{width}.png',full_page=True)
   after=page.evaluate("JSON.parse(localStorage.getItem('mongle-demo-v1')).data");assert after['pricing']==original['pricing'];assert after['appointments']==original['appointments']

@@ -4,14 +4,16 @@ from tempfile import TemporaryDirectory
 import unittest
 from server.app import Store, APIError, today
 
+from tests.menu_fixture import configure
+
 class PublicBookingTest(unittest.TestCase):
  def setUp(self):
   self.folder=TemporaryDirectory();self.addCleanup(self.folder.cleanup);self.store=Store(Path(self.folder.name)/'booking.sqlite')
-  self.date=(date.fromisoformat(today())+timedelta(days=10)).isoformat();self.service=self.store.public_catalog()['pricing']['services'][0]
+  self.date=(date.fromisoformat(today())+timedelta(days=10)).isoformat();self.catalog=configure(self.store);self.service=self.catalog['offers'][0]
  def payload(self,**changes):
-  return {'serviceId':self.service['id'],'date':self.date,'time':'09:00','dogName':'테스트 두부','guardianName':'테스트 보호자','phone':'010-0000-0000','breed':'말티즈','weight':3.2,'notes':'체험 예약','consent':True,**changes}
+  return {'revision':self.catalog['revision'],'serviceId':self.service['id'],'date':self.date,'time':'09:00','dogName':'테스트 두부','guardianName':'테스트 보호자','phone':'010-0000-0000','breed':'말티즈','weight':3.2,'notes':'체험 예약','consent':True,**changes}
  def test_request_holds_time_and_accepts_once_without_creating_revenue(self):
-  self.assertEqual(set(self.store.public_catalog()),{'pricing','name','hours','notices'})
+  self.assertEqual(set(self.store.public_catalog()),{'booking','name','hours','notices'})
   self.assertIn('09:00',self.store.public_availability(self.date,self.service['id'])['slots'])
   receipt=self.store.request_booking(self.payload())
   self.assertEqual(set(receipt),{'id','status','date','time','price'})
@@ -33,7 +35,7 @@ class PublicBookingTest(unittest.TestCase):
   self.assertEqual(self.store.state(self.date[:7])['appointments'],[])
  def test_confirm_rechecks_manual_overlap_and_original_price_survives_price_change(self):
   receipt=self.store.request_booking(self.payload())
-  pricing=self.store.public_catalog()['pricing'];pricing['services'][0]['basePrice']+=10000;self.store.update_pricing(pricing)
+  pricing=self.store.state(self.date[:7])['pricing'];pricing['services'][0]['basePrice']+=10000;self.store.update_pricing(pricing)
   self.store.create_appointment({'dogName':'다른 아이','guardianName':'보호자','date':self.date,'time':'09:00','duration':60,'service':'상담','basePrice':1000})
   with self.assertRaises(APIError):self.store.decide_booking(receipt['id'],{'decision':'accept'})
   self.assertEqual(self.store.booking_requests()[0]['price'],receipt['price']);self.assertEqual(self.store.booking_requests()[0]['status'],'pending')
