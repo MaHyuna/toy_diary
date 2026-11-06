@@ -14,7 +14,8 @@ try:
  with sync_playwright() as p:
   b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(viewport={'width':1440,'height':1100});errors=[];calls=[];page.on('pageerror',lambda e:errors.append(str(e)));page.on('request',lambda r:calls.append(r.url) if '/api/' in r.url else None)
   page.goto(base+'/prototype/',wait_until='networkidle');page.evaluate("localStorage.setItem('mongle-demo-v1','prototype-must-not-touch')")
-  expect(page.get_by_role('main',name='전체 화면 흐름보드')).to_be_visible();page.screenshot(path='/tmp/prototype-board-desktop.png',full_page=True)
+  expect(page.get_by_role('region',name='전체 화면 흐름보드')).to_be_visible();expect(page.locator('.flow-connectors')).to_be_visible();assert page.locator('.flow-connectors path[marker-end]').count()>10
+  page.get_by_role('button',name='흐름도 확대',exact=True).click();page.get_by_role('button',name='너비에 맞추기',exact=True).click();page.screenshot(path='/tmp/prototype-board-desktop.png',full_page=True)
   for flow in flows:
    ids={s['id'] for s in flow['steps']}
    for screen in flow['steps']:
@@ -27,7 +28,7 @@ try:
   page.goto(base+'/prototype/#flow=pricing&screen=price-edit&mode=play');page.get_by_label('소형견 · 4kg 미만 · 목욕 (원)',exact=True).fill('17000');page.get_by_role('button',name='요금표 저장',exact=True).click();page.get_by_role('button',name='소형견 미용 보기',exact=True).click();expect(page.locator('.proto-price-sheet')).to_contain_text('17000')
   page.set_viewport_size({'width':390,'height':844});page.screenshot(path='/tmp/prototype-play-mobile.png',full_page=True)
   page.reload(wait_until='networkidle');expect(page.locator('.proto-screen-title h2')).to_have_text('요금 분류 상세');expect(page.locator('.proto-price-sheet')).to_contain_text('18000')
-  page.get_by_role('button',name='전체 흐름보드',exact=True).click();assert page.locator('.proto-node').count()==11
+  page.get_by_role('button',name='전체 흐름보드',exact=True).click();assert page.locator('.flow-screen-node').count()==11
   page.set_viewport_size({'width':320,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
   assert page.evaluate("localStorage.getItem('mongle-demo-v1')")=='prototype-must-not-touch';assert not calls,calls;assert not errors,errors
   assert page.get_by_role('link',name='실제 서비스 열기 ↗',exact=True).get_attribute('href')=='../owner/?view=pricing'
