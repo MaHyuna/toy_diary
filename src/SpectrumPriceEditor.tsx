@@ -1,13 +1,16 @@
+import './ui/price-menu-layout.css';
 import { useEffect,useState } from 'react';
-import { Heading, Picker, PickerItem, TableView, TableHeader, TableBody, Column, Row, Cell, TextField, Text } from '@react-spectrum/s2';
+import { Heading, TableView, TableHeader, TableBody, Column, Row, Cell, TextField, Text } from '@react-spectrum/s2';
 import type { PriceMenu } from './price-menu';
-export function SpectrumPriceEditor({menu,onChange,disabled}:{menu:PriceMenu;onChange:(m:PriceMenu)=>void;disabled:boolean}){
- const [selected,setSelected]=useState('0'),[desktop,setDesktop]=useState(()=>matchMedia('(min-width:900px)').matches);
+type EditorProps={menu:PriceMenu;onChange:(m:PriceMenu)=>void;disabled:boolean};
+export function SpectrumPriceEditor(props:EditorProps){return <div className="price-menu-sections">{props.menu.sections.map((_,index)=><SpectrumPriceSection key={index} {...props} si={index}/>)}</div>;}
+function SpectrumPriceSection({menu,onChange,disabled,si}:EditorProps&{si:number}){
+ const [desktop,setDesktop]=useState(()=>matchMedia('(min-width:900px)').matches);
  useEffect(()=>{const q=matchMedia('(min-width:900px)'),change=()=>setDesktop(q.matches);q.addEventListener('change',change);return()=>q.removeEventListener('change',change);},[]);
- const si=Number(selected),section=menu.sections[si];
+ const section=menu.sections[si];
  function change(ri:number,ci:number,value:string){onChange({...menu,sections:menu.sections.map((s,i)=>i===si?{...s,rows:s.rows.map((r,j)=>j===ri?{...r,prices:r.prices.map((p,k)=>k===ci?value:p)}:r)}:s)});}
  const input=(ri:number,ci:number)=><TextField size="L" aria-label={`${section.title} ${section.rows[ri].weight} ${menu.columns[ci]} 금액`} value={section.rows[ri].prices[ci]} maxLength={30} onChange={v=>change(ri,ci,v)} isDisabled={disabled} UNSAFE_style={{width:'100%',minWidth:0}}/>;
- return <section className="mongle-workflow-stack"><Picker label="요금표 분류" selectedKey={selected} onSelectionChange={k=>setSelected(String(k))}>{menu.sections.map((s,i)=><PickerItem key={i} id={String(i)}>{s.title}</PickerItem>)}</Picker>{section&&<><Heading level={2}>{section.title}</Heading>{section.breeds&&<Text>{section.breeds}</Text>}{section.note&&<Text>{section.note}</Text>}
+ return <section className="mongle-workflow-stack">{section&&<><Heading level={2}>{section.title}</Heading>{section.breeds&&<Text>{section.breeds}</Text>}{section.note&&<Text>{section.note}</Text>}
  {section.rows.length>0&&(desktop?<TableView aria-label={`${section.title} 요금표`} overflowMode="wrap" UNSAFE_style={{height:Math.min(520,section.rows.length*48+48),width:'100%'}}><TableHeader>{["몸무게",...menu.columns].map((c,i)=><Column key={`column-${i}`} id={`column-${i}`} isRowHeader={i===0}>{c}</Column>)}</TableHeader><TableBody>{section.rows.map((r,ri)=><Row key={ri} id={String(ri)}>{[r.weight,...menu.columns].map((_,i)=><Cell key={`cell-${i}`}>{i===0?r.weight:input(ri,i-1)}</Cell>)}</Row>)}</TableBody></TableView>:section.rows.map((r,ri)=><section key={ri} className="mongle-workflow-stack"><Heading level={3}>{r.weight}</Heading><TableView aria-label={`${section.title} ${r.weight} 요금표`} overflowMode="wrap" UNSAFE_style={{height:Math.min(600,menu.columns.length*48+48),width:'100%'}}><TableHeader><Column isRowHeader>미용</Column><Column>금액 (원)</Column></TableHeader><TableBody>{menu.columns.map((c,ci)=><Row key={ci} id={String(ci)}><Cell>{c}</Cell><Cell>{input(ri,ci)}</Cell></Row>)}</TableBody></TableView></section>))}
  {section.items.length>0&&<div className="mongle-workflow-fields">{section.items.map((item,ii)=><TextField key={ii} label={item.label} value={item.value} maxLength={80} isDisabled={disabled} onChange={v=>onChange({...menu,sections:menu.sections.map((s,i)=>i===si?{...s,items:s.items.map((x,j)=>j===ii?{...x,value:v}:x)}:s)})}/>)}</div>}{section.content&&<Text>{section.content}</Text>}</>}</section>;
 }

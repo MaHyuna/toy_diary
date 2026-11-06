@@ -1,13 +1,15 @@
-import { useEffect, useId, useState } from 'react';
+import './ui/price-menu-layout.css';
+import { useEffect, useState } from 'react';
 import type { PriceMenu } from './price-menu';
 const price=(value:string)=>/^\d+$/.test(value)?Number(value).toLocaleString('ko-KR'):value;
-export function MobilePriceMenu({menu,onChange}:{menu:PriceMenu;onChange?:(menu:PriceMenu)=>void}) {
- const [selected,setSelected]=useState(0),id=useId();
+type MenuProps={menu:PriceMenu;onChange?:(menu:PriceMenu)=>void};
+export function MobilePriceMenu(props:MenuProps){return <div className="price-menu-sections">{props.menu.sections.map((_,index)=><PriceMenuSection key={index} {...props} selected={index}/>)}</div>;}
+function PriceMenuSection({menu,onChange,selected}:MenuProps&{selected:number}) {
  const [desktop,setDesktop]=useState(()=>window.matchMedia('(min-width:701px)').matches);
  useEffect(()=>{const media=window.matchMedia('(min-width:701px)'),change=()=>setDesktop(media.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change);},[]);
  function cell(row:number,column:number,value:string){onChange?.({...menu,sections:menu.sections.map((s,i)=>i===selected?{...s,rows:s.rows.map((r,j)=>j===row?{...r,prices:r.prices.map((p,k)=>k===column?value:p)}:r)}:s)});}
  const section=menu.sections[selected];if(!section)return null;
- return <div className="mobile-price-menu"><nav className="price-category-tabs" aria-label="견종 및 요금 분류">{menu.sections.map((s,i)=><button type="button" key={i} aria-pressed={selected===i} aria-controls={id} onClick={()=>setSelected(i)}>{s.title}</button>)}</nav><section id={id} className="mobile-price-section" aria-label={section.title}>
+ return <div className="mobile-price-menu"><section className="mobile-price-section" aria-label={section.title}>
  <header className="mobile-price-heading"><span className="price-flower" aria-hidden="true">✿</span><h2>{section.title}</h2></header>
  {section.breeds&&<p className="mobile-price-breeds">{section.breeds}</p>}{section.note&&<p className="mobile-price-note">{section.note}</p>}
  {desktop&&section.rows.length>0&&<><p className="price-table-hint">단위: 원</p><table className="mobile-price-table"><thead><tr><th scope="col">몸무게</th>{menu.columns.map((name,i)=><th scope="col" key={i}>{name}</th>)}</tr></thead><tbody>{section.rows.map((row,i)=><tr key={i}><th scope="row">{row.weight}</th>{menu.columns.map((name,j)=><td key={j}>{onChange?<input className="shared-price-input" aria-label={`${section.title} ${row.weight} ${name} 금액`} inputMode="numeric" maxLength={30} value={row.prices[j]??''} onChange={e=>cell(i,j,e.target.value)}/>:price(row.prices[j]??'상담')}</td>)}</tr>)}</tbody></table></>}

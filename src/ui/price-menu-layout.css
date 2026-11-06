@@ -1,0 +1,3 @@
+/* Section layout only: all published menu categories remain in document order. */
+.price-menu-sections{display:grid;gap:36px;min-width:0}
+.price-menu-sections>section,.price-menu-sections>div{min-width:0}
