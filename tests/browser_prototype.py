@@ -17,6 +17,12 @@ try:
   expect(page.get_by_role('region',name='전체 화면 흐름보드')).to_be_visible();expect(page.locator('.flow-connectors')).to_be_visible();assert page.locator('.flow-connectors path[marker-end]').count()>10
   page.get_by_role('button',name='흐름도 확대',exact=True).click();page.get_by_role('button',name='너비에 맞추기',exact=True).click();page.screenshot(path='/tmp/prototype-board-desktop.png',full_page=True)
   page.locator('.scenario-catalog').evaluate('(el)=>el.open=true')
+  assert page.locator('.flow-board-canvas img').count()==0
+  expect(page.get_by_role('region',name='전체 화면 흐름보드')).to_contain_text('진입 경로')
+  expect(page.get_by_role('region',name='전체 화면 흐름보드')).to_contain_text('처리·검증 규칙')
+  assert page.locator('.text-node.tone-customer').count()>0 and page.locator('.text-node.tone-owner').count()>0 and page.locator('.text-node.tone-system').count()>0
+  assert page.locator('.text-node').evaluate_all('(nodes)=>nodes.every(el=>el.scrollHeight<=el.clientHeight+2)')
+  assert page.locator('.text-node').evaluate_all('(nodes)=>nodes.every((a,i)=>nodes.every((b,j)=>i===j||a.offsetLeft+a.offsetWidth<=b.offsetLeft||b.offsetLeft+b.offsetWidth<=a.offsetLeft||a.offsetTop+a.offsetHeight<=b.offsetTop||b.offsetTop+b.offsetHeight<=a.offsetTop))')
   for width in [320,390,768,1440]:
    page.set_viewport_size({'width':width,'height':1000})
    for label,flow_id in [('예약·미용','visit'),('요금표·이력','pricing'),('고객 수첩','customer'),('공지 관리','notice')]:
