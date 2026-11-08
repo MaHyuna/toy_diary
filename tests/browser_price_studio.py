@@ -41,19 +41,12 @@ with sync_playwright() as p:
  page.locator('#canvas-add').tap();page.locator('[data-canvas-add="text"]').tap();expect(page.locator('#mobile-sheet')).to_be_hidden();page.locator('.canvas-edit-handle').tap();page.locator('#sheet-value').fill('예약 안내');page.locator('#sheet-close').tap();saved()
  # Export begins with a clean customer preview and a purpose-based format choice.
  page.locator('#download-mobile').tap();expect(page.locator('#export-menu')).to_be_visible();expect(page.locator('#export-preview')).to_be_visible();page.locator('#format').select_option('portrait');expect(page.locator('#export-error')).to_be_empty();page.screenshot(path='/tmp/workflow-export.png');page.locator('#export-close').tap()
- images=[]
- while True:
-  assert page.locator('#preview').evaluate('c=>[c.width,c.height]')==[1800,2546]
-  images.append(base64.b64decode(page.locator('#preview').evaluate('c=>c.toDataURL().split(",")[1]')))
-  if page.locator('#page-next').is_disabled():break
-  page.locator('#page-next').tap()
- assert len(images)>=2
+ assert page.locator('#preview').evaluate('c=>[c.width,c.height]')==[1800,2546]
+ image=base64.b64decode(page.locator('#preview').evaluate('c=>c.toDataURL().split(",")[1]'))
+ expect(page.locator('#output-badge')).to_have_text('A4 · 한 장')
  page.locator('#download-mobile').tap()
- with page.expect_download() as dl:page.locator('#download-pages').tap()
- with zipfile.ZipFile(dl.value.path()) as archive:
-  assert len(archive.namelist())==len(images)
-  for index,n in enumerate(archive.namelist()):
-   raw=archive.read(n);assert raw==images[index];assert Image.open(io.BytesIO(raw)).size==(1800,2546)
+ with page.expect_download() as dl:page.locator('#export-current').tap()
+ raw=Path(dl.value.path()).read_bytes();assert raw==image;assert Image.open(io.BytesIO(raw)).size==(1800,2546)
  page.locator('#format').select_option('content')
  with page.expect_download() as dl:page.locator('#export-current').tap()
  assert Path(dl.value.path()).read_bytes()==base64.b64decode(page.locator('#preview').evaluate('c=>c.toDataURL().split(",")[1]'))
@@ -64,6 +57,6 @@ with sync_playwright() as p:
    page.locator('#view-'+mode).click();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),(w,mode)
  page.locator('#view-canvas').click();page.locator('[data-element="brand:name"]').dblclick();expect(page.locator('.canvas-input')).to_have_value('모바일 미용실');page.locator('.canvas-input').press('Enter')
  assert not errors,errors
- print('PASS restored layout, explicit editing, readable mobile price cards, persistence, styling, section focus, addition, A4 ZIP/PNG equality and 320–1440 layouts')
+ print('PASS restored layout, explicit editing, readable mobile price cards, persistence, styling, section focus, addition, single-sheet A4 PNG equality and 320–1440 layouts')
  browser.close()
 server.shutdown()

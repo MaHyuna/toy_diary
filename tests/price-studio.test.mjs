@@ -27,30 +27,29 @@ test('moving a section carries its price cells while a cell retains its own offs
  assert.equal(scaled.parentScale,.8);assert.ok(Math.abs(scaled.width-before.width*.8)<.001);
 });
 
-test('A4 pagination preserves complete rows, repeats headings, and keeps list indices', async () => {
- const {paginateProject,A4_HEIGHT}=await import('../public/planning/price-studio-pages.js');
- const {renderPoster}=await import('../public/planning/price-studio-render.js');
+test('A4 fits every complete row on one sheet and preserves original data and hit targets', async () => {
+ const {renderSheetPoster,A4_HEIGHT}=await import('../public/planning/price-studio-pages.js');
  const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx};
- const measure=p=>renderPoster(canvas,p,null,{measureOnly:true}).requiredHeight;
- const p=createDefaultProject();p.design.format='portrait';p.design.rowHeight=50;
- p.sections=[p.sections[0]];p.sections[0].rows=Array.from({length:30},(_,i)=>({id:'r'+i,weight:`${i+1}kg 미만`,prices:p.columns.map((_,j)=>String(i*1000+j))}));
- const original=JSON.stringify(p),plan=paginateProject(p,measure);
- assert.equal(plan.error,'');assert.ok(plan.pages.length>1);assert.equal(JSON.stringify(p),original);
- assert.deepEqual(plan.pages.flatMap(page=>page.sections[0].rows),p.sections[0].rows);
- for(const page of plan.pages){assert.ok(measure(page)<=A4_HEIGHT);const r=renderPoster(canvas,page,null,{fixedHeight:A4_HEIGHT});assert.equal(r.height,A4_HEIGHT);assert.equal(r.error,'');assert.ok(r.elements.some(e=>e.binding.type==='column'));assert.ok(r.elements.some(e=>e.id==='sec:group-0:title'));}
- const q=createDefaultProject();q.sections=[q.sections.find(s=>s.kind==='list')];q.sections[0].items=Array.from({length:40},(_,i)=>({label:'관리 메뉴 '+i,value:String(i)}));
- const lists=paginateProject(q,measure);assert.ok(lists.pages.length>1);const indices=lists.pages.flatMap(page=>renderPoster(canvas,page,null,{measureOnly:true}).elements.filter(e=>e.binding.type==='item'&&e.binding.key==='label').map(e=>e.binding.index));assert.deepEqual(indices,Array.from({length:40},(_,i)=>i));
+ const p=createDefaultProject();p.design.rowHeight=50;
+ p.sections[0].rows=Array.from({length:30},(_,i)=>({id:'r'+i,weight:`${i+1}kg 미만`,prices:p.columns.map((_,j)=>String(i*1000+j))}));
+ const original=JSON.stringify(p),r=renderSheetPoster(canvas,p,null);
+ assert.equal(r.error,'');assert.equal(r.height,A4_HEIGHT);assert.equal(canvas.width,1800);assert.equal(canvas.height,2546);
+ assert.equal(JSON.stringify(p),original);assert.ok(r.fitScale<1);
+ assert.deepEqual(r.elements.filter(e=>e.binding.type==='weight'&&e.binding.sectionId==='group-0').map(e=>e.binding.rowId),p.sections[0].rows.map(r=>r.id));
+ for(const e of r.elements){assert.ok(e.x>=0&&e.y>=0,e.id);assert.ok(e.x+e.width<=r.width&&e.y+e.height<=r.height,e.id);}
+ const last=r.elements.find(e=>e.id==='sec:group-0:cell:r29:col-5');assert.equal(last.binding.rowId,'r29');assert.ok(last.parentScale<1);
+ const q=createDefaultProject();q.sections[3].items=Array.from({length:40},(_,i)=>({label:'관리 메뉴 '+i,value:String(i)}));
+ const lists=renderSheetPoster(canvas,q,null);assert.equal(lists.height,A4_HEIGHT);assert.equal(lists.error,'');assert.deepEqual(lists.elements.filter(e=>e.binding.type==='item'&&e.binding.sectionId==='extras'&&e.binding.key==='label').map(e=>e.binding.index),Array.from({length:40},(_,i)=>i));
 });
 
-test('A4 balances whole sections across pages without changing their order', async () => {
- const {paginateProject}=await import('../public/planning/price-studio-pages.js');
- const {renderPoster}=await import('../public/planning/price-studio-render.js');
+test('A4 reduces surplus spacing first, keeps paired sections and leaves short layouts unscaled', async () => {
+ const {renderSheetPoster,A4_HEIGHT}=await import('../public/planning/price-studio-pages.js');
  const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx};
- const p=createDefaultProject();p.design.rowHeight=40;const measure=x=>renderPoster(canvas,x,null,{measureOnly:true}).requiredHeight;
- const {pages,error}=paginateProject(p,measure);assert.equal(error,'');assert.equal(pages.length,2);
- assert.deepEqual(pages.flatMap(page=>page.sections.map(s=>s.id)),p.sections.map(s=>s.id));
- assert.ok(Math.abs(measure(pages[0])-measure(pages[1]))<400);
- assert.ok(pages.every(page=>measure(page)<=1273));
+ const p=createDefaultProject();p.design.rowHeight=40;const original=JSON.stringify(p),r=renderSheetPoster(canvas,p,null);
+ assert.equal(r.error,'');assert.equal(r.height,A4_HEIGHT);assert.equal(JSON.stringify(p),original);
+ const extras=r.elements.find(e=>e.id==='sec:extras'),cat=r.elements.find(e=>e.id==='sec:cat');assert.equal(extras.y,cat.y);assert.ok(extras.x+extras.width<cat.x);
+ p.sections=[p.sections[0]];const short=renderSheetPoster(canvas,p,null);assert.equal(short.fitScale,1);assert.equal(short.height,A4_HEIGHT);
+ p.design.format='content';assert.ok(renderSheetPoster(canvas,p,null).height<A4_HEIGHT);
 });
 
 test('poster renders supplementary items and descriptions saved with a matrix section', async()=>{
