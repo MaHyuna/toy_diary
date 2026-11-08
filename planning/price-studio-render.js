@@ -61,10 +61,10 @@ export function renderPoster(canvas,p,logo,options={}){
   }
   if(s.kind==='list'||s.kind==='matrix'&&s.items?.length){
    yy+=6;
-   // A shared value column keeps all amounts right aligned without squeezing labels.
+   // All amounts share the right anchor; each label gets the space its own amount leaves.
    const priceFont=`600 ${d.priceSize}px sans-serif`,labelFont=`${d.bodySize}px sans-serif`;ctx.font=priceFont;
-   const valueWidth=Math.min(inner*.55,Math.max(88,...s.items.map(item=>ctx.measureText(item.value||'—').width+4))),nameWidth=inner-valueWidth-16;
    for(const [localIndex,item] of s.items.entries()){
+    ctx.font=priceFont;const valueWidth=Math.min(inner*.55,Math.max(64,ctx.measureText(item.value||'—').width+4)),nameWidth=inner-valueWidth-16;
     const index=localIndex+(s._itemOffset||0),labels=wrap(item.label,nameWidth,labelFont),values=wrap(item.value||'—',valueWidth,priceFont),lm=metrics(labelFont,labels[0]),vm=metrics(priceFont,values[0]),labelHeight=(labels.length-1)*(d.bodySize+5)+lm.ascent+lm.descent,valueHeight=(values.length-1)*(d.priceSize+4)+vm.ascent+vm.descent,rh=Math.max(30,labelHeight+12,valueHeight+12);
     let begin=ops.length;labels.forEach((v,i)=>text(v,xx,yy+(rh-labelHeight)/2+lm.ascent+i*(d.bodySize+5),labelFont,sc.body,'left',nameWidth));mark('sec:'+s.id+':item:'+index+':label',rect(xx,yy,nameWidth,rh),{type:'item',sectionId:s.id,index,key:'label'},begin,item.label+' 항목');
     begin=ops.length;values.forEach((v,i)=>text(v,x+width-pad,yy+(rh-valueHeight)/2+vm.ascent+i*(d.priceSize+4),priceFont,sc.price,'right',valueWidth));mark('sec:'+s.id+':item:'+index+':value',rect(x+width-pad-valueWidth,yy,valueWidth,rh),{type:'item',sectionId:s.id,index,key:'value'},begin,item.label+' 금액');yy+=rh;
@@ -87,13 +87,20 @@ export function renderPoster(canvas,p,logo,options={}){
  const byId=new Map(elements.map(e=>[e.id,e]));
  const chains=new Map();for(const e of elements){const op=ops.find(op=>op.owners?.includes(e.id));const chain=op?.owners?.slice(0,op.owners.indexOf(e.id)+1)||[e.id];chains.set(e.id,chain);}
  const matrixFor=chain=>{let scale=1,dx=0,dy=0;for(const id of chain){const e=byId.get(id),tr=p.canvas?.transforms?.[id];if(!e||!tr)continue;dx+=scale*(e.x+tr.x-e.x*tr.scale);dy+=scale*(e.y+tr.y-e.y*tr.scale);scale*=tr.scale;}return {scale,dx,dy};};
- const positioned=elements.map(e=>{const chain=chains.get(e.id),tr=matrixFor(chain),parent=matrixFor(chain.slice(0,-1));return {...e,base:{x:e.x,y:e.y,width:e.width,height:e.height},x:e.x*tr.scale+tr.dx,y:e.y*tr.scale+tr.dy,width:e.width*tr.scale,height:e.height*tr.scale,parentScale:parent.scale,owners:chain,textStyle:ops.find(op=>op.element===e.id&&op.textStyle)?.textStyle};});
+ let positioned=elements.map(e=>{const chain=chains.get(e.id),tr=matrixFor(chain),parent=matrixFor(chain.slice(0,-1));return {...e,base:{x:e.x,y:e.y,width:e.width,height:e.height},x:e.x*tr.scale+tr.dx,y:e.y*tr.scale+tr.dy,width:e.width*tr.scale,height:e.height*tr.scale,parentScale:parent.scale,owners:chain,textStyle:ops.find(op=>op.element===e.id&&op.textStyle)?.textStyle};});
  const extent=Math.max(y,...positioned.map(e=>e.y+e.height));
  if(positioned.some(e=>e.x<-.5||e.y<-.5||e.x+e.width>W+.5))error='화면 밖으로 나간 요소를 안쪽으로 이동하거나 자동 정렬해 주세요.';
- const required=Math.ceil(extent+40),H=options.fixedHeight||Math.max(900,required);if(required>H)error='요소가 A4 영역을 넘어요. 배치를 자동 정렬하거나 크기를 줄여 주세요.';if(H>6000)error='내용이 너무 길어요. 섹션을 나누거나 줄여 주세요.';
- if(options.measureOnly)return {error,requiredHeight:required,elements:positioned,width:W,height:H};
+ const required=Math.ceil(extent+40),H=options.fixedHeight||Math.max(900,required);
+ // Fit the complete composition inside one sheet. The paper and its border never scale.
+ const safe=Math.max(36,d.borderInset+14),top=Math.min(safe,...positioned.map(e=>e.y)),bottom=Math.max(extent,...positioned.map(e=>e.y+e.height));
+ const fitScale=options.fitToPage?Math.min(1,(H-safe*2)/(bottom-top)):1,fitX=(W-W*fitScale)/2,fitY=fitScale<1?safe-top*fitScale:0;
+ const fitted=e=>({...e,x:e.x*fitScale+fitX,y:e.y*fitScale+fitY,width:e.width*fitScale,height:e.height*fitScale,...(e.parentScale===undefined?{}:{parentScale:e.parentScale*fitScale})});
+ if(fitScale<1){positioned=positioned.map(fitted);for(let i=0;i<boxes.length;i++)boxes[i]=fitted(boxes[i]);}
+ if(required>H&&!options.fitToPage)error='요소가 A4 영역을 넘어요. 배치를 자동 정렬하거나 크기를 줄여 주세요.';if(H>6000)error='내용이 너무 길어요. 섹션을 나누거나 줄여 주세요.';
+ if(options.measureOnly)return {error,requiredHeight:required,elements:positioned,width:W,height:H,fitScale};
  canvas.width=W*2;canvas.height=Math.min(H,6000)*2;ctx.setTransform(2,0,0,2,0,0);ctx.lang='ko';ctx.fontKerning='none';ctx.textRendering='geometricPrecision';ctx.fillStyle=c.background;ctx.fillRect(0,0,W,H);
  const inset=d.borderInset;if(d.border!=='none'){ctx.strokeStyle=c.line;ctx.lineWidth=d.borderWidth;if(d.border==='scallop'){ctx.beginPath();ctx.moveTo(inset,inset);for(let x=inset;x<W-inset;x+=22)ctx.quadraticCurveTo(Math.min(x+11,W-inset),inset+6,Math.min(x+22,W-inset),inset);for(let y=inset;y<H-inset;y+=22)ctx.quadraticCurveTo(W-inset-6,Math.min(y+11,H-inset),W-inset,Math.min(y+22,H-inset));for(let x=W-inset;x>inset;x-=22)ctx.quadraticCurveTo(Math.max(x-11,inset),H-inset-6,Math.max(x-22,inset),H-inset);for(let y=H-inset;y>inset;y-=22)ctx.quadraticCurveTo(inset+6,Math.max(y-11,inset),inset,Math.max(y-22,inset));ctx.closePath();ctx.stroke();}else{ctx.strokeRect(inset,inset,W-inset*2,H-inset*2);if(d.border==='double'){ctx.lineWidth=d.borderWidth*.6;ctx.strokeRect(inset+7,inset+7,W-inset*2-14,H-inset*2-14);}}}
  if(d.corners){ctx.fillStyle=c.decoration;for(const [x,y,angle] of [[34,34,0],[W-34,34,Math.PI/2],[W-34,H-34,Math.PI],[34,H-34,-Math.PI/2]]){ctx.save();ctx.translate(x,y);ctx.rotate(angle);for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(8+i*6,15-i*4,3,6,-.7,0,Math.PI*2);ctx.fill();}ctx.restore();}}
- for(const op of ops){ctx.save();const tr=matrixFor(op.owners||[]);ctx.translate(tr.dx,tr.dy);ctx.scale(tr.scale,tr.scale);op();ctx.restore();}return {error,boxes,elements:positioned,width:W,height:Math.min(H,6000),requiredHeight:required};
+ ctx.save();ctx.translate(fitX,fitY);ctx.scale(fitScale,fitScale);
+ for(const op of ops){ctx.save();const tr=matrixFor(op.owners||[]);ctx.translate(tr.dx,tr.dy);ctx.scale(tr.scale,tr.scale);op();ctx.restore();}ctx.restore();return {error,boxes,elements:positioned,width:W,height:Math.min(H,6000),requiredHeight:required,fitScale};
 }
