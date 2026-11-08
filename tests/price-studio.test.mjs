@@ -46,7 +46,7 @@ test('A4 balances whole sections across pages without changing their order', asy
  const {paginateProject}=await import('../public/planning/price-studio-pages.js');
  const {renderPoster}=await import('../public/planning/price-studio-render.js');
  const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx};
- const p=createDefaultProject(),measure=x=>renderPoster(canvas,x,null,{measureOnly:true}).requiredHeight;
+ const p=createDefaultProject();p.design.rowHeight=40;const measure=x=>renderPoster(canvas,x,null,{measureOnly:true}).requiredHeight;
  const {pages,error}=paginateProject(p,measure);assert.equal(error,'');assert.equal(pages.length,2);
  assert.deepEqual(pages.flatMap(page=>page.sections.map(s=>s.id)),p.sections.map(s=>s.id));
  assert.ok(Math.abs(measure(pages[0])-measure(pages[1]))<400);
