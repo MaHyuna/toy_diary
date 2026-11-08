@@ -1,4 +1,4 @@
-import {renderPoster} from './price-studio-render.js?v=workflow-8';
+import {renderPoster} from './price-studio-render.js?v=print-layout-9';
 export const A4_HEIGHT=1273;
 // Pack whole sections first. Oversized tables split only between rows.
 export function paginateProject(project,measure){
