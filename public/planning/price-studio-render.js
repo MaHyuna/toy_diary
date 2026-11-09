@@ -24,7 +24,7 @@ export function renderPoster(canvas,p,logo,options={}){
  const flower=(x,y)=>{if(!d.flowers)return;ops.push(()=>{ctx.fillStyle=c.decoration;for(let a=0;a<5;a++){ctx.beginPath();ctx.ellipse(x+6*Math.cos(a*Math.PI*2/5),y+6*Math.sin(a*Math.PI*2/5),4,5,a*Math.PI*2/5,0,Math.PI*2);ctx.fill();}ctx.fillStyle=c.background;ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();});};
  if(logo){const logoStart=ops.length;const scale=Math.min(d.logoSize/logo.width,d.logoSize/logo.height),w=logo.width*scale,h=logo.height*scale;ops.push(()=>ctx.drawImage(logo,(W-w)/2,36,w,h));mark('brand:logo',rect((W-w)/2,36,w,h),{type:'logo'},logoStart,'매장 로고','image');y+=h+18;}else y+=8;
  {const start=ops.length;text(p.brand.name||'우리 가게',W/2,y+18,`400 26px ${d.font}`,c.heading,'center',B);mark('brand:name',rect(m,y-10,B,37),{type:'brand',key:'name'},start,'매장 이름');}y+=39;
- if(p.brand.title){const start=ops.length;text(p.brand.title,W/2,y+4,`16px sans-serif`,c.heading,'center',B);mark('brand:title',rect(m,y-15,B,25),{type:'brand',key:'title'},start,'요금표 제목');y+=26;}y+=14;
+ if(p.brand.title){const start=ops.length;text(p.brand.title,W/2,y-2,`16px sans-serif`,c.heading,'center',B);mark('brand:title',rect(m,y-15,B,25),{type:'brand',key:'title'},start,'요금표 제목');y+=26;}y+=14;
  {const top=Math.min(...elements.map(e=>e.y)),bottom=Math.max(...elements.map(e=>e.y+e.height));mark('brand:header',rect(m,top,B,bottom-top),{type:'brandGroup'},0,'매장 정보','group');}
  const metrics=(font,value='가나다 0123456789')=>{ctx.font=font;const mt=ctx.measureText(value),size=Number(font.match(/([\d.]+)px/)?.[1])||14;return {ascent:mt.actualBoundingBoxAscent??size*.8,descent:mt.actualBoundingBoxDescent??size*.2};};
  function section(s,x,top,width){
@@ -40,7 +40,7 @@ export function renderPoster(canvas,p,logo,options={}){
   const noteFont=`${d.bodySize-1}px sans-serif`,noteText='/ '+s.note;ctx.font=headingFont;const headingWidth=ctx.measureText(s.title).width,noteX=xx+headingWidth+18;ctx.font=noteFont;
   const inlineNote=s.kind==='matrix'&&!!s.note&&titleLines.length===1&&ctx.measureText(noteText).width<=xx+inner-noteX;
   if(inlineNote){const mt=metrics(noteFont,noteText),noteHeight=mt.ascent+mt.descent,noteTop=headingTop+(titleMetrics.ascent+titleMetrics.descent-noteHeight)/2;block(noteText,noteX,noteTop,xx+inner-noteX,noteFont,d.bodySize+4,sc.note,'sec:'+s.id+':note',{type:'section',sectionId:s.id,key:'note'},s.title+' 안내');}
-  yy+=8;
+  yy+=s.breeds?2:8;
   if(s.breeds)yy=block(s.breeds,xx,yy,inner,`${d.bodySize-1}px sans-serif`,d.bodySize+5,sc.body,'sec:'+s.id+':breeds',{type:'section',sectionId:s.id,key:'breeds'},s.title+' 견종 설명');
   if(s.kind==='matrix'){
    if(s.note&&!inlineNote){yy+=3;yy=block(s.note,xx,yy,inner,noteFont,d.bodySize+4,sc.note,'sec:'+s.id+':note',{type:'section',sectionId:s.id,key:'note'},s.title+' 안내');}
