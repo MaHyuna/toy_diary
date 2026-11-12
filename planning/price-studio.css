@@ -33,3 +33,5 @@
 .canvas-width-handle{top:auto;bottom:-38px;transform:none;height:32px;min-height:32px;width:32px;right:-16px;font-size:16px}.canvas-selection:has(.canvas-width-handle){z-index:6}
 
 .canvas-fit-handle{position:absolute;left:-1px;bottom:-38px;min-height:32px;padding:4px 8px;font-size:12px;white-space:nowrap;pointer-events:auto;background:#fff;color:#79516b;border:1px solid #9d6a88}
+
+.canvas-fit-handle{bottom:-76px;min-height:34px;z-index:2}
