@@ -14,7 +14,7 @@ export function validateProject(input){
  p.brand.logo=text(b.logo,2000000);if(b.logo&&!/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(b.logo))fail('백업 로고는 PNG·JPG·WebP 형식이어야 해요.');
  for(const k of Object.keys(p.design.colors))p.design.colors[k]=color(d.colors?.[k]);
  for(const [k,min,max] of [['borderWidth',.5,6],['borderInset',12,40],['headingSize',18,38],['bodySize',11,20],['priceSize',12,22],['gap',10,70],['rowHeight',24,50],['logoSize',40,500]])p.design[k]=num(d[k],min,max);
- for(const [k,values] of [['border',['none','line','double','scallop']],['font',['Jua','sans-serif']],['format',['content','portrait']]]){if(!values.includes(d[k]))fail('지원하지 않는 디자인 옵션이에요.');p.design[k]=d[k];}
+ for(const [k,values] of [['border',['none','line','double','scallop']],['font',['Jua','sans-serif']],['format',['content','portrait','fit']]]){if(!values.includes(d[k]))fail('지원하지 않는 디자인 옵션이에요.');p.design[k]=d[k];}
  for(const [k,min,max] of [['pageMargin',40,120],['sectionPadding',12,40],['columnGap',12,80]])if(d[k]!==undefined)p.design[k]=num(d[k],min,max);
  for(const k of ['corners','flowers']){if(typeof d[k]!=='boolean')fail('디자인 옵션이 올바르지 않아요.');p.design[k]=d[k];}
  if(!Array.isArray(input.columns)||input.columns.length<1||input.columns.length>8)fail('서비스 열은 1~8개여야 해요.');
