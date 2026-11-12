@@ -15,6 +15,7 @@ try:
   for mobile in [False,True]:
    page=browser.new_page(viewport={'width':390 if mobile else 1440,'height':1000},is_mobile=mobile,has_touch=mobile)
    page.goto(f'http://127.0.0.1:{server.server_port}/planning/pricelist.html',wait_until='networkidle')
+   page.locator('[data-element="sec:extras:item:7:label"]').click();page.locator('.canvas-fit-handle').click()
    fixture=page.evaluate("async()=>{const {createDefaultProject}=await import('./price-studio-defaults.js');const p=createDefaultProject();p.sections[3].items=[{label:'털길이 (6mm / 1cm / 2cm)',value:'5,000 / 10,000 / 15,000 / 20,000'}];p.canvas={transforms:{},styles:{'sec:extras:item:0:label':{width:110}}};return p;}")
    page.locator('#import').set_input_files({'name':'regression.json','mimeType':'application/json','buffer':json.dumps(fixture).encode()})
    target=page.locator('[data-element="sec:extras:item:0:label"]');target.click()
