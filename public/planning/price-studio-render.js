@@ -1,4 +1,4 @@
-import {layoutText} from './price-studio-text.js?v=spacing-15';
+import {layoutText} from './price-studio-text.js?v=logo-layout-16';
 export function renderPoster(canvas,p,logo,options={}){
  canvas.lang='ko';
  const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d=p.design,c=d.colors,ops=[],boxes=[],elements=[];let y=d.pageMargin??36,error='';

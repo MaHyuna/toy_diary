@@ -40,10 +40,10 @@ with sync_playwright() as p:
  page.locator('#focus-section').select_option('all');page.wait_for_timeout(350)
  page.locator('#canvas-add').tap();page.locator('[data-canvas-add="text"]').tap();expect(page.locator('#mobile-sheet')).to_be_hidden();page.locator('.canvas-edit-handle').tap();page.locator('#sheet-value').fill('예약 안내');page.locator('#sheet-close').tap();saved()
  # Export begins with a clean customer preview and a purpose-based format choice.
- page.locator('#download-mobile').tap();expect(page.locator('#export-menu')).to_be_visible();expect(page.locator('#export-preview')).to_be_visible();page.locator('#format').select_option('portrait');expect(page.locator('#export-error')).to_be_empty();page.screenshot(path='/tmp/workflow-export.png');page.locator('#export-close').tap()
+ page.locator('#download-mobile').tap();expect(page.locator('#export-menu')).to_be_visible();expect(page.locator('#export-preview')).to_be_visible();page.locator('#format').select_option('fit');expect(page.locator('#export-error')).to_be_empty();page.screenshot(path='/tmp/workflow-export.png');page.locator('#export-close').tap()
  assert page.locator('#preview').evaluate('c=>[c.width,c.height]')==[1800,2546]
  image=base64.b64decode(page.locator('#preview').evaluate('c=>c.toDataURL().split(",")[1]'))
- expect(page.locator('#output-badge')).to_have_text('A4 · 한 장')
+ expect(page.locator('#output-badge')).to_have_text('A4 · 축소')
  page.locator('#download-mobile').tap()
  with page.expect_download() as dl:page.locator('#export-current').tap()
  raw=Path(dl.value.path()).read_bytes();assert raw==image;assert Image.open(io.BytesIO(raw)).size==(1800,2546)

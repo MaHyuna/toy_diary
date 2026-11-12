@@ -12,8 +12,8 @@ server=ThreadingHTTPServer(('127.0.0.1',0),partial(Quiet,directory=str(root/'dem
 try:
  with sync_playwright() as p:
   b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(viewport={'width':1440,'height':1100},accept_downloads=True);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-  page.goto(base+'/planning/pricelist.html',wait_until='networkidle');expect(page.locator('#download')).to_be_enabled();expect(page.locator('#preview-format')).to_have_value('portrait');expect(page.locator('#output-badge')).to_have_text('A4 · 한 장');expect(page.locator('#render-error')).to_be_empty()
-  fixture=page.evaluate("async()=>{const {createDefaultProject}=await import('./price-studio-defaults.js');return createDefaultProject();}")
+  page.goto(base+'/planning/pricelist.html',wait_until='networkidle');expect(page.locator('#download')).to_be_enabled();page.locator('#preview-format').select_option('fit');expect(page.locator('#preview-format')).to_have_value('fit');expect(page.locator('#output-badge')).to_have_text('A4 · 축소');expect(page.locator('#render-error')).to_be_empty()
+  fixture=page.evaluate("async()=>{const {createDefaultProject}=await import('./price-studio-defaults.js');const p=createDefaultProject();p.design.format='fit';return p;}")
   page.locator('#import').set_input_files({'name':'fixture.json','mimeType':'application/json','buffer':json.dumps(fixture).encode()});page.wait_for_timeout(500)
   original=page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2'))")
   measured=page.evaluate('''async()=>{
@@ -39,7 +39,7 @@ try:
   note=next(e for e in long['elements'] if e['id']=='sec:extras:note');assert note['x']+note['width']<=next(e['x']+e['width'] for e in long['elements'] if e['id']=='sec:extras')
   # Download the user's long menu as ONE exact A4 PNG, equal to its preview.
   page.locator('#import').set_input_files({'name':'user-menu.json','mimeType':'application/json','buffer':json.dumps(long['project'],ensure_ascii=False).encode()})
-  expect(page.locator('#render-error')).to_be_empty();expect(page.locator('#output-badge')).to_have_text('A4 · 한 장')
+  expect(page.locator('#render-error')).to_be_empty();expect(page.locator('#output-badge')).to_have_text('A4 · 축소')
   page.locator('#download').click()
   with page.expect_download() as download:page.locator('#export-current').click()
   raw=Path(download.value.path()).read_bytes();assert struct.unpack('>II',raw[16:24])==(1800,2546)
@@ -50,7 +50,7 @@ try:
   expanded['design']['rowHeight']=50
   expanded['sections'][0]['rows']=[{**seed,'id':f'long-row-{i}','weight':f'{i+1}kg 미만'} for i in range(30)]
   page.locator('#import').set_input_files({'name':'long-menu.json','mimeType':'application/json','buffer':json.dumps(expanded,ensure_ascii=False).encode()})
-  expect(page.locator('#output-badge')).to_have_text('A4 · 한 장');expect(page.locator('#render-error')).to_be_empty()
+  expect(page.locator('#output-badge')).to_have_text('A4 · 축소');expect(page.locator('#render-error')).to_be_empty()
   expect(page.locator('#page-next')).to_have_count(0);expect(page.locator('#download-pages')).to_have_count(0)
   row_ids=page.locator('[data-element^="sec:group-0:row:long-row-"]').evaluate_all("els=>els.map(e=>e.dataset.element.split(':').at(-1))")
   assert row_ids==[f'long-row-{i}' for i in range(30)]
@@ -63,9 +63,9 @@ try:
   for width in [390,1440]:
    page.set_viewport_size({'width':width,'height':1000});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=f'/tmp/pricelist-editor-{width}.png')
   # Already-saved content format and all custom values survive the update and switching paper.
-  original['design']['format']='content';original['brand']['name']='내 미용실';page.add_init_script("localStorage.setItem('mongle-price-studio-v2',"+json.dumps(json.dumps(original))+");");page.reload(wait_until='networkidle');expect(page.locator('#preview-format')).to_have_value('content');page.locator('#preview-format').select_option('portrait');page.wait_for_timeout(450)
-  saved=page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2'))");assert saved['sections']==original['sections'];assert saved['brand']==original['brand'];assert saved['design']['colors']==original['design']['colors'];assert saved['design']['format']=='portrait'
-  page.goto(base+'/planning/pricelist.html?paper=a4',wait_until='networkidle');expect(page.locator('#preview-format')).to_have_value('portrait');assert 'paper=' not in page.url;expect(page.locator('#render-error')).to_be_empty()
+  original['design']['format']='content';original['brand']['name']='내 미용실';page.add_init_script("localStorage.setItem('mongle-price-studio-v2',"+json.dumps(json.dumps(original))+");");page.reload(wait_until='networkidle');expect(page.locator('#preview-format')).to_have_value('content');page.locator('#preview-format').select_option('fit');page.wait_for_timeout(450)
+  saved=page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2'))");assert saved['sections']==original['sections'];assert saved['brand']==original['brand'];assert saved['design']['colors']==original['design']['colors'];assert saved['design']['format']=='fit'
+  page.goto(base+'/planning/pricelist.html?paper=a4',wait_until='networkidle');page.locator('#preview-format').select_option('fit');expect(page.locator('#preview-format')).to_have_value('fit');assert 'paper=' not in page.url;expect(page.locator('#render-error')).to_be_empty()
   assert not errors,errors
   b.close();print('PASS real-font title/flower and list alignment, long label/value containment, inline notes, single-sheet A4 PNG export, scaled row editing, responsive editor and saved-data preservation')
 finally:server.shutdown();thread.join();server.server_close()
