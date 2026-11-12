@@ -1,4 +1,4 @@
-import {renderPoster} from './price-studio-render.js?v=logo-13';
+import {renderPoster} from './price-studio-render.js?v=list-width-14';
 export const A4_HEIGHT=1273;
 // Keep every section and row on one A4 sheet without changing saved typography or data.
 export function renderSheetPoster(canvas,project,logo){

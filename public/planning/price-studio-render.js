@@ -62,13 +62,25 @@ export function renderPoster(canvas,p,logo,options={}){
   }
   if(s.kind==='list'||s.kind==='matrix'&&s.items?.length){
    yy+=6;
-   // All amounts share the right anchor; each label gets the space its own amount leaves.
-   const priceFont=`600 ${d.priceSize}px sans-serif`,labelFont=`${d.bodySize}px sans-serif`;ctx.font=priceFont;
+   // Share each row's space between its label and amount. Resizing the label
+   // reallocates the amount column instead of clamping to its current width.
    for(const [localIndex,item] of s.items.entries()){
-    ctx.font=priceFont;const valueWidth=Math.min(inner*.55,Math.max(64,ctx.measureText(item.value||'—').width+4)),maxNameWidth=inner-valueWidth-16,nameWidth=Math.min(p.canvas?.styles?.['sec:'+s.id+':item:'+(localIndex+(s._itemOffset||0))+':label']?.width||maxNameWidth,maxNameWidth);
-    const index=localIndex+(s._itemOffset||0),labels=wrap(item.label,nameWidth,labelFont),values=wrap(item.value||'—',valueWidth,priceFont),lm=metrics(labelFont,labels[0]),vm=metrics(priceFont,values[0]),labelHeight=(labels.length-1)*(d.bodySize+5)+lm.ascent+lm.descent,valueHeight=(values.length-1)*(d.priceSize+4)+vm.ascent+vm.descent,rh=Math.max(30,labelHeight+12,valueHeight+12);
-    let begin=ops.length;labels.forEach((v,i)=>text(v,xx,yy+(rh-labelHeight)/2+lm.ascent+i*(d.bodySize+5),labelFont,sc.body,'left',nameWidth));mark('sec:'+s.id+':item:'+index+':label',rect(xx,yy,nameWidth,rh),{type:'item',sectionId:s.id,index,key:'label'},begin,item.label+' 항목','text',maxNameWidth);
-    begin=ops.length;values.forEach((v,i)=>text(v,x+width-pad,yy+(rh-valueHeight)/2+vm.ascent+i*(d.priceSize+4),priceFont,sc.price,'right',valueWidth));mark('sec:'+s.id+':item:'+index+':value',rect(x+width-pad-valueWidth,yy,valueWidth,rh),{type:'item',sectionId:s.id,index,key:'value'},begin,item.label+' 금액');yy+=rh;
+    const index=localIndex+(s._itemOffset||0),labelId='sec:'+s.id+':item:'+index+':label',valueId='sec:'+s.id+':item:'+index+':value';
+    const ls=p.canvas?.styles?.[labelId]||{},vs=p.canvas?.styles?.[valueId]||{},gap=12,maxNameWidth=inner-64-gap;
+    let labelSize=ls.fontSize||d.bodySize,priceSize=vs.fontSize||d.priceSize;
+    const font=(size,st,bold=false)=>`${st.italic?'italic ':''}${st.bold===undefined?(bold?'600':'400'):st.bold?'700':'400'} ${size}px sans-serif`;
+    let labelFont=font(labelSize,ls),priceFont=font(priceSize,vs,true);
+    ctx.font=labelFont;let labelNatural=ctx.measureText(item.label).width+2;ctx.font=priceFont;let valueNatural=ctx.measureText(item.value||'—').width+4;
+    // Keep ordinary compound labels and amounts on one line when a small,
+    // proportional font adjustment is enough. Explicit font settings win.
+    if(!ls.width&&!ls.fontSize&&!vs.fontSize&&!item.label.includes('\n')&&!item.value.includes('\n')){
+     const fit=Math.min(1,(inner-gap)/(labelNatural+valueNatural));
+     if(labelSize*fit>=11&&priceSize*fit>=11){labelSize*=fit;priceSize*=fit;labelFont=font(labelSize,ls);priceFont=font(priceSize,vs,true);ctx.font=labelFont;labelNatural=ctx.measureText(item.label).width+2;ctx.font=priceFont;valueNatural=ctx.measureText(item.value||'—').width+4;}
+    }
+    const nameWidth=ls.width?Math.max(40,Math.min(ls.width,maxNameWidth)):Math.max(40,inner-Math.min(inner*.55,Math.max(64,valueNatural))-gap),valueWidth=inner-nameWidth-gap;
+    const labels=wrap(item.label,nameWidth,labelFont),values=wrap(item.value||'—',valueWidth,priceFont),lm=metrics(labelFont,labels[0]),vm=metrics(priceFont,values[0]),labelStep=labelSize+5,valueStep=priceSize+4,labelHeight=(labels.length-1)*labelStep+lm.ascent+lm.descent,valueHeight=(values.length-1)*valueStep+vm.ascent+vm.descent,rh=Math.max(30,labelHeight+12,valueHeight+12);
+    let begin=ops.length;labels.forEach((v,i)=>text(v,xx,yy+(rh-labelHeight)/2+lm.ascent+i*labelStep,labelFont,sc.body,'left',nameWidth));mark(labelId,rect(xx,yy,nameWidth,rh),{type:'item',sectionId:s.id,index,key:'label'},begin,item.label+' 항목','text',maxNameWidth);
+    begin=ops.length;values.forEach((v,i)=>text(v,x+width-pad,yy+(rh-valueHeight)/2+vm.ascent+i*valueStep,priceFont,sc.price,'right',valueWidth));mark(valueId,rect(x+width-pad-valueWidth,yy,valueWidth,rh),{type:'item',sectionId:s.id,index,key:'value'},begin,item.label+' 금액');yy+=rh;
    }
   }
   if(s.kind==='text'&&s.content){yy+=4;yy=block(s.content,xx,yy,inner,`${d.bodySize}px sans-serif`,d.bodySize+7,sc.body,'sec:'+s.id+':content',{type:'section',sectionId:s.id,key:'content'},s.title+' 내용');}

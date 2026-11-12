@@ -1,8 +1,8 @@
-import {DEFAULT_LOGO} from './price-studio-logo.js?v=logo-13';
-import {createLatestProject} from './price-studio-latest.js?v=logo-13';
-import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=logo-13';
-import {createCanvasEditor} from './price-studio-canvas.js?v=logo-13';
-import {renderSheetPoster} from './price-studio-pages.js?v=logo-13';
+import {DEFAULT_LOGO} from './price-studio-logo.js?v=list-width-14';
+import {createLatestProject} from './price-studio-latest.js?v=list-width-14';
+import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=list-width-14';
+import {createCanvasEditor} from './price-studio-canvas.js?v=list-width-14';
+import {renderSheetPoster} from './price-studio-pages.js?v=list-width-14';
 const $=id=>document.getElementById(id),KEY='mongle-price-studio-v2';
 const clone=x=>JSON.parse(JSON.stringify(x)),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let project=createLatestProject(),active=project.sections[0].id,tab='content',logo=null,logoSeq=0,undo=[],redo=[],last='',timer,paused=false,csvHandle=null,csvQueue=Promise.resolve(),fontReady=false,result={error:''};
