@@ -1,5 +1,5 @@
-import {DEFAULT_LOGO} from './price-studio-logo.js?v=list-width-14';
-import {createDefaultProject} from './price-studio-defaults.js?v=list-width-14';
+import {DEFAULT_LOGO} from './price-studio-logo.js?v=spacing-15';
+import {createDefaultProject} from './price-studio-defaults.js?v=spacing-15';
 // Transcribed from the owner's 1000025787.png, supplied 2026-11-12.
 export function createLatestProject(){
  const p=createDefaultProject();

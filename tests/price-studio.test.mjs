@@ -42,7 +42,7 @@ test('A4 fits every complete row on one sheet and preserves original data and hi
  const lists=renderSheetPoster(canvas,q,null);assert.equal(lists.height,A4_HEIGHT);assert.equal(lists.error,'');assert.deepEqual(lists.elements.filter(e=>e.binding.type==='item'&&e.binding.sectionId==='extras'&&e.binding.key==='label').map(e=>e.binding.index),Array.from({length:40},(_,i)=>i));
 });
 
-test('A4 reduces surplus spacing first, keeps paired sections and leaves short layouts unscaled', async () => {
+test('A4 preserves chosen spacing, keeps paired sections and leaves short layouts unscaled', async () => {
  const {renderSheetPoster,A4_HEIGHT}=await import('../public/planning/price-studio-pages.js');
  const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx};
  const p=createDefaultProject();p.design.rowHeight=40;const original=JSON.stringify(p),r=renderSheetPoster(canvas,p,null);
@@ -109,4 +109,10 @@ test('narrow text boxes reflow and move subsequent sections without changing tex
  assert.ok(after.elements.find(e=>e.id==='sec:group-1:title').y>before.elements.find(e=>e.id==='sec:group-1:title').y);
  assert.deepEqual(validateProject(p).canvas,p.canvas);
  assert.equal(after.error,'');
+});
+
+test('spacing settings survive backup validation and reject unsafe values',()=>{
+ const p=createDefaultProject();Object.assign(p.design,{pageMargin:70,sectionPadding:30,columnGap:40});p.canvas={transforms:{},styles:{'sec:extras:note':{letterSpacing:2.5,lineHeight:2,padding:16}}};
+ assert.deepEqual(validateProject(p),p);
+ for(const [key,value] of [['letterSpacing',99],['lineHeight',0],['padding',-1]]){const invalid=structuredClone(p);invalid.canvas.styles['sec:extras:note'][key]=value;assert.throws(()=>validateProject(invalid));}
 });
