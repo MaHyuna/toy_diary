@@ -1,9 +1,10 @@
-import {createDefaultProject} from './price-studio-defaults.js?v=text-width-12';
+import {DEFAULT_LOGO} from './price-studio-logo.js?v=logo-13';
+import {createDefaultProject} from './price-studio-defaults.js?v=logo-13';
 // Transcribed from the owner's 1000025787.png, supplied 2026-11-12.
 export function createLatestProject(){
  const p=createDefaultProject();
- p.brand={name:'',title:'',logo:'',footer:'',contact:'예쁜 미용보다 안전하고 스트레스 없는 미용을 추구합니다!'};
- p.design={...p.design,border:'double',corners:true,logoSize:140,colors:{background:'#fffaf0',heading:'#3b342c',category:'#3b342c',body:'#3b342c',price:'#3b342c',note:'#a07a4d',line:'#3b342c',decoration:'#a07a4d',tableHeader:'#3b342c'}};
+ p.brand={name:'',title:'',logo:DEFAULT_LOGO,footer:'',contact:'예쁜 미용보다 안전하고 스트레스 없는 미용을 추구합니다!'};
+ p.design={...p.design,border:'double',corners:true,logoSize:300,colors:{background:'#fffaf0',heading:'#3b342c',category:'#3b342c',body:'#3b342c',price:'#3b342c',note:'#a07a4d',line:'#3b342c',decoration:'#a07a4d',tableHeader:'#3b342c'}};
  p.columns[1].name='위생미용';p.columns[2].name='위생+목욕';
  const weights=['3kg 미만','3~5kg 미만','5~7kg 미만','7~9kg 미만'];
  const prices=[
