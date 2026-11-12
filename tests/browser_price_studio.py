@@ -19,7 +19,7 @@ with sync_playwright() as p:
  def saved(): expect(page.locator('#save-status')).to_contain_text('자동 저장됨')
  def data(): return page.evaluate('JSON.parse(localStorage.getItem("mongle-price-studio-v2"))')
  expect(page.locator('#download-mobile')).to_be_enabled();assert page.locator('.canvas-shell').bounding_box()['height']>400
- legacy=data();legacy['canvas']={'transforms':{'sec:group-0':{'x':10,'y':90,'scale':.7}},'styles':{'sec:group-0:title':{'color':'#ab2345','bold':True}}}
+ legacy=data();legacy['brand']['name']='몽글 미용실';legacy['canvas']={'transforms':{'sec:group-0':{'x':10,'y':90,'scale':.7}},'styles':{'sec:group-0:title':{'color':'#ab2345','bold':True}}}
  page.add_init_script("if(!sessionStorage.getItem('restore-test')){localStorage.setItem('mongle-price-studio-v2',"+json.dumps(json.dumps(legacy))+");sessionStorage.setItem('restore-test','1');}")
  page.reload(wait_until='networkidle');saved();legacy['canvas']['transforms']={};assert data()==legacy
  name=page.locator('[data-element="brand:name"]');name.tap();expect(page.locator('#mobile-sheet')).to_be_hidden();expect(page.locator('.canvas-edit-handle')).to_be_visible();assert page.locator('.canvas-move,.canvas-resize,.drag-handle').count()==0
@@ -56,6 +56,22 @@ with sync_playwright() as p:
   for mode in ['canvas','form']:
    page.locator('#view-'+mode).click();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),(w,mode)
  page.locator('#view-canvas').click();page.locator('[data-element="brand:name"]').dblclick();expect(page.locator('.canvas-input')).to_have_value('모바일 미용실');page.locator('.canvas-input').press('Enter')
+ # Uploads retain original bytes and resolution, including transparent PNGs.
+ page.locator('#view-form').click();page.locator('[data-tab="brand"]').click()
+ page.locator('[data-brand="name"]').fill('   ');saved()
+ for fmt,mime in [('JPEG','image/jpeg'),('PNG','image/png'),('WEBP','image/webp')]:
+  image=Image.new('RGBA' if fmt!='JPEG' else 'RGB',(1400,900),(120,60,90,100) if fmt!='JPEG' else (120,60,90))
+  buffer=io.BytesIO();image.save(buffer,format=fmt);raw=buffer.getvalue()
+  page.locator('#logo-file').set_input_files({'name':'logo.'+fmt.lower(),'mimeType':mime,'buffer':raw})
+  expected='data:'+mime+';base64,'+base64.b64encode(raw).decode()
+  page.wait_for_function('(expected)=>JSON.parse(localStorage.getItem("mongle-price-studio-v2")).brand.logo===expected',arg=expected)
+  assert page.locator('.logo-box img').evaluate('i=>[i.naturalWidth,i.naturalHeight]')==[1400,900]
+  page.reload(wait_until='networkidle');expect(page.locator('#download-mobile')).to_be_enabled()
+  assert data()['brand']['logo']==expected
+  page.locator('#view-canvas').click()
+  expect(page.locator('[data-element="brand:name"]')).to_have_count(0)
+  expect(page.locator('[data-element="brand:logo"]')).to_be_visible()
+  page.locator('#view-form').click();page.locator('[data-tab="brand"]').click()
  assert not errors,errors
  print('PASS restored layout, explicit editing, readable mobile price cards, persistence, styling, section focus, addition, single-sheet A4 PNG equality and 320–1440 layouts')
  browser.close()

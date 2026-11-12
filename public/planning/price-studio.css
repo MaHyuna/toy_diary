@@ -27,3 +27,5 @@
 #editor-validation:not(:empty){margin:12px 14px 0;padding:12px;background:#fff0ed;color:#a34f46;border-radius:12px;font-size:12px;line-height:1.7}
 
 .preview-toolbar{flex-wrap:wrap}.preview-toolbar #preview-format{max-width:180px;min-width:0;font-size:12px;min-height:40px;padding:8px 10px}
+
+.canvas-width-handle{position:absolute;right:-16px;top:50%;transform:translateY(-50%);width:32px;height:40px;min-height:40px;padding:0;border:2px solid #fff;border-radius:10px;background:#79516b;color:white;box-shadow:0 0 0 1px #79516b;pointer-events:auto;touch-action:none;cursor:ew-resize;font-size:18px}.canvas-width-handle:focus-visible{outline:3px solid #d9a134;outline-offset:3px}

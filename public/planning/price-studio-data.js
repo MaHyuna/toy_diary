@@ -11,9 +11,9 @@ export function validateProject(input){
  const p=createDefaultProject(),b=input.brand,d=input.design;
  if(!b||!d)fail('매장 정보나 디자인 정보가 없어요.');
  for(const k of ['name','title','contact','footer'])p.brand[k]=text(b[k],1000);
- p.brand.logo=text(b.logo,2000000);if(b.logo&&!/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(b.logo))fail('백업 로고는 PNG 형식이어야 해요.');
+ p.brand.logo=text(b.logo,2000000);if(b.logo&&!/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(b.logo))fail('백업 로고는 PNG·JPG·WebP 형식이어야 해요.');
  for(const k of Object.keys(p.design.colors))p.design.colors[k]=color(d.colors?.[k]);
- for(const [k,min,max] of [['borderWidth',.5,6],['borderInset',12,40],['headingSize',18,38],['bodySize',11,20],['priceSize',12,22],['gap',10,70],['rowHeight',24,50],['logoSize',40,120]])p.design[k]=num(d[k],min,max);
+ for(const [k,min,max] of [['borderWidth',.5,6],['borderInset',12,40],['headingSize',18,38],['bodySize',11,20],['priceSize',12,22],['gap',10,70],['rowHeight',24,50],['logoSize',40,240]])p.design[k]=num(d[k],min,max);
  for(const [k,values] of [['border',['none','line','double','scallop']],['font',['Jua','sans-serif']],['format',['content','portrait']]]){if(!values.includes(d[k]))fail('지원하지 않는 디자인 옵션이에요.');p.design[k]=d[k];}
  for(const k of ['corners','flowers']){if(typeof d[k]!=='boolean')fail('디자인 옵션이 올바르지 않아요.');p.design[k]=d[k];}
  if(!Array.isArray(input.columns)||input.columns.length<1||input.columns.length>8)fail('서비스 열은 1~8개여야 해요.');
@@ -30,7 +30,7 @@ export function validateProject(input){
   return out;
  });
  if(new Set(p.sections.map(s=>s.id)).size!==p.sections.length)fail('섹션 ID가 중복됐어요.');
- if(input.canvas){const c=input.canvas;p.canvas={transforms:{},styles:{}};for(const [key,v] of Object.entries(c.transforms||{})){if((!/^[a-zA-Z0-9_:-]{1,300}$/.test(key)||!key.startsWith('brand:')&&!key.startsWith('sec:')))fail('캔버스 요소 ID 오류');p.canvas.transforms[key]={x:num(v.x,-3000,6000),y:num(v.y,-6000,6000),scale:num(v.scale,.25,4)};}for(const [key,v] of Object.entries(c.styles||{})){if((!/^[a-zA-Z0-9_:-]{1,300}$/.test(key)||!key.startsWith('brand:')&&!key.startsWith('sec:')))fail('캔버스 스타일 ID 오류');const st={};if(v.color!==undefined)st.color=color(v.color);if(v.fontSize!==undefined)st.fontSize=num(v.fontSize,8,60);for(const k of ['bold','italic','underline'])if(v[k]!==undefined){if(typeof v[k]!=='boolean')fail('글자 스타일 오류');st[k]=v[k];}if(v.align!==undefined){if(!['left','center','right'].includes(v.align))fail('글자 정렬 오류');st.align=v.align;}p.canvas.styles[key]=st;}if(Object.keys(p.canvas.transforms).length>10000||Object.keys(p.canvas.styles).length>10000)fail('캔버스 요소가 너무 많아요.');}
+ if(input.canvas){const c=input.canvas;p.canvas={transforms:{},styles:{}};for(const [key,v] of Object.entries(c.transforms||{})){if((!/^[a-zA-Z0-9_:-]{1,300}$/.test(key)||!key.startsWith('brand:')&&!key.startsWith('sec:')))fail('캔버스 요소 ID 오류');p.canvas.transforms[key]={x:num(v.x,-3000,6000),y:num(v.y,-6000,6000),scale:num(v.scale,.25,4)};}for(const [key,v] of Object.entries(c.styles||{})){if((!/^[a-zA-Z0-9_:-]{1,300}$/.test(key)||!key.startsWith('brand:')&&!key.startsWith('sec:')))fail('캔버스 스타일 ID 오류');const st={};if(v.color!==undefined)st.color=color(v.color);if(v.fontSize!==undefined)st.fontSize=num(v.fontSize,8,60);if(v.width!==undefined)st.width=num(v.width,40,804);for(const k of ['bold','italic','underline'])if(v[k]!==undefined){if(typeof v[k]!=='boolean')fail('글자 스타일 오류');st[k]=v[k];}if(v.align!==undefined){if(!['left','center','right'].includes(v.align))fail('글자 정렬 오류');st.align=v.align;}p.canvas.styles[key]=st;}if(Object.keys(p.canvas.transforms).length>10000||Object.keys(p.canvas.styles).length>10000)fail('캔버스 요소가 너무 많아요.');}
  return p;
 }
 export function moveColumn(p,from,to){if(!Number.isInteger(from)||!Number.isInteger(to)||Math.min(from,to)<0||Math.max(from,to)>=p.columns.length)return;const [c]=p.columns.splice(from,1);p.columns.splice(to,0,c);for(const s of p.sections)if(s.kind==='matrix')for(const r of s.rows){const [v]=r.prices.splice(from,1);r.prices.splice(to,0,v);}}

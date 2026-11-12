@@ -13,6 +13,8 @@ try:
  with sync_playwright() as p:
   b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(viewport={'width':1440,'height':1100},accept_downloads=True);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
   page.goto(base+'/planning/pricelist.html',wait_until='networkidle');expect(page.locator('#download')).to_be_enabled();expect(page.locator('#preview-format')).to_have_value('portrait');expect(page.locator('#output-badge')).to_have_text('A4 · 한 장');expect(page.locator('#render-error')).to_be_empty()
+  fixture=page.evaluate("async()=>{const {createDefaultProject}=await import('./price-studio-defaults.js');return createDefaultProject();}")
+  page.locator('#import').set_input_files({'name':'fixture.json','mimeType':'application/json','buffer':json.dumps(fixture).encode()});page.wait_for_timeout(500)
   original=page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2'))")
   measured=page.evaluate('''async()=>{
    const {renderPoster}=await import('./price-studio-render.js?v=single-a4-11');

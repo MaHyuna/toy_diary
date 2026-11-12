@@ -65,3 +65,48 @@ test('poster renders supplementary items and descriptions saved with a matrix se
  assert.ok(rendered.elements.some(e=>e.binding?.sectionId===section.id&&e.binding?.type==='item'&&e.binding?.key==='value'));
  assert.ok(rendered.elements.some(e=>e.binding?.sectionId===section.id&&e.binding?.type==='price'));
 });
+
+test('blank shop names do not add fallback text or empty header geometry', async()=>{
+ const {renderPoster}=await import('../public/planning/price-studio-render.js');
+ const drawn=[];
+ const ctx=new Proxy({measureText:s=>({width:String(s).length*7}),fillText:s=>drawn.push(s)},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx};
+ const p=createDefaultProject();
+ const named=renderPoster(canvas,p,null);
+ for(const name of ['', '   ']){
+  p.brand.name=name;p.brand.title='';drawn.length=0;
+  const result=renderPoster(canvas,p,null);
+  assert.equal(result.error,'');
+  assert.ok(!drawn.includes('우리 가게'));
+  assert.ok(!result.elements.some(e=>e.id==='brand:name'||e.id==='brand:header'));
+  assert.ok(result.elements.every(e=>[e.x,e.y,e.width,e.height].every(Number.isFinite)));
+  assert.ok(result.requiredHeight<named.requiredHeight);
+  const withLogo=renderPoster(canvas,p,{width:1200,height:800});
+  assert.ok(withLogo.elements.some(e=>e.id==='brand:logo'));
+  assert.ok(!withLogo.elements.some(e=>e.id==='brand:name'));
+ }
+});
+
+test('logo backups preserve original supported image formats and larger display size',()=>{
+ for(const format of ['png','jpeg','webp']){
+  const p=createDefaultProject();p.brand.logo=`data:image/${format};base64,aGVsbG8=`;p.design.logoSize=180;
+  assert.deepEqual(validateProject(p),p);
+ }
+ const p=createDefaultProject();p.brand.logo='data:image/svg+xml;base64,aGVsbG8=';
+ assert.throws(()=>validateProject(p));
+});
+
+test('narrow text boxes reflow and move subsequent sections without changing text',async()=>{
+ const {renderPoster}=await import('../public/planning/price-studio-render.js');
+ const {createLatestProject}=await import('../public/planning/price-studio-latest.js');
+ const p=createLatestProject();assert.doesNotThrow(()=>validateProject(p));
+ assert.deepEqual(p.sections[2].rows[0].prices,['30000','20000','40000','55000','95000','105000']);
+ assert.equal(p.sections[3].items.length,8);
+ const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx};
+ const id='sec:group-0:breeds',before=renderPoster(canvas,p,null);
+ p.canvas={styles:{[id]:{width:160}},transforms:{}};
+ const after=renderPoster(canvas,p,null),box=after.elements.find(e=>e.id===id);
+ assert.equal(box.width,160);assert.ok(box.height>before.elements.find(e=>e.id===id).height);
+ assert.ok(after.elements.find(e=>e.id==='sec:group-1:title').y>before.elements.find(e=>e.id==='sec:group-1:title').y);
+ assert.deepEqual(validateProject(p).canvas,p.canvas);
+ assert.equal(after.error,'');
+});
