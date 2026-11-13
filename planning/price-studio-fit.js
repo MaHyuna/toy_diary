@@ -1,5 +1,5 @@
-import {sectionWidth as getSectionWidth,setSectionWidth,pairedSections,rowMetrics} from './price-studio-layout.js?v=decor-24';
-import {layoutText} from './price-studio-text.js?v=decor-24';
+import {sectionWidth as getSectionWidth,setSectionWidth,pairedSections,rowMetrics} from './price-studio-layout.js?v=decor-25';
+import {layoutText} from './price-studio-text.js?v=decor-25';
 // Grow the frame/section, never alter either cell's typography to force a fit.
 export function fitItemWidth(project,element,ctx){
  const section=project.sections.find(s=>s.id===element.binding.sectionId),item=section?.items?.[element.binding.index];
@@ -11,7 +11,7 @@ export function fitItemWidth(project,element,ctx){
  const labelWidth=Math.max(40,Math.ceil(measure(item.label,ls,d.bodySize,false))),valueWidth=Math.max(64,Math.ceil(measure(item.value||'—',vs,d.priceSize,true)));
  const {padding}=rowMetrics(project),gap=12;let sectionWidth=getSectionWidth(project,section);
  const required=labelWidth+valueWidth+gap+2*padding,oldWidth=sectionWidth;
- if(required>sectionWidth&&section.span==='half'){setSectionWidth(project,section.id,required);sectionWidth=getSectionWidth(project,section);}
+ if(required>sectionWidth&&(section.span==='half'||pairedSections(project,section.id))){setSectionWidth(project,section.id,required);sectionWidth=getSectionWidth(project,section);}
  const expanded=sectionWidth>oldWidth,paired=!!pairedSections(project,section.id);
  const available=sectionWidth-2*padding,width=Math.max(40,Math.min(labelWidth,available-gap-Math.min(valueWidth,available-gap-40)));
  styles[id]={...ls,width};

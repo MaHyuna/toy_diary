@@ -1,4 +1,4 @@
-import {SHAPES,drawShape} from './price-studio-shapes.js?v=decor-24';
+import {SHAPES,drawShape} from './price-studio-shapes.js?v=decor-25';
 export const BORDERS={none:'없음',line:'직선',double:'이중선',rounded:'라운드',scallop:'물결',dashed:'점선',dotted:'도트'};
 export const CORNERS={none:'없음',angle:'ㄱ자 선',round:'둥근 선',doubleAngle:'이중 ㄱ자',step:'계단 선',arc:'원호',flourish:'장식 곡선',...SHAPES};
 export const CORNER_POSITIONS={tl:'왼쪽 위',tr:'오른쪽 위',br:'오른쪽 아래',bl:'왼쪽 아래'};

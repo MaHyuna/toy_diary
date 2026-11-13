@@ -1,0 +1,19 @@
+// Pointer sorting works for both mouse and touch; mutations happen only on drop.
+export function installDragSurface(root,{source,targets,drop,notice,canvas=false}){
+ let drag=null,raf=0,suppress=0;const scroller=canvas?root.closest('.canvas-shell'):root;
+ const indicator=document.createElement('div');indicator.className='editor-drop-indicator';indicator.hidden=true;document.body.append(indicator);
+ const ghost=document.createElement('div');ghost.className='editor-drag-ghost';ghost.hidden=true;document.body.append(ghost);
+ function locate(){if(!drag)return;const list=targets({...drag.data,copy:drag.copy});let best=null,distance=Infinity;for(const item of list){const r=item.getRect?.()||item.node.getBoundingClientRect();if(r.width<1||r.height<1)continue;const dx=Math.max(r.left-drag.x,0,drag.x-r.right),dy=Math.max(r.top-drag.y,0,drag.y-r.bottom),score=dx*dx+dy*dy;if(score<distance){distance=score;best={...item,rect:r};}}
+ const bounds=root.getBoundingClientRect();if(!best||drag.x<bounds.left-20||drag.x>bounds.right+20||drag.y<Math.max(0,bounds.top)-20||drag.y>Math.min(innerHeight,bounds.bottom)+20){drag.target=null;indicator.hidden=true;return;}
+ const r=best.rect,ratio=(drag.y-r.top)/r.height;let position=ratio<.3?'before':'after';if(canvas&&drag.data.kind==='section'&&ratio>=.3&&ratio<=.7)position=drag.x<r.left+r.width/2?'left':'right';
+ drag.target={...best,position};indicator.hidden=false;const horizontal=position==='before'||position==='after';Object.assign(indicator.style,{left:(horizontal?r.left:position==='left'?r.left:r.right)+'px',top:(horizontal?(position==='before'?r.top:r.bottom):r.top)+'px',width:(horizontal?r.width:3)+'px',height:(horizontal?3:r.height)+'px'});ghost.textContent=(drag.copy?'복사 · ':'이동 · ')+(position==='left'||position==='right'?'가로 Row':'세로 Column')+' · '+drag.data.label;
+ }
+ function tick(){if(!drag?.active)return;const r=scroller.getBoundingClientRect();if(drag.y<r.top+30)scroller.scrollTop-=10;else if(drag.y>r.bottom-30)scroller.scrollTop+=10;locate();raf=requestAnimationFrame(tick);}
+ function clear(){cancelAnimationFrame(raf);ghost.hidden=indicator.hidden=true;document.body.classList.remove('editor-dragging');}
+ root.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('input,textarea,select,[data-move]'))return;const data=source(e.target);if(!data)return;drag={pointer:e.pointerId,data,x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,copy:e.altKey||document.body.dataset.dragCopy==='true',active:false,target:null};});
+ root.addEventListener('pointermove',e=>{if(drag?.pointer!==e.pointerId)return;Object.assign(drag,{x:e.clientX,y:e.clientY,copy:e.altKey||drag.copy});if(!drag.active&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>6){drag.active=true;root.setPointerCapture(e.pointerId);ghost.hidden=false;document.body.classList.add('editor-dragging');raf=requestAnimationFrame(tick);}if(drag.active){e.preventDefault();Object.assign(ghost.style,{left:e.clientX+12+'px',top:e.clientY+12+'px'});locate();}});
+ function end(e,cancel=false){if(drag?.pointer!==e.pointerId)return;const old=drag;drag=null;clear();if(root.hasPointerCapture(e.pointerId))root.releasePointerCapture(e.pointerId);if(!old.active)return;suppress=performance.now()+350;if(!cancel&&old.target)try{drop(old.data,old.target,{copy:old.copy});}catch(error){notice(error.message);}}
+ root.addEventListener('pointerup',e=>end(e));root.addEventListener('pointercancel',e=>end(e,true));root.addEventListener('lostpointercapture',e=>{if(e.target===root&&drag?.pointer===e.pointerId&&!root.hasPointerCapture(e.pointerId))end(e,true);});
+ root.addEventListener('click',e=>{if(performance.now()<suppress){e.preventDefault();e.stopImmediatePropagation();}},true);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&drag){drag=null;clear();suppress=performance.now()+350;e.preventDefault();}});
+}
