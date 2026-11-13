@@ -1,3 +1,4 @@
+import {FONT_FILES} from './price-studio-fonts.js?v=decor-25';
 // Record the same drawing operations as the preview, with text converted to paths.
 const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const number=n=>Number(n.toFixed(5));
@@ -10,7 +11,7 @@ export function loadScript(name){
 export function outlineFonts(){
  if(!fontsPromise)fontsPromise=(async()=>{
   await loadScript('opentype.min.js');
-  const entries=await Promise.all([['Jua','Jua-Regular.woff'],['regular','NanumGothic-Regular.ttf'],['bold','NanumGothic-Bold.ttf']].map(async([key,name])=>{
+  const entries=await Promise.all(Object.entries(FONT_FILES).map(async([key,name])=>{
    const response=await fetch(new URL('../fonts/'+name,import.meta.url));if(!response.ok)throw Error('인쇄 글꼴을 읽지 못했어요. 다시 시도해 주세요.');return [key,window.opentype.parse(await response.arrayBuffer())];
   }));return Object.fromEntries(entries);
  })().catch(e=>{fontsPromise=null;throw e;});
@@ -56,7 +57,7 @@ class SVGContext {
  drawImage(image,x,y,width,height){this.emit('image',`x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="none" href="${escape(image.src)}"`);}
  fillText(value,x,y,maxWidth=Infinity){
   const text=String(value).normalize('NFC'),size=Number(this.font.match(/([\d.]+)px/)?.[1])||14;
-  const bold=/^(?:italic )?(600|700|800|900) /.test(this.font),font=this.font.includes('Jua')?this.fonts.Jua:bold?this.fonts.bold:this.fonts.regular;
+  const bold=/^(?:italic )?(600|700|800|900) /.test(this.font),family=this.font.includes('StudioSerif')?'StudioSerif':this.font.includes('StudioHand')?'StudioHand':this.font.includes('Jua')?'Jua':'StudioSans',font=family==='StudioSans'?(bold?this.fonts.bold:this.fonts.regular):family==='StudioSerif'&&bold?this.fonts.StudioSerifBold:this.fonts[family];
   const width=this.measureText(text).width,scale=Math.min(1,maxWidth/(width||1));
   const start=x-(this.textAlign==='center'?width*scale/2:this.textAlign==='right'?width*scale:0);
   let prefix='',path='';
@@ -66,6 +67,6 @@ class SVGContext {
    const advance=this.measureText(prefix).width;path+=glyph.getPath(advance,0,size).toPathData(3);prefix+=ch;
   }
   const matrix=new DOMMatrix().translate(start,y).scale(scale,1);if(this.font.includes('italic'))matrix.skewXSelf(-12);
-  this.emit('path',`d="${path}" fill="${escape(this.fillStyle)}"${bold&&this.font.includes('Jua')?` stroke="${escape(this.fillStyle)}" stroke-width="${size*.025}" paint-order="stroke"`:''}`,matrix);
+  this.emit('path',`d="${path}" fill="${escape(this.fillStyle)}"${bold&&['Jua','StudioHand'].includes(family)?` stroke="${escape(this.fillStyle)}" stroke-width="${size*.025}" paint-order="stroke"`:''}`,matrix);
  }
 }
