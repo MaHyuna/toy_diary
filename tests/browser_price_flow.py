@@ -63,6 +63,16 @@ try:
     assert any(el.attrib.get('data-element')==target_id for el in xml.iter())
     assert not any(el.attrib.get('data-element')=='sec:extras:note' for el in xml.iter())
     assert not any('canvas-row-drop' in str(el.attrib) for el in xml.iter())
+   if width==1440:page.locator('#export-close').click()
+   page.locator(f'[data-element="{target_id}"]').click()
+   page.get_by_role('button',name='↑ 원래 단으로',exact=True).click()
+   page.wait_for_function("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).sections.length===5")
+   assert page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).sections[3].note")==before['sections'][3]['note']
+   page.get_by_role('button',name='↓ 아래 전체 너비로',exact=True).click()
+   page.locator('.canvas-shell').evaluate('(el)=>el.scrollTop=el.scrollHeight')
+   h=page.locator('.canvas-flow-handle').bounding_box();z=page.locator('.canvas-row-drop').bounding_box()
+   page.mouse.move(h['x']+20,h['y']+15);page.mouse.down();page.mouse.move(z['x']+z['width']/2,z['y']+z['height']/2,steps=8);page.mouse.up()
+   page.wait_for_function("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).sections.length===5")
    assert not errors,errors
    page.close()
   browser.close()

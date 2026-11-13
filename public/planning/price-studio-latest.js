@@ -1,5 +1,5 @@
-import {DEFAULT_LOGO} from './price-studio-logo.js?v=decor-23';
-import {createDefaultProject} from './price-studio-defaults.js?v=decor-23';
+import {DEFAULT_LOGO} from './price-studio-logo.js?v=decor-24';
+import {createDefaultProject} from './price-studio-defaults.js?v=decor-24';
 // Transcribed from the owner's 1000025787.png, supplied 2026-11-12.
 export function createLatestProject(){
  const p=createDefaultProject();
