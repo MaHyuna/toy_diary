@@ -1,10 +1,10 @@
-import {rowWidths,sectionWidth} from './price-studio-layout.js?v=decor-22';
-import {drawBorder,drawCorner,cornerGeometry,decorationTargets} from './price-studio-borders.js?v=decor-22';
-import {drawShape} from './price-studio-shapes.js?v=decor-22';
-import {layoutText} from './price-studio-text.js?v=decor-22';
+import {rowWidths,sectionWidth} from './price-studio-layout.js?v=decor-23';
+import {drawBorder,drawCorner,cornerGeometry,decorationTargets} from './price-studio-borders.js?v=decor-23';
+import {drawShape} from './price-studio-shapes.js?v=decor-23';
+import {layoutText} from './price-studio-text.js?v=decor-23';
 export function renderPoster(canvas,p,logo,options={}){
  canvas.lang='ko';
- const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d={...p.design,font:p.design.font==='Jua'?'Jua':'StudioSans'},c=d.colors,ops=[],boxes=[],elements=[],splits=[];let y=d.pageMargin??36,error='';
+ const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d={...p.design,font:p.design.font==='Jua'?'Jua':'StudioSans'},c=d.colors,ops=[],boxes=[],elements=[],splits=[],rowDrops=[];let y=d.pageMargin??36,error='';
  ctx.lang='ko';ctx.fontKerning='none';ctx.textRendering='geometricPrecision';
  const text=(v,x,y,font,color,align='left',width)=>{const op=()=>{const style=p.canvas?.styles?.[op.element]||{},size=style.fontSize||Number(font.match(/([\d.]+)px/)?.[1])||14;ctx.font=`${style.italic?'italic ':''}${style.bold===undefined?(font.startsWith('600')?'600':'400'):style.bold?'700':'400'} ${size}px ${style.fontFamily||(font.includes('Jua')?'Jua':'StudioSans')}`;ctx.letterSpacing=(style.letterSpacing||0)+'px';ctx.fillStyle=style.color||color;ctx.textAlign=style.align||align;let anchor=x;if(style.align&&style.align!==align){const e=elements.find(e=>e.id===op.element);if(e)anchor=style.align==='left'?e.x+(style.padding||0):style.align==='right'?e.x+e.width-(style.padding||0):e.x+e.width/2;}ctx.fillText(v,anchor,y,width||W);const mt=ctx.measureText(v),inkScale=Math.min(1,(width||W)/(mt.width||1)),inkWidth=mt.width*inkScale,left=ctx.textAlign==='center'?anchor-inkWidth/2:ctx.textAlign==='right'?anchor-inkWidth:anchor;op.ink={x:left,y:y-(mt.actualBoundingBoxAscent??size*.8),width:inkWidth,height:(mt.actualBoundingBoxAscent??size*.8)+(mt.actualBoundingBoxDescent??size*.2)+(style.underline?5:0)};if(style.underline){const measured=Math.min(ctx.measureText(v).width,width||W);const left=ctx.textAlign==='center'?anchor-measured/2:ctx.textAlign==='right'?anchor-measured:anchor;ctx.fillRect(left,y+3,measured,Math.max(1,size/16));}};op.textStyle={color,fontSize:Number(font.match(/([\d.]+)px/)?.[1])||14,align};ops.push(op);};
  const tag=(start,id)=>{for(let i=start;i<ops.length;i++){ops[i].owners=[id,...(ops[i].owners||[])];if(!ops[i].element)ops[i].element=id;}};
@@ -43,17 +43,20 @@ export function renderPoster(canvas,p,logo,options={}){
    layout.lines.forEach((v,i)=>text(v,anchor,at+layout.padding+layout.ascent+i*layout.step,layout.font,color,align,layout.inner));
    mark(id,rect(x,at,w,layout.height),binding,begin,label,'text',maxWidth);return at+layout.height;
   };
+  const noteFont=`${d.bodySize-1}px StudioSans`;let inlineNote=false;
+  if(!(s.kind==='text'&&s.hideHeading)){
   if(!s.title.trim())error='섹션 제목을 입력해 주세요.';
   const titleId='sec:'+s.id+':title',headingSize=p.canvas?.styles?.[titleId]?.fontSize||d.headingSize,headingFont=`400 ${headingSize}px ${p.canvas?.styles?.[titleId]?.fontFamily||d.font}`,titleLines=wrap(s.title,Math.min(p.canvas?.styles?.[titleId]?.width||inner,inner),headingFont),titleMetrics=metrics(headingFont,titleLines[0]||'가');
   // Use the actual first line's ink center for the ornament and title baseline.
   flower(x+(d.markerSize||18)/2,yy+(titleMetrics.ascent+titleMetrics.descent)/2);
   const headingTop=yy;
   yy=block(s.title,xx,yy,inner,headingFont,Math.ceil(headingSize*1.22),sc.heading,titleId,{type:'section',sectionId:s.id,key:'title'},s.title+' 제목');
-  const noteFont=`${d.bodySize-1}px StudioSans`,noteText='/ '+s.note;ctx.font=headingFont;ctx.letterSpacing='0px';const headingWidth=ctx.measureText(s.title).width,noteX=xx+headingWidth+18;ctx.font=noteFont;
-  const inlineNote=!p.canvas?.styles?.[titleId]&&!p.canvas?.styles?.['sec:'+s.id+':note']&&s.kind==='matrix'&&!!s.note&&titleLines.length===1&&ctx.measureText(noteText).width<=xx+inner-noteX;
+  const noteText='/ '+s.note;ctx.font=headingFont;ctx.letterSpacing='0px';const headingWidth=ctx.measureText(s.title).width,noteX=xx+headingWidth+18;ctx.font=noteFont;
+  inlineNote=!p.canvas?.styles?.[titleId]&&!p.canvas?.styles?.['sec:'+s.id+':note']&&s.kind==='matrix'&&!!s.note&&titleLines.length===1&&ctx.measureText(noteText).width<=xx+inner-noteX;
   if(inlineNote){const titleBox=elements.find(e=>e.id===titleId);titleBox.width=Math.min(titleBox.width,headingWidth+4);const mt=metrics(noteFont,noteText),noteHeight=mt.ascent+mt.descent,noteTop=headingTop+(titleMetrics.ascent+titleMetrics.descent-noteHeight)/2;yy=Math.max(yy,block(noteText,noteX,noteTop,xx+inner-noteX,noteFont,d.bodySize+4,sc.note,'sec:'+s.id+':note',{type:'section',sectionId:s.id,key:'note'},s.title+' 안내'));}
   yy+=s.breeds?2:8;
   if(s.breeds)yy=block(s.breeds,xx,yy,inner,`${d.bodySize-1}px StudioSans`,d.bodySize+5,sc.body,'sec:'+s.id+':breeds',{type:'section',sectionId:s.id,key:'breeds'},s.title+' 견종 설명');
+  }
   if(s.kind==='matrix'){
    if(p.columns.some(col=>!col.name.trim()))error='서비스 열 이름을 입력해 주세요.';
    if(s.note&&!inlineNote){yy+=3;yy=block(s.note,xx,yy,inner,noteFont,d.bodySize+4,sc.note,'sec:'+s.id+':note',{type:'section',sectionId:s.id,key:'note'},s.title+' 안내');}
@@ -100,8 +103,8 @@ export function renderPoster(canvas,p,logo,options={}){
   const s=visible[i];if(s.span==='half'&&s.kind!=='matrix'&&visible[i+1]?.span==='half'&&visible[i+1].kind!=='matrix'){
    const next=visible[++i],gutter=d.columnGap??24,[leftWidth,rightWidth]=rowWidths(p,s,next),top=y;
    y=Math.max(section(s,m,top,leftWidth),section(next,m+leftWidth+gutter,top,rightWidth));
-   splits.push({leftId:s.id,rightId:next.id,x:m+leftWidth+gutter/2,y:top-8,width:0,height:y-top+8,leftWidth});y+=d.gap;
-  }else{const width=sectionWidth(p,s),x=m+(s.layoutAlign==='right'?B-width:s.layoutAlign==='center'?(B-width)/2:0);y=section(s,x,y,width)+d.gap;}
+   splits.push({leftId:s.id,rightId:next.id,x:m+leftWidth+gutter/2,y:top-8,width:0,height:y-top+8,leftWidth});rowDrops.push({sectionIds:[s.id,next.id],x:m,y:y+d.gap/2-10,width:B,height:20});y+=d.gap;
+  }else{const width=sectionWidth(p,s),x=m+(s.layoutAlign==='right'?B-width:s.layoutAlign==='center'?(B-width)/2:0);y=section(s,x,y,width);rowDrops.push({sectionIds:[s.id],x:m,y:y+d.gap/2-10,width:B,height:20});y+=d.gap;}
  }
  if(visible.length)y+=16-d.gap;
  if(!visible.length)error='표시할 섹션을 하나 이상 선택해 주세요.';
@@ -131,5 +134,5 @@ export function renderPoster(canvas,p,logo,options={}){
  // Editable text boxes include blank space. Test ornaments against the printed ink.
  const occupied=positioned.filter(e=>e.kind==='image');for(const op of ops)if(op.ink){const tr=matrixFor(op.owners||[]),b=op.ink;occupied.push(fitted({x:b.x*tr.scale+tr.dx,y:b.y*tr.scale+tr.dy,width:b.width*tr.scale,height:b.height*tr.scale}));}
  if(d.corners)for(const corner of cornerGeometry(d,W,H)){if(corner.settings.shape==='none')continue;const {x,y,r}=corner;const collision=occupied.some(e=>x+r>e.x&&x-r<e.x+e.width&&y+r>e.y&&y-r<e.y+e.height);if(collision){error=corner.label+' 모서리가 내용과 겹쳐요. 크기나 위치를 조절해 주세요.';continue;}ctx.elementId='corner:'+corner.key;drawCorner(ctx,corner.settings,x,y,corner.angle,c.background);}
- return {error,boxes,elements:positioned,decorations:decorationTargets(d,W,H),splits:splits.map(fitted),width:W,height:Math.min(H,6000),requiredHeight:required,fitScale};
+ return {error,boxes,elements:positioned,decorations:decorationTargets(d,W,H),splits:splits.map(fitted),rowDrops:rowDrops.map(fitted),width:W,height:Math.min(H,6000),requiredHeight:required,fitScale};
 }
