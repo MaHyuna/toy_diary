@@ -67,3 +67,14 @@ body.inspector-open .preview-area{top:0;margin:0}
 .canvas-decoration-hit{position:absolute;min-height:0;padding:0;border:1px solid transparent;border-radius:0;background:transparent;pointer-events:auto;cursor:pointer}
 .canvas-decoration-hit:hover,.canvas-decoration-hit:focus-visible{background:#b67d9712;border-color:#9d6a88;outline:none}
 [data-corner][type=number]{max-width:100px;margin-top:4px}
+
+/* Linked values and four spatially arranged independent radii. */
+.setting-modes{display:flex;gap:6px;margin:8px 0 12px}.setting-modes button{flex:1}.setting-modes [aria-pressed=true]{background:#735566;color:white}
+.radius-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.radius-grid .field{margin:0}.radius-grid input{min-width:0}
+.range-number{display:flex;align-items:center;gap:10px}.range-number input[type=range]{flex:1;min-width:0}.range-number input[type=number]{width:86px;min-width:0}
+.radius-grid .range-number{flex-wrap:wrap;gap:4px}.radius-grid .range-number input[type=range]{flex-basis:100%}.radius-grid .range-number input[type=number]{width:100%}
+.all-corner-inset{background:#f8f2f6;border:1px solid #dfd1db;border-radius:12px;padding:12px;margin:10px 0 14px}.all-corner-inset strong{font-size:13px}.all-corner-inset .hint{margin:7px 0}
+.corner-targets [data-corner-target=all]{flex-basis:100%;font-weight:700}
+
+.canvas-section-divider{position:absolute;pointer-events:auto;touch-action:none;cursor:col-resize;min-height:32px;padding:0;border:0;border-radius:0;background:linear-gradient(to right,transparent calc(50% - .5px),#9d6a8860 calc(50% - .5px),#9d6a8860 calc(50% + .5px),transparent calc(50% + .5px));z-index:3}
+.canvas-section-divider span{position:absolute;top:14px;left:50%;transform:translateX(-50%);border:1px solid #9d6a88;border-radius:8px;padding:5px 2px;background:#fff;color:#735566;font-size:14px;min-width:24px}.canvas-section-divider:hover,.canvas-section-divider:focus-visible{background-color:#b67d9718;outline:1px solid #9d6a88}

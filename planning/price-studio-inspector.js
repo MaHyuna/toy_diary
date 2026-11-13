@@ -1,3 +1,4 @@
+import {pairedSections,rowWidths,rowMetrics,setSectionWidth} from './price-studio-layout.js?v=decor-22';
 // A non-modal inspector: the canvas remains interactive while properties change.
 export function createInspector({getProject,getActive,selectSection,setTab,change,reorder}){
  const $=id=>document.getElementById(id),panel=$('studio-inspector'),editor=document.querySelector('.editor'),editorHome=editor.parentNode,editorNext=editor.nextSibling;
@@ -24,11 +25,13 @@ export function createInspector({getProject,getActive,selectSection,setTab,chang
     const row=document.createElement('div');row.className='layout-row'+(s.id===active?' active':'');row.dataset.section=s.id;
     const handle=document.createElement('button');handle.className='layout-drag';handle.dataset.reorder=s.id;handle.textContent='⠿';handle.setAttribute('aria-label',s.title+' 순서 드래그');handle.title='끌어서 순서 이동';
     const name=document.createElement('button');name.className='layout-select';name.textContent=s.title;name.onclick=()=>{selectSection(s.id);reveal();};
-    const width=document.createElement('select');width.setAttribute('aria-label',s.title+' 레이아웃 너비');width.add(new Option('전체 너비','full'));width.add(new Option('반 너비','half'));width.value=s.span;width.disabled=s.kind==='matrix';width.onchange=()=>{s.span=width.value;change();};
+    const width=document.createElement('select');width.setAttribute('aria-label',s.title+' 레이아웃 너비');width.add(new Option('전체 너비','full'));width.add(new Option('두 열 · 비율','half'));width.value=s.span;width.disabled=s.kind==='matrix';width.onchange=()=>{s.span=width.value;delete s.layoutWidth;change();};
     const before=document.createElement('button'),after=document.createElement('button');before.textContent='↑';after.textContent='↓';before.setAttribute('aria-label',s.title+' 위로 이동');after.setAttribute('aria-label',s.title+' 아래로 이동');before.disabled=i===0;after.disabled=i===p.sections.length-1;before.onclick=()=>reorder(i,i-1);after.onclick=()=>reorder(i,i+1);
     row.append(handle,name,width,before,after);$('layout-list').append(row);
    });
    const visible=p.sections.filter(s=>s.visible),pairedIds=new Set();for(let i=0;i<visible.length-1;i++)if(visible[i].span==='half'&&visible[i+1].span==='half'&&visible[i].kind!=='matrix'&&visible[i+1].kind!=='matrix'){pairedIds.add(visible[i].id);pairedIds.add(visible[++i].id);}const s=p.sections.find(s=>s.id===active),paired=pairedIds.has(s?.id);
+   const pair=s&&pairedSections(p,s.id);$('section-ratio-settings').hidden=!pair;
+   if(pair){const widths=rowWidths(p,...pair),index=pair[0].id===s.id?0:1,m=rowMetrics(p),percent=widths[index]/m.available*100;for(const id of ['section-ratio','section-ratio-number']){const input=$(id);input.min=String(Math.ceil(m.min/m.available*1000)/10);input.max=String(Math.floor((m.available-m.min)/m.available*1000)/10);if(input!==document.activeElement)input.value=String(Math.round(percent*10)/10);}$('section-ratio-summary').textContent=s.title+' '+Math.round(percent)+'% · '+pair[1-index].title+' '+Math.round(100-percent)+'%'+(s.layoutWidth===undefined?' · 선택한 섹션이 남은 공간을 채워요.':' · 옆 섹션이 남은 공간을 채워요.');}
    $('layout-active-name').textContent=s?.title||'섹션을 선택해 주세요';
    $('section-position').disabled=!s||s.span!=='half'||paired;$('section-position').value=s?.layoutAlign||'left';
   }
@@ -39,8 +42,11 @@ export function createInspector({getProject,getActive,selectSection,setTab,chang
  $('inspector-close').onclick=close;
  panel.querySelectorAll('[data-inspector-tab]').forEach(button=>button.onclick=()=>open(button.dataset.inspectorTab));
  document.querySelectorAll('[data-open-inspector]').forEach(button=>button.onclick=()=>toggle(button.dataset.openInspector));
+ for(const id of ['section-ratio','section-ratio-number'])$(id).oninput=ev=>{const el=ev.target;if(el.value===''||!el.validity.valid)return;const p=getProject();setSectionWidth(p,getActive(),rowMetrics(p).available*Number(el.value)/100);change(false);};
+ $('section-fill').onclick=()=>{const p=getProject(),pair=pairedSections(p,getActive());if(!pair)return;const widths=rowWidths(p,...pair),index=pair[0].id===getActive()?0:1;pair[1-index].layoutWidth=widths[1-index];delete pair[index].layoutWidth;change(false);};
+ $('section-equal').onclick=()=>{const pair=pairedSections(getProject(),getActive());if(pair){pair.forEach(s=>delete s.layoutWidth);change(false);}};
  $('section-position').onchange=()=>{const s=getProject().sections.find(s=>s.id===getActive());if(s){s.layoutAlign=$('section-position').value;change();}};
- for(const button of panel.querySelectorAll('[data-layout-preset]'))button.onclick=()=>{for(const s of getProject().sections)s.span=button.dataset.layoutPreset==='columns'&&s.kind!=='matrix'?'half':'full';change();};
+ for(const button of panel.querySelectorAll('[data-layout-preset]'))button.onclick=()=>{for(const s of getProject().sections){s.span=button.dataset.layoutPreset==='columns'&&s.kind!=='matrix'?'half':'full';delete s.layoutWidth;}change();};
  $('layout-even-gaps').onclick=()=>{getProject().design.gap=24;getProject().design.columnGap=24;change();};
  // Stable pointer capture supports touch reordering without rebuilding the list mid-drag.
  panel.addEventListener('pointerdown',ev=>{const handle=ev.target.closest('[data-reorder]');if(!handle)return;ev.preventDefault();drag={pointer:ev.pointerId,id:handle.dataset.reorder,to:null};panel.setPointerCapture(ev.pointerId);handle.closest('.layout-row').classList.add('dragging');});

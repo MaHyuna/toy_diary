@@ -1,9 +1,10 @@
-import {drawBorder,drawCorner,cornerGeometry,decorationTargets} from './price-studio-borders.js?v=decor-21';
-import {drawShape} from './price-studio-shapes.js?v=decor-21';
-import {layoutText} from './price-studio-text.js?v=decor-21';
+import {rowWidths,sectionWidth} from './price-studio-layout.js?v=decor-22';
+import {drawBorder,drawCorner,cornerGeometry,decorationTargets} from './price-studio-borders.js?v=decor-22';
+import {drawShape} from './price-studio-shapes.js?v=decor-22';
+import {layoutText} from './price-studio-text.js?v=decor-22';
 export function renderPoster(canvas,p,logo,options={}){
  canvas.lang='ko';
- const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d={...p.design,font:p.design.font==='Jua'?'Jua':'StudioSans'},c=d.colors,ops=[],boxes=[],elements=[];let y=d.pageMargin??36,error='';
+ const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d={...p.design,font:p.design.font==='Jua'?'Jua':'StudioSans'},c=d.colors,ops=[],boxes=[],elements=[],splits=[];let y=d.pageMargin??36,error='';
  ctx.lang='ko';ctx.fontKerning='none';ctx.textRendering='geometricPrecision';
  const text=(v,x,y,font,color,align='left',width)=>{const op=()=>{const style=p.canvas?.styles?.[op.element]||{},size=style.fontSize||Number(font.match(/([\d.]+)px/)?.[1])||14;ctx.font=`${style.italic?'italic ':''}${style.bold===undefined?(font.startsWith('600')?'600':'400'):style.bold?'700':'400'} ${size}px ${style.fontFamily||(font.includes('Jua')?'Jua':'StudioSans')}`;ctx.letterSpacing=(style.letterSpacing||0)+'px';ctx.fillStyle=style.color||color;ctx.textAlign=style.align||align;let anchor=x;if(style.align&&style.align!==align){const e=elements.find(e=>e.id===op.element);if(e)anchor=style.align==='left'?e.x+(style.padding||0):style.align==='right'?e.x+e.width-(style.padding||0):e.x+e.width/2;}ctx.fillText(v,anchor,y,width||W);const mt=ctx.measureText(v),inkScale=Math.min(1,(width||W)/(mt.width||1)),inkWidth=mt.width*inkScale,left=ctx.textAlign==='center'?anchor-inkWidth/2:ctx.textAlign==='right'?anchor-inkWidth:anchor;op.ink={x:left,y:y-(mt.actualBoundingBoxAscent??size*.8),width:inkWidth,height:(mt.actualBoundingBoxAscent??size*.8)+(mt.actualBoundingBoxDescent??size*.2)+(style.underline?5:0)};if(style.underline){const measured=Math.min(ctx.measureText(v).width,width||W);const left=ctx.textAlign==='center'?anchor-measured/2:ctx.textAlign==='right'?anchor-measured:anchor;ctx.fillRect(left,y+3,measured,Math.max(1,size/16));}};op.textStyle={color,fontSize:Number(font.match(/([\d.]+)px/)?.[1])||14,align};ops.push(op);};
  const tag=(start,id)=>{for(let i=start;i<ops.length;i++){ops[i].owners=[id,...(ops[i].owners||[])];if(!ops[i].element)ops[i].element=id;}};
@@ -82,12 +83,6 @@ export function renderPoster(canvas,p,logo,options={}){
     const font=(size,st,bold=false)=>`${st.italic?'italic ':''}${st.bold===undefined?(bold?'600':'400'):st.bold?'700':'400'} ${size}px ${st.fontFamily||'StudioSans'}`;
     let labelFont=font(labelSize,ls),priceFont=font(priceSize,vs,true);
     ctx.font=labelFont;ctx.letterSpacing=(ls.letterSpacing||0)+'px';let labelNatural=ctx.measureText(item.label).width+2;ctx.font=priceFont;ctx.letterSpacing=(vs.letterSpacing||0)+'px';let valueNatural=ctx.measureText(item.value||'—').width+4;
-    // Keep ordinary compound labels and amounts on one line when a small,
-    // proportional font adjustment is enough. Explicit font settings win.
-    if(!ls.padding&&!vs.padding&&!ls.letterSpacing&&!vs.letterSpacing&&!ls.lineHeight&&!vs.lineHeight&&!ls.width&&!ls.fontSize&&!vs.fontSize&&!item.label.includes('\n')&&!item.value.includes('\n')){
-     const fit=Math.min(1,(inner-gap)/(labelNatural+valueNatural));
-     if(labelSize*fit>=11&&priceSize*fit>=11){labelSize*=fit;priceSize*=fit;labelFont=font(labelSize,ls);priceFont=font(priceSize,vs,true);ctx.font=labelFont;labelNatural=ctx.measureText(item.label).width+2;ctx.font=priceFont;valueNatural=ctx.measureText(item.value||'—').width+4;}
-    }
     const nameWidth=ls.width?Math.max(40,Math.min(ls.width,maxNameWidth)):Math.max(40,inner-Math.min(inner*.55,Math.max(64,valueNatural))-gap),valueWidth=inner-nameWidth-gap;
     const labelLayout=layoutText(ctx,item.label,nameWidth,labelFont,labelSize+5,ls),valueLayout=layoutText(ctx,item.value||'—',valueWidth,priceFont,priceSize+4,vs),rh=Math.max(30,labelLayout.height+12,valueLayout.height+12);
     let begin=ops.length,l=labelLayout;l.lines.forEach((v,i)=>text(v,xx+l.padding,yy+(rh-l.height)/2+l.padding+(l.step-l.ascent-l.descent)/2+l.ascent+i*l.step,l.font,sc.body,'left',l.inner));mark(labelId,rect(xx,yy,nameWidth,rh),{type:'item',sectionId:s.id,index,key:'label'},begin,item.label+' 항목','text',maxNameWidth);
@@ -101,7 +96,13 @@ export function renderPoster(canvas,p,logo,options={}){
   ops.splice(start,0,()=>{if(style.background){ctx.fillStyle=style.background;ctx.fillRect(x,top-8,width,h+8);}if(style.border&&style.border!=='none'){ctx.save();ctx.strokeStyle=sc.line;ctx.lineWidth=style.borderWidth||1;if(style.border==='dashed')ctx.setLineDash([5,4]);ctx.strokeRect(x,top-8,width,h+8);ctx.restore();}});
   mark('sec:'+s.id,rect(x,top-8,width,h+8),{type:'sectionGroup',sectionId:s.id},start,s.title+' 섹션','group');boxes.push({id:s.id,x,y:top-8,width,height:h+8});return yy;
  }
- const visible=p.sections.filter(s=>s.visible);for(let i=0;i<visible.length;i++){const s=visible[i];if(s.span==='half'&&s.kind!=='matrix'&&visible[i+1]?.span==='half'&&visible[i+1].kind!=='matrix'){const gutter=d.columnGap??24,width=(B-gutter)/2;y=Math.max(section(s,m,y,width),section(visible[++i],m+width+gutter,y,width))+d.gap;}else{const width=s.span==='half'&&s.kind!=='matrix'?(B-(d.columnGap??24))/2:B;const x=m+(s.layoutAlign==='right'?B-width:s.layoutAlign==='center'?(B-width)/2:0);y=section(s,x,y,width)+d.gap;}}
+ const visible=p.sections.filter(s=>s.visible);for(let i=0;i<visible.length;i++){
+  const s=visible[i];if(s.span==='half'&&s.kind!=='matrix'&&visible[i+1]?.span==='half'&&visible[i+1].kind!=='matrix'){
+   const next=visible[++i],gutter=d.columnGap??24,[leftWidth,rightWidth]=rowWidths(p,s,next),top=y;
+   y=Math.max(section(s,m,top,leftWidth),section(next,m+leftWidth+gutter,top,rightWidth));
+   splits.push({leftId:s.id,rightId:next.id,x:m+leftWidth+gutter/2,y:top-8,width:0,height:y-top+8,leftWidth});y+=d.gap;
+  }else{const width=sectionWidth(p,s),x=m+(s.layoutAlign==='right'?B-width:s.layoutAlign==='center'?(B-width)/2:0);y=section(s,x,y,width)+d.gap;}
+ }
  if(visible.length)y+=16-d.gap;
  if(!visible.length)error='표시할 섹션을 하나 이상 선택해 주세요.';
  const footerStart=ops.length,footerElementStart=elements.length;
@@ -130,5 +131,5 @@ export function renderPoster(canvas,p,logo,options={}){
  // Editable text boxes include blank space. Test ornaments against the printed ink.
  const occupied=positioned.filter(e=>e.kind==='image');for(const op of ops)if(op.ink){const tr=matrixFor(op.owners||[]),b=op.ink;occupied.push(fitted({x:b.x*tr.scale+tr.dx,y:b.y*tr.scale+tr.dy,width:b.width*tr.scale,height:b.height*tr.scale}));}
  if(d.corners)for(const corner of cornerGeometry(d,W,H)){if(corner.settings.shape==='none')continue;const {x,y,r}=corner;const collision=occupied.some(e=>x+r>e.x&&x-r<e.x+e.width&&y+r>e.y&&y-r<e.y+e.height);if(collision){error=corner.label+' 모서리가 내용과 겹쳐요. 크기나 위치를 조절해 주세요.';continue;}ctx.elementId='corner:'+corner.key;drawCorner(ctx,corner.settings,x,y,corner.angle,c.background);}
- return {error,boxes,elements:positioned,decorations:decorationTargets(d,W,H),width:W,height:Math.min(H,6000),requiredHeight:required,fitScale};
+ return {error,boxes,elements:positioned,decorations:decorationTargets(d,W,H),splits:splits.map(fitted),width:W,height:Math.min(H,6000),requiredHeight:required,fitScale};
 }
