@@ -1,10 +1,10 @@
-import {drawShape} from './price-studio-shapes.js?v=print-17';
-import {layoutText} from './price-studio-text.js?v=print-17';
+import {drawShape} from './price-studio-shapes.js?v=workspace-18';
+import {layoutText} from './price-studio-text.js?v=workspace-18';
 export function renderPoster(canvas,p,logo,options={}){
  canvas.lang='ko';
  const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d={...p.design,font:p.design.font==='Jua'?'Jua':'StudioSans'},c=d.colors,ops=[],boxes=[],elements=[];let y=d.pageMargin??36,error='';
  ctx.lang='ko';ctx.fontKerning='none';ctx.textRendering='geometricPrecision';
- const text=(v,x,y,font,color,align='left',width)=>{const op=()=>{const style=p.canvas?.styles?.[op.element]||{},size=style.fontSize||Number(font.match(/([\d.]+)px/)?.[1])||14;ctx.font=`${style.italic?'italic ':''}${style.bold===undefined?(font.startsWith('600')?'600':'400'):style.bold?'700':'400'} ${size}px ${font.includes('Jua')?'Jua':'StudioSans'}`;ctx.letterSpacing=(style.letterSpacing||0)+'px';ctx.fillStyle=style.color||color;ctx.textAlign=style.align||align;let anchor=x;if(style.align&&style.align!==align){const e=elements.find(e=>e.id===op.element);if(e)anchor=style.align==='left'?e.x+(style.padding||0):style.align==='right'?e.x+e.width-(style.padding||0):e.x+e.width/2;}ctx.fillText(v,anchor,y,width||W);if(style.underline){const measured=Math.min(ctx.measureText(v).width,width||W);const left=ctx.textAlign==='center'?anchor-measured/2:ctx.textAlign==='right'?anchor-measured:anchor;ctx.fillRect(left,y+3,measured,Math.max(1,size/16));}};op.textStyle={color,fontSize:Number(font.match(/([\d.]+)px/)?.[1])||14,align};ops.push(op);};
+ const text=(v,x,y,font,color,align='left',width)=>{const op=()=>{const style=p.canvas?.styles?.[op.element]||{},size=style.fontSize||Number(font.match(/([\d.]+)px/)?.[1])||14;ctx.font=`${style.italic?'italic ':''}${style.bold===undefined?(font.startsWith('600')?'600':'400'):style.bold?'700':'400'} ${size}px ${style.fontFamily||(font.includes('Jua')?'Jua':'StudioSans')}`;ctx.letterSpacing=(style.letterSpacing||0)+'px';ctx.fillStyle=style.color||color;ctx.textAlign=style.align||align;let anchor=x;if(style.align&&style.align!==align){const e=elements.find(e=>e.id===op.element);if(e)anchor=style.align==='left'?e.x+(style.padding||0):style.align==='right'?e.x+e.width-(style.padding||0):e.x+e.width/2;}ctx.fillText(v,anchor,y,width||W);if(style.underline){const measured=Math.min(ctx.measureText(v).width,width||W);const left=ctx.textAlign==='center'?anchor-measured/2:ctx.textAlign==='right'?anchor-measured:anchor;ctx.fillRect(left,y+3,measured,Math.max(1,size/16));}};op.textStyle={color,fontSize:Number(font.match(/([\d.]+)px/)?.[1])||14,align};ops.push(op);};
  const tag=(start,id)=>{for(let i=start;i<ops.length;i++){ops[i].owners=[id,...(ops[i].owners||[])];if(!ops[i].element)ops[i].element=id;}};
  const mark=(id,rect,binding,start,label,kind='text',maxWidth)=>{tag(start,id);const resizable=kind==='text'&&(binding.type==='section'||binding.type==='brand'||binding.type==='item'&&binding.key==='label');elements.push({id,...rect,binding,label,kind,resizable,maxWidth:maxWidth||rect.width});};
  const rect=(x,y,width,height)=>({x,y,width,height});
@@ -21,7 +21,7 @@ export function renderPoster(canvas,p,logo,options={}){
   for(let i=1;i<result.length;i++)if(/^[)\]}〉》.,:;!?%]+$/.test(result[i].trim())){const tail=result[i-1].match(/\S+$/)?.[0]||'';if(tail&&ctx.measureText(tail+result[i]).width<=width){result[i-1]=result[i-1].slice(0,-tail.length).trimEnd();result[i]=tail+result[i];}}
   return result.filter(Boolean);
  };
- const brandBlock=(key,top,font,step,color,align='center')=>{const id='brand:'+key,st=p.canvas?.styles?.[id]||{},w=Math.min(st.width||B,B),x=align==='center'?(W-w)/2:m,begin=ops.length,l=layoutText(ctx,p.brand[key],w,font,step,st);l.lines.forEach((v,i)=>text(v,align==='center'?x+w/2:x+l.padding,top+l.padding+l.ascent+i*l.step,l.font,color,align,l.inner));mark(id,rect(x,top,w,l.height),{type:'brand',key},begin,{name:'매장 이름',title:'요금표 제목',footer:'하단 안내',contact:'매장 연락처'}[key],'text',B);return top+l.height;};
+ const brandBlock=(key,top,font,step,color,align='center')=>{const id='brand:'+key,st=p.canvas?.styles?.[id]||{},w=Math.min(st.width||B,B),boxAlign=st.boxAlign||align,x=m+(boxAlign==='center'?(B-w)/2:boxAlign==='right'?B-w:0),begin=ops.length,l=layoutText(ctx,p.brand[key],w,font,step,st);l.lines.forEach((v,i)=>text(v,align==='center'?x+w/2:x+l.padding,top+l.padding+l.ascent+i*l.step,l.font,color,align,l.inner));mark(id,rect(x,top,w,l.height),{type:'brand',key},begin,{name:'매장 이름',title:'요금표 제목',footer:'하단 안내',contact:'매장 연락처'}[key],'text',B);return top+l.height;};
  const brandWidth=id=>Math.min(p.canvas?.styles?.[id]?.width||B,B);
  const line=(x,y,w,color,width=1)=>ops.push(()=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.stroke();});
  const flower=(x,y)=>{if(d.flowers)ops.push(()=>drawShape(ctx,d.markerShape||'flower',x,y,d.markerSize||18,c.decoration,c.background));};
@@ -35,13 +35,14 @@ export function renderPoster(canvas,p,logo,options={}){
   const pad=Math.max(d.sectionPadding??24,d.flowers?(d.markerSize||18)+6:0),inner=width-pad*2,xx=x+pad;let yy=top;
   const block=(value,left,at,w,font,step,color,id,binding,label,align='left')=>{
    const begin=ops.length,maxWidth=w,st=p.canvas?.styles?.[id]||{};w=Math.min(st.width||w,w);
-   const layout=layoutText(ctx,value,w,font,step,st),x=align==='right'?left-w:align==='center'?left-w/2:left;
+   const areaX=align==='right'?left-maxWidth:align==='center'?left-maxWidth/2:left,boxAlign=st.boxAlign||align;
+   const layout=layoutText(ctx,value,w,font,step,st),x=areaX+(boxAlign==='right'?maxWidth-w:boxAlign==='center'?(maxWidth-w)/2:0);
    const anchor=align==='right'?x+w-layout.padding:align==='center'?x+w/2:x+layout.padding;
    layout.lines.forEach((v,i)=>text(v,anchor,at+layout.padding+layout.ascent+i*layout.step,layout.font,color,align,layout.inner));
    mark(id,rect(x,at,w,layout.height),binding,begin,label,'text',maxWidth);return at+layout.height;
   };
   if(!s.title.trim())error='섹션 제목을 입력해 주세요.';
-  const titleId='sec:'+s.id+':title',headingSize=p.canvas?.styles?.[titleId]?.fontSize||d.headingSize,headingFont=`400 ${headingSize}px ${d.font}`,titleLines=wrap(s.title,Math.min(p.canvas?.styles?.[titleId]?.width||inner,inner),headingFont),titleMetrics=metrics(headingFont,titleLines[0]||'가');
+  const titleId='sec:'+s.id+':title',headingSize=p.canvas?.styles?.[titleId]?.fontSize||d.headingSize,headingFont=`400 ${headingSize}px ${p.canvas?.styles?.[titleId]?.fontFamily||d.font}`,titleLines=wrap(s.title,Math.min(p.canvas?.styles?.[titleId]?.width||inner,inner),headingFont),titleMetrics=metrics(headingFont,titleLines[0]||'가');
   // Use the actual first line's ink center for the ornament and title baseline.
   flower(x+(d.markerSize||18)/2,yy+(titleMetrics.ascent+titleMetrics.descent)/2);
   const headingTop=yy;
@@ -77,7 +78,7 @@ export function renderPoster(canvas,p,logo,options={}){
     const index=localIndex+(s._itemOffset||0),labelId='sec:'+s.id+':item:'+index+':label',valueId='sec:'+s.id+':item:'+index+':value';
     const ls=p.canvas?.styles?.[labelId]||{},vs=p.canvas?.styles?.[valueId]||{},gap=12,maxNameWidth=inner-64-gap;
     let labelSize=ls.fontSize||d.bodySize,priceSize=vs.fontSize||d.priceSize;
-    const font=(size,st,bold=false)=>`${st.italic?'italic ':''}${st.bold===undefined?(bold?'600':'400'):st.bold?'700':'400'} ${size}px StudioSans`;
+    const font=(size,st,bold=false)=>`${st.italic?'italic ':''}${st.bold===undefined?(bold?'600':'400'):st.bold?'700':'400'} ${size}px ${st.fontFamily||'StudioSans'}`;
     let labelFont=font(labelSize,ls),priceFont=font(priceSize,vs,true);
     ctx.font=labelFont;ctx.letterSpacing=(ls.letterSpacing||0)+'px';let labelNatural=ctx.measureText(item.label).width+2;ctx.font=priceFont;ctx.letterSpacing=(vs.letterSpacing||0)+'px';let valueNatural=ctx.measureText(item.value||'—').width+4;
     // Keep ordinary compound labels and amounts on one line when a small,
@@ -99,7 +100,7 @@ export function renderPoster(canvas,p,logo,options={}){
   ops.splice(start,0,()=>{if(style.background){ctx.fillStyle=style.background;ctx.fillRect(x,top-8,width,h+8);}if(style.border&&style.border!=='none'){ctx.save();ctx.strokeStyle=sc.line;ctx.lineWidth=style.borderWidth||1;if(style.border==='dashed')ctx.setLineDash([5,4]);ctx.strokeRect(x,top-8,width,h+8);ctx.restore();}});
   mark('sec:'+s.id,rect(x,top-8,width,h+8),{type:'sectionGroup',sectionId:s.id},start,s.title+' 섹션','group');boxes.push({id:s.id,x,y:top-8,width,height:h+8});return yy;
  }
- const visible=p.sections.filter(s=>s.visible);for(let i=0;i<visible.length;i++){const s=visible[i];if(s.span==='half'&&s.kind!=='matrix'&&visible[i+1]?.span==='half'&&visible[i+1].kind!=='matrix'){const gutter=d.columnGap??24,width=(B-gutter)/2;y=Math.max(section(s,m,y,width),section(visible[++i],m+width+gutter,y,width))+d.gap;}else y=section(s,m,y,B)+d.gap;}
+ const visible=p.sections.filter(s=>s.visible);for(let i=0;i<visible.length;i++){const s=visible[i];if(s.span==='half'&&s.kind!=='matrix'&&visible[i+1]?.span==='half'&&visible[i+1].kind!=='matrix'){const gutter=d.columnGap??24,width=(B-gutter)/2;y=Math.max(section(s,m,y,width),section(visible[++i],m+width+gutter,y,width))+d.gap;}else{const width=s.span==='half'&&s.kind!=='matrix'?(B-(d.columnGap??24))/2:B;const x=m+(s.layoutAlign==='right'?B-width:s.layoutAlign==='center'?(B-width)/2:0);y=section(s,x,y,width)+d.gap;}}
  if(visible.length)y+=16-d.gap;
  if(!visible.length)error='표시할 섹션을 하나 이상 선택해 주세요.';
  const footerStart=ops.length,footerElementStart=elements.length;
