@@ -1,4 +1,4 @@
-import {FONT_FILES} from './price-studio-fonts.js?v=decor-25';
+import {FONT_FILES} from './price-studio-fonts.js?v=decor-26';
 // Record the same drawing operations as the preview, with text converted to paths.
 const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const number=n=>Number(n.toFixed(5));

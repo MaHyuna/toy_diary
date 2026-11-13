@@ -1,4 +1,4 @@
-import {pairedSections} from './price-studio-layout.js?v=decor-25';
+import {pairedSections} from './price-studio-layout.js?v=decor-26';
 export function canMoveTextBelow(project,element){const b=element?.binding,s=project.sections.find(s=>s.id===b?.sectionId);return !!(b?.type==='section'&&['note','content'].includes(b.key)&&s&&s.kind!=='text'&&s[b.key]?.trim());}
 // Split a text block into an independent full-width section after its current row.
 export function moveTextBelow(project,element,id=crypto.randomUUID()){

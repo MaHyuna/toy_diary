@@ -1,4 +1,4 @@
-import {canMoveTextBelow,moveTextBelow,returnDestination,returnTextToColumn} from './price-studio-flow.js?v=decor-25';
+import {canMoveTextBelow,moveTextBelow,returnDestination,returnTextToColumn} from './price-studio-flow.js?v=decor-26';
 export function createFlowDrag({stage,overlay,getProject,getResult,change,select,finish,notice}){
  let current=null,drag=null,raf=0,suppressUntil=0;
  const shell=stage.closest('.canvas-shell'),actions=document.getElementById('selection-actions');

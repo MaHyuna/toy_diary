@@ -10,3 +10,21 @@
 
 .layers-backdrop{display:none}#canvas-layers{display:none}.property-launchers [aria-pressed=true]{background:#735566;color:white}
 @media(max-width:740px){#canvas-layers{display:inline-flex}.property-launchers{overflow-x:auto;scrollbar-width:thin;flex-wrap:nowrap}.property-launchers button{flex:0 0 auto;min-width:45px}.property-launchers .icon-label{flex-direction:column;gap:1px;font-size:10px;min-height:34px;padding:2px 5px}.layers-open .layers-backdrop{display:block;position:fixed;inset:0;background:#21172155;z-index:64}.layers-open main .layers{display:block!important;position:fixed;inset:0 auto 0 0;z-index:65;width:min(290px,85vw);max-height:100dvh;overflow:auto;border-radius:0;box-shadow:4px 0 24px #0003}.layers-open .layers-heading{position:sticky;top:0;background:white;z-index:2}.layers-open .layers-heading button{min-width:32px;min-height:32px}}
+/* Explicit workspace slots prevent a hidden layers panel from capturing canvas space. */
+@media(min-width:741px){
+ main[data-view=canvas]{width:100%;max-width:1920px;grid-template-areas:"layers canvas";grid-template-columns:var(--layers-width,190px) minmax(0,1fr)}
+ main[data-view=canvas]>.layers{grid-area:layers}
+ main[data-view=canvas]>.preview-area{grid-area:canvas;min-width:0;width:100%;max-width:none}
+ body.layers-collapsed main[data-view=canvas]{grid-template-columns:36px minmax(0,1fr)}
+ body.inspector-open main[data-view=canvas]{grid-template-columns:var(--layers-width,190px) minmax(0,1fr);padding-right:396px}
+ body.layers-collapsed.inspector-open main[data-view=canvas]{grid-template-columns:36px minmax(0,1fr)}
+ .preview-toolbar{flex-wrap:wrap}.preview-toolbar select{min-width:0}
+ .property-launchers{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}.property-launchers .icon-label{flex:0 0 auto;white-space:nowrap}
+ .icon-label span{white-space:nowrap}.inspector-tabs .icon-label{min-width:0;flex-direction:column;gap:2px}
+}
+@media(min-width:741px) and (max-width:1100px){
+ body.inspector-open main[data-view=canvas],body.layers-collapsed.inspector-open main[data-view=canvas]{grid-template-areas:"canvas";grid-template-columns:minmax(0,1fr);padding-left:12px;padding-right:396px}
+ body.inspector-open main[data-view=canvas]>.layers{display:none}
+ body.inspector-open .property-launchers .icon-label{min-width:30px;padding:5px}
+ body.inspector-open .property-launchers .icon-label span{display:none}
+}
