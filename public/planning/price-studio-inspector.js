@@ -1,4 +1,4 @@
-import {pairedSections,rowWidths,rowMetrics,setSectionWidth} from './price-studio-layout.js?v=decor-22';
+import {pairedSections,rowWidths,rowMetrics,setSectionWidth} from './price-studio-layout.js?v=decor-23';
 // A non-modal inspector: the canvas remains interactive while properties change.
 export function createInspector({getProject,getActive,selectSection,setTab,change,reorder}){
  const $=id=>document.getElementById(id),panel=$('studio-inspector'),editor=document.querySelector('.editor'),editorHome=editor.parentNode,editorNext=editor.nextSibling;

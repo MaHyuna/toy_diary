@@ -1,6 +1,6 @@
-import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-22';
-import {validatePrint} from './price-studio-print.js?v=decor-22';
-import {SHAPES} from './price-studio-shapes.js?v=decor-22';
+import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-23';
+import {validatePrint} from './price-studio-print.js?v=decor-23';
+import {SHAPES} from './price-studio-shapes.js?v=decor-23';
 import {createDefaultProject} from './price-studio-defaults.js';
 export {createDefaultProject};
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -38,6 +38,7 @@ export function validateProject(input){
  p.sections=input.sections.map(s=>{
   if(!['matrix','list','text'].includes(s.kind)||!['full','half'].includes(s.span)||typeof s.visible!=='boolean')fail('섹션 형식을 확인해 주세요.');
   const out={id:id(s.id),kind:s.kind,title:text(s.title,100),breeds:text(s.breeds),note:text(s.note,3000),span:s.kind==='matrix'?'full':s.span,visible:s.visible,style:{}};
+  if(s.hideHeading!==undefined){if(typeof s.hideHeading!=='boolean'||s.kind!=='text')fail('섹션 제목 표시 오류');out.hideHeading=s.hideHeading;}
   if(s.layoutWidth!==undefined)out.layoutWidth=num(s.layoutWidth,120,900);
   if(s.layoutAlign!==undefined){if(!['left','center','right'].includes(s.layoutAlign))fail('섹션 정렬 오류');out.layoutAlign=s.layoutAlign;}
   for(const [k,v] of Object.entries(s.style||{})){if(['heading','body','price','note','line','background','tableHeader'].includes(k))out.style[k]=color(v);else if(k==='border'){if(!['none','line','dashed'].includes(v))fail('섹션 테두리 형식 오류');out.style.border=v;}else if(k==='borderWidth')out.style.borderWidth=num(v,.5,6);else fail('지원하지 않는 섹션 스타일이에요.');}
