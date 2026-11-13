@@ -17,6 +17,16 @@ try:
    page=browser.new_page(viewport={'width':width,'height':1000},is_mobile=width==390,has_touch=width==390);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
    page.goto(os.environ.get('PRICE_STUDIO_URL',f'http://127.0.0.1:{server.server_port}/planning/pricelist.html'),wait_until='networkidle')
    expect(page.locator('#download-mobile' if width==390 else '#download')).to_be_enabled()
+   if width==1440:
+    page.locator('[data-branch="extras"] > summary').click(position={'x':5,'y':15})
+    page.locator('[data-tree-element="sec:extras:note"]').click()
+    expect(page.locator('[data-element="sec:extras:note"]')).to_have_attribute('aria-pressed','true')
+    assert page.locator('[data-branch="extras"]').get_attribute('open') is not None
+    page.locator('#layers-width').fill('160')
+    assert page.locator('.layers').bounding_box()['width']<=161
+    page.locator('#layers-collapse').click()
+    expect(page.locator('#section-list')).to_be_hidden()
+    page.locator('#layers-collapse').click()
    before=page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2'))")
    page.locator('[data-element="sec:extras:note"]').click()
    drop=page.locator('.canvas-row-drop');expect(drop).to_be_visible()
