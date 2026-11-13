@@ -13,7 +13,7 @@ import {SHAPES} from './price-studio-shapes.js?v=decor-27';
 import {DEFAULT_LOGO} from './price-studio-logo.js?v=decor-27';
 import {createLatestProject} from './price-studio-latest.js?v=decor-27';
 import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=decor-27';
-import {createCanvasEditor} from './price-studio-canvas.js?v=decor-27';
+import {createCanvasEditor} from './price-studio-canvas.js?v=weight-28';
 import {renderSheetPoster} from './price-studio-pages.js?v=decor-27';
 const $=id=>document.getElementById(id),KEY='mongle-price-studio-v2';
 const clone=x=>JSON.parse(JSON.stringify(x)),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
