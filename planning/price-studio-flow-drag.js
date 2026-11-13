@@ -1,12 +1,12 @@
-import {canMoveTextBelow,moveTextBelow} from './price-studio-flow.js?v=decor-23';
+import {canMoveTextBelow,moveTextBelow,returnDestination,returnTextToColumn} from './price-studio-flow.js?v=decor-24';
 export function createFlowDrag({stage,overlay,getProject,getResult,change,select,finish,notice}){
  let current=null,drag=null,raf=0,suppressUntil=0;
  const shell=stage.closest('.canvas-shell'),actions=document.getElementById('selection-actions');
  function zone(){return overlay.querySelector('.canvas-row-drop');}
  function inside(x,y){const r=zone()?.getBoundingClientRect();return !!r&&x>=r.left-8&&x<=r.right+8&&y>=r.top-20&&y<=r.bottom+20;}
  function cleanup(){cancelAnimationFrame(raf);raf=0;document.querySelector('.canvas-flow-ghost')?.remove();stage.classList.remove('flow-dragging');zone()?.classList.remove('is-over');}
- function commit(element){try{const id=moveTextBelow(getProject(),element);if(!id)return;change(false);select(id);notice('안내문을 두 단 아래의 전체 너비 섹션으로 옮겼어요.');requestAnimationFrame(()=>overlay.querySelector('.canvas-selection')?.scrollIntoView({block:'nearest',inline:'nearest'}));}catch(error){notice(error.message);}}
- function feedback(){if(!drag?.moving)return;const over=inside(drag.x,drag.y);zone()?.classList.toggle('is-over',over);const ghost=document.querySelector('.canvas-flow-ghost');if(ghost){ghost.style.left=drag.x+12+'px';ghost.style.top=drag.y+12+'px';ghost.textContent=over?'여기에 놓기 · 전체 너비 100%':'아래 빈 구간으로 이동';}}
+ function commit(element){try{const returning=!!returnDestination(getProject(),element),id=returning?returnTextToColumn(getProject(),element):moveTextBelow(getProject(),element);if(!id)return;change(false);select(id);notice(returning?'안내문을 원래 단으로 다시 옮겼어요.':'안내문을 두 단 아래의 전체 너비 섹션으로 옮겼어요.');requestAnimationFrame(()=>overlay.querySelector('.canvas-selection')?.scrollIntoView({block:'nearest',inline:'nearest'}));}catch(error){notice(error.message);}}
+ function feedback(){if(!drag?.moving)return;const over=inside(drag.x,drag.y);zone()?.classList.toggle('is-over',over);const ghost=document.querySelector('.canvas-flow-ghost');if(ghost){ghost.style.left=drag.x+12+'px';ghost.style.top=drag.y+12+'px';ghost.textContent=returnDestination(getProject(),drag.element)?(over?'여기에 놓기 · 원래 단':'위쪽 원래 단으로 이동'):(over?'여기에 놓기 · 전체 너비 100%':'아래 빈 구간으로 이동');}}
  function scroll(){if(!drag?.moving)return;const r=shell.getBoundingClientRect(),delta=drag.y>r.bottom-32?10:drag.y<r.top+32?-10:0;if(delta){shell.scrollTop+=delta;feedback();}raf=requestAnimationFrame(scroll);}
  stage.addEventListener('pointerdown',ev=>{if(ev.button!==0||!current)return;const handle=ev.target.closest('[data-flow-drag]');if(!handle)return;drag={pointer:ev.pointerId,startX:ev.clientX,startY:ev.clientY,x:ev.clientX,y:ev.clientY,moving:false,element:current};});
  stage.addEventListener('pointermove',ev=>{if(drag?.pointer!==ev.pointerId)return;drag.x=ev.clientX;drag.y=ev.clientY;if(!drag.moving&&Math.hypot(drag.x-drag.startX,drag.y-drag.startY)>5){drag.moving=true;finish();stage.setPointerCapture(ev.pointerId);stage.classList.add('flow-dragging');const ghost=document.createElement('div');ghost.className='canvas-flow-ghost';document.body.append(ghost);raf=requestAnimationFrame(scroll);}if(drag.moving){ev.preventDefault();feedback();}});
@@ -15,12 +15,12 @@ export function createFlowDrag({stage,overlay,getProject,getResult,change,select
  stage.addEventListener('lostpointercapture',ev=>{if(ev.target===stage&&drag?.pointer===ev.pointerId&&!stage.hasPointerCapture(ev.pointerId))end(ev,true);});
  stage.addEventListener('click',ev=>{if(performance.now()<suppressUntil){ev.preventDefault();ev.stopImmediatePropagation();}},true);
  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&drag){const previous=drag;drag=null;cleanup();if(stage.hasPointerCapture(previous.pointer))stage.releasePointerCapture(previous.pointer);suppressUntil=performance.now()+300;ev.preventDefault();ev.stopImmediatePropagation();}},true);
- return {render(element){current=canMoveTextBelow(getProject(),element)?element:null;if(!current)return;
-  const target=getResult().rowDrops?.find(row=>row.sectionIds.includes(current.binding.sectionId));if(!target)return;
+ return {render(element){const destination=returnDestination(getProject(),element);current=canMoveTextBelow(getProject(),element)||destination?element:null;if(!current)return;
+  const box=destination&&getResult().elements.find(e=>e.id==='sec:'+destination.source.id);const target=destination&&box?{x:box.x,y:box.y+box.height-12,width:box.width,height:20}:getResult().rowDrops?.find(row=>row.sectionIds.includes(current.binding.sectionId));if(!target)return;
   const result=getResult(),place=(node,box)=>{Object.assign(node.style,{left:box.x/result.width*100+'%',top:box.y/result.height*100+'%',width:box.width/result.width*100+'%',height:box.height/result.height*100+'%'});};
-  const drop=document.createElement('button');drop.className='canvas-row-drop';drop.textContent='＋ 아래 빈 구간 · 전체 너비 100%';drop.setAttribute('aria-label','아래 전체 너비 구간에 배치');place(drop,target);drop.onclick=()=>commit(current);overlay.append(drop);
-  const hit=overlay.querySelector(`[data-element="${current.id}"]`);if(hit){hit.dataset.flowDrag='true';hit.classList.add('canvas-flow-source');hit.title='아래 빈 구간으로 드래그해 전체 너비로 배치';}
+  const drop=document.createElement('button');drop.className='canvas-row-drop';drop.textContent=destination?'↑ 원래 단에 다시 넣기':'＋ 아래 빈 구간 · 전체 너비 100%';drop.setAttribute('aria-label','아래 전체 너비 구간에 배치');place(drop,target);drop.onclick=()=>commit(current);overlay.append(drop);
+  const hit=overlay.querySelector(`[data-element="${current.id}"]`);if(hit){hit.dataset.flowDrag='true';hit.classList.add('canvas-flow-source');hit.title=destination?'위쪽 원래 단으로 드래그':'아래 빈 구간으로 드래그해 전체 너비로 배치';}
   const handle=document.createElement('button');handle.className='canvas-flow-handle';handle.dataset.flowDrag='true';handle.setAttribute('aria-label','안내문 이동 손잡이');handle.textContent='↕ 이동';handle.title='아래 빈 구간으로 드래그';place(handle,{x:current.x,y:current.y,width:70,height:0});overlay.append(handle);
-  const button=document.createElement('button');button.textContent='↓ 아래 전체 너비로';button.onclick=()=>commit(current);actions.append(button);
+  const button=document.createElement('button');button.textContent=destination?'↑ 원래 단으로':'↓ 아래 전체 너비로';button.onclick=()=>commit(current);actions.append(button);
  }};
 }

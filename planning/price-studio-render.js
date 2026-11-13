@@ -1,7 +1,7 @@
-import {rowWidths,sectionWidth} from './price-studio-layout.js?v=decor-23';
-import {drawBorder,drawCorner,cornerGeometry,decorationTargets} from './price-studio-borders.js?v=decor-23';
-import {drawShape} from './price-studio-shapes.js?v=decor-23';
-import {layoutText} from './price-studio-text.js?v=decor-23';
+import {rowWidths,sectionWidth} from './price-studio-layout.js?v=decor-24';
+import {drawBorder,drawCorner,cornerGeometry,decorationTargets} from './price-studio-borders.js?v=decor-24';
+import {drawShape} from './price-studio-shapes.js?v=decor-24';
+import {layoutText} from './price-studio-text.js?v=decor-24';
 export function renderPoster(canvas,p,logo,options={}){
  canvas.lang='ko';
  const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d={...p.design,font:p.design.font==='Jua'?'Jua':'StudioSans'},c=d.colors,ops=[],boxes=[],elements=[],splits=[],rowDrops=[];let y=d.pageMargin??36,error='';

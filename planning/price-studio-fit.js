@@ -1,5 +1,5 @@
-import {sectionWidth as getSectionWidth,setSectionWidth,pairedSections,rowMetrics} from './price-studio-layout.js?v=decor-23';
-import {layoutText} from './price-studio-text.js?v=decor-23';
+import {sectionWidth as getSectionWidth,setSectionWidth,pairedSections,rowMetrics} from './price-studio-layout.js?v=decor-24';
+import {layoutText} from './price-studio-text.js?v=decor-24';
 // Grow the frame/section, never alter either cell's typography to force a fit.
 export function fitItemWidth(project,element,ctx){
  const section=project.sections.find(s=>s.id===element.binding.sectionId),item=section?.items?.[element.binding.index];
