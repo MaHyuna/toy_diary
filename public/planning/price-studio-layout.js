@@ -1,4 +1,4 @@
-import {columnsFor} from './price-studio-model.js?v=decor-25';
+import {columnsFor} from './price-studio-model.js?v=decor-26';
 // Fixed widths reserve a basis; flexible siblings receive the remaining space.
 const baseMetrics=p=>{const d=p.design,full=900-2*(d.pageMargin??48),gap=d.columnGap??24,padding=Math.max(d.sectionPadding??24,d.flowers?(d.markerSize||18)+6:0);return {full,gap,padding,min:padding*2+116};};
 const sectionMap=p=>new Map(p.sections.map(s=>[s.id,s]));

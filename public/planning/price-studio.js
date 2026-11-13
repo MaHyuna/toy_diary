@@ -1,18 +1,19 @@
-import {installWorkspace} from './price-studio-workspace.js?v=decor-25';
-import {installFontOptions} from './price-studio-fonts.js?v=decor-25';
-import {createEditorDrag} from './price-studio-editor-drag.js?v=decor-25';
-import {syncStructure,deriveStructure,setSectionFlow} from './price-studio-structure.js?v=decor-25';
-import {columnsFor,ownColumns,moveService} from './price-studio-model.js?v=decor-25';
-import {createCloudSync} from './price-studio-cloud.js?v=decor-25';
-import {BORDERS,CORNERS,CORNER_POSITIONS,cornerSettings,borderRadii,setAllCornerInset,borderIcon,cornerIcon} from './price-studio-borders.js?v=decor-25';
-import {createInspector} from './price-studio-inspector.js?v=decor-25';
-import {createExportUI} from './price-studio-export-ui.js?v=decor-25';
-import {SHAPES} from './price-studio-shapes.js?v=decor-25';
-import {DEFAULT_LOGO} from './price-studio-logo.js?v=decor-25';
-import {createLatestProject} from './price-studio-latest.js?v=decor-25';
-import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=decor-25';
-import {createCanvasEditor} from './price-studio-canvas.js?v=decor-25';
-import {renderSheetPoster} from './price-studio-pages.js?v=decor-25';
+import {installShortcuts} from './price-studio-shortcuts.js?v=decor-26';
+import {installWorkspace} from './price-studio-workspace.js?v=decor-26';
+import {installFontOptions} from './price-studio-fonts.js?v=decor-26';
+import {createEditorDrag} from './price-studio-editor-drag.js?v=decor-26';
+import {syncStructure,deriveStructure,setSectionFlow} from './price-studio-structure.js?v=decor-26';
+import {columnsFor,ownColumns,moveService} from './price-studio-model.js?v=decor-26';
+import {createCloudSync} from './price-studio-cloud.js?v=decor-26';
+import {BORDERS,CORNERS,CORNER_POSITIONS,cornerSettings,borderRadii,setAllCornerInset,borderIcon,cornerIcon} from './price-studio-borders.js?v=decor-26';
+import {createInspector} from './price-studio-inspector.js?v=decor-26';
+import {createExportUI} from './price-studio-export-ui.js?v=decor-26';
+import {SHAPES} from './price-studio-shapes.js?v=decor-26';
+import {DEFAULT_LOGO} from './price-studio-logo.js?v=decor-26';
+import {createLatestProject} from './price-studio-latest.js?v=decor-26';
+import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=decor-26';
+import {createCanvasEditor} from './price-studio-canvas.js?v=decor-26';
+import {renderSheetPoster} from './price-studio-pages.js?v=decor-26';
 const $=id=>document.getElementById(id),KEY='mongle-price-studio-v2';
 const clone=x=>JSON.parse(JSON.stringify(x)),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let project=createLatestProject(),active=project.sections[0].id,tab='content',logo=null,logoSeq=0,undo=[],redo=[],last='',timer,paused=false,csvHandle=null,csvQueue=Promise.resolve(),fontReady=false,result={error:''},cornerTarget='all',radiusMode=null;
@@ -111,7 +112,7 @@ $('view-form').addEventListener('click',()=>{tab='content';renderEditor();});
 $('show-editor').textContent='꾸미기';$('show-editor').onclick=()=>inspector.toggle('design');
 const editorDrag=createEditorDrag({getProject:()=>project,getResult:()=>result,change:()=>changed(),select:id=>canvasEditor.select(id),notice:message});
 const cloud=createCloudSync({getProject:()=>project,applyProject:async p=>{await apply(p);last=currentJSON();save();},backup:()=>fileDownload(JSON.stringify(project,null,2),filename()+'_클라우드불러오기전_백업.json','application/json')});
-init().then(()=>{installWorkspace();cloud.init();if(window.parent!==window)window.parent.postMessage({type:'mongle-price-ready'},location.origin);});
+init().then(()=>{installWorkspace();installShortcuts({getProject:()=>project,getSelected:()=>canvasEditor.getSelected(),undo:()=>$('undo').onclick(),redo:()=>$('redo').onclick(),changed:()=>changed(),select:id=>canvasEditor.select(id),notice:message});cloud.init();if(window.parent!==window)window.parent.postMessage({type:'mongle-price-ready'},location.origin);});
 
 // Only the owning application frame can request a public snapshot. Editing stays local.
 window.addEventListener('message',event=>{

@@ -1,7 +1,7 @@
-import {installDragSurface} from './price-studio-drag.js?v=decor-25';
-import {columnsFor,ownColumns,moveService,moveItem} from './price-studio-model.js?v=decor-25';
-import {placeSection,placeGroup,flattenStructure,syncStructure} from './price-studio-structure.js?v=decor-25';
-import {moveTextBelow,returnDestination,returnTextToColumn} from './price-studio-flow.js?v=decor-25';
+import {installDragSurface} from './price-studio-drag.js?v=decor-26';
+import {columnsFor,ownColumns,moveService,moveItem} from './price-studio-model.js?v=decor-26';
+import {placeSection,placeGroup,flattenStructure,syncStructure} from './price-studio-structure.js?v=decor-26';
+import {moveTextBelow,returnDestination,returnTextToColumn} from './price-studio-flow.js?v=decor-26';
 export function createEditorDrag({getProject,getResult,change,select,notice}){
  function copyRowStyle(p,from,to,oldRow,newRow,mapping){for(const bag of [p.canvas?.styles,p.canvas?.transforms])if(bag){const rowKey='sec:'+from.id+':row:'+oldRow.id;if(bag[rowKey])bag['sec:'+to.id+':row:'+newRow.id]=structuredClone(bag[rowKey]);columnsFor(p,from).forEach((c,i)=>{const target=columnsFor(p,to)[mapping?.[i]??i],key='sec:'+from.id+':cell:'+oldRow.id+':'+c.id;if(target&&bag[key])bag['sec:'+to.id+':cell:'+newRow.id+':'+target.id]=structuredClone(bag[key]);});}}
  const panel=document.querySelector('.layers'),stage=document.getElementById('poster-stage'),overlay=document.getElementById('canvas-overlay');
