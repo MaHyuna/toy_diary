@@ -1,5 +1,5 @@
-import {renderPoster} from './price-studio-render.js?v=decor-27';
-import {OutlineCanvas,outlineFonts,loadScript} from './price-studio-svg.js?v=decor-27';
+import {renderPoster} from './price-studio-render.js?v=weight-font-29';
+import {OutlineCanvas,outlineFonts,loadScript} from './price-studio-svg.js?v=weight-font-29';
 export const PAPERS={A0:[841,1189],A1:[594,841],A2:[420,594],A3:[297,420],A4:[210,297],A5:[148,210],A6:[105,148],B4:[250,353],B5:[176,250],Letter:[215.9,279.4]};
 export const PRINT_DEFAULTS={paper:'A4',width:210,height:297,orientation:'portrait',layout:'sheet',format:'pdf',dpi:300,bleed:0,cropMarks:false};
 export function validatePrint(value={}){
