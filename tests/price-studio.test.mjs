@@ -172,3 +172,35 @@ test('blank text frame space does not hide a corner, while real text overlap is 
  p.canvas={transforms:{},styles:{'brand:footer':{align:'right'}}};
  assert.match(renderPoster(canvas,p,null).error,/오른쪽 아래 모서리가 내용과 겹쳐요/);
 });
+
+test('all-corner inset overrides four positions but preserves individual ornament styles',async()=>{
+ const {setAllCornerInset,cornerSettings}=await import('../public/planning/price-studio-borders.js');const p=createDefaultProject(),d=p.design;d.corners=true;d.cornerDetails={tl:{anchor:'page',x:40,y:10,shape:'heart',size:32},br:{anchor:'legacy',x:70,y:60,shape:'none'}};
+ setAllCornerInset(d,18);for(const key of ['tl','tr','br','bl']){const s=cornerSettings(d,key);assert.equal(s.anchor,'border');assert.equal(s.x,18);assert.equal(s.y,18);}
+ assert.equal(d.cornerDetails.tl.shape,'heart');assert.equal(d.cornerDetails.tl.size,32);assert.equal(d.cornerDetails.br.shape,'none');assert.deepEqual(validateProject(p).design,d);
+});
+test('four independent border radii render in spatial order and inset correctly for a double border',async()=>{
+ const {drawBorder,borderRadii}=await import('../public/planning/price-studio-borders.js');const p=createDefaultProject();p.design.border='double';p.design.borderInset=16;p.design.borderRadii={tl:0,tr:60,br:20,bl:90};
+ assert.deepEqual(validateProject(p).design.borderRadii,p.design.borderRadii);const curves=[],ctx=new Proxy({quadraticCurveTo:(...args)=>curves.push(args)},{get:(o,k)=>k in o?o[k]:()=>{}});drawBorder(ctx,p.design,900,1300);
+ assert.deepEqual(curves.slice(0,4),[[884,16,884,76],[884,1284,864,1284],[16,1284,16,1194],[16,16,16,16]]);
+ assert.deepEqual(curves[4],[877,23,877,76]);assert.deepEqual(curves[7],[23,23,23,23]);
+ assert.throws(()=>validateProject({...p,design:{...p.design,borderRadii:{tl:-1}}}));assert.throws(()=>validateProject({...p,design:{...p.design,borderRadii:{oops:4}}}));
+ delete p.design.borderRadii;p.design.borderRadius=30;assert.deepEqual(Object.values(borderRadii(p.design)),[30,30,30,30]);
+});
+test('one-line fit grows a half-width section without shrinking either font or changing typography',async()=>{
+ const {fitItemWidth}=await import('../public/planning/price-studio-fit.js');const {renderPoster}=await import('../public/planning/price-studio-render.js');
+ const ctx=new Proxy({measureText:s=>({width:String(s).length*9})},{get:(o,k)=>k in o?o[k]:()=>{}}),p=createDefaultProject(),section=p.sections.find(s=>s.id==='extras'),id='sec:extras:item:0:label',valueId=id.replace(/label$/,'value');
+ section.span='half';section.items[0]={label:'긴 텍스트 안내 / 털길이 (6mm / 1cm / 2cm)',value:'5,000 / 10,000 / 20,000'};p.canvas={transforms:{},styles:{[id]:{fontSize:18,letterSpacing:1,padding:4,lineHeight:1.7},[valueId]:{fontSize:20,bold:true,color:'#443322'}}};const before=structuredClone(p.canvas.styles),element={id,binding:{sectionId:'extras',index:0}};
+ const result=fitItemWidth(p,element,ctx);assert.equal(result.expanded,true);assert.equal(result.fits,true);assert.equal(section.span,'half');assert.ok(section.layoutWidth>390);assert.equal(result.paired,true);assert.deepEqual(p.canvas.styles[valueId],before[valueId]);assert.deepEqual({...p.canvas.styles[id],width:undefined},{...before[id],width:undefined});
+ const rendered=renderPoster({getContext:()=>ctx},p,null);assert.equal(rendered.elements.find(e=>e.id===id).textStyle.fontSize,18);assert.equal(rendered.elements.find(e=>e.id===valueId).textStyle.fontSize,20);assert.doesNotThrow(()=>validateProject(p));
+ section.items[0].label='아주 긴 글자 '.repeat(100);assert.equal(fitItemWidth(p,element,ctx).fits,false);assert.equal(p.canvas.styles[id].fontSize,18);assert.deepEqual(p.canvas.styles[valueId],before[valueId]);
+});
+
+test('paired sections allocate a fixed basis and remaining width, clamp safely, and reflow below the taller section',async()=>{
+ const {rowMetrics,rowWidths,setSectionWidth,pairedSections}=await import('../public/planning/price-studio-layout.js');const {renderPoster}=await import('../public/planning/price-studio-render.js');const p=createDefaultProject(),[a,b]=pairedSections(p,'extras'),m=rowMetrics(p);
+ setSectionWidth(p,a.id,500);assert.deepEqual(rowWidths(p,a,b),[500,m.available-500]);assert.equal(b.layoutWidth,undefined);
+ setSectionWidth(p,b.id,300);assert.equal(a.layoutWidth,undefined);assert.deepEqual(rowWidths(p,a,b),[m.available-300,300]);
+ setSectionWidth(p,a.id,10000);assert.deepEqual(rowWidths(p,a,b),[m.available-m.min,m.min]);assert.deepEqual(validateProject(p).sections,p.sections);
+ const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}});const r=renderPoster({getContext:()=>ctx},p,null),left=r.elements.find(e=>e.id==='sec:'+a.id),right=r.elements.find(e=>e.id==='sec:'+b.id);assert.equal(left.y,right.y);assert.equal(right.x-left.x-left.width,m.gap);assert.equal(left.width+right.width,m.available);assert.equal(r.splits[0].leftWidth,left.width);
+ const leaves=r.elements.filter(e=>e.kind==='text');for(let i=0;i<leaves.length;i++)for(let j=i+1;j<leaves.length;j++){const x=leaves[i],y=leaves[j];assert.ok(Math.min(x.x+x.width,y.x+y.width)-Math.max(x.x,y.x)<=.5||Math.min(x.y+x.height,y.y+y.height)-Math.max(x.y,y.y)<=.5,x.id+' overlaps '+y.id);}
+ assert.throws(()=>validateProject({...p,sections:p.sections.map(s=>s.id===a.id?{...s,layoutWidth:10000}:s)}));
+});

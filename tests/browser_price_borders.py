@@ -35,11 +35,30 @@ try:
    assert after>before,(before,after)
    expect(page.get_by_label('테두리 여백',exact=True)).to_have_value('40')
    page.get_by_label('테두리 여백 숫자',exact=True).fill('16')
+   # A global inset works even when an individual corner is selected.
+   page.get_by_label('전체 모서리 안쪽 여백 숫자',exact=True).fill('8')
+   expect(page.get_by_label('전체 모서리 안쪽 여백',exact=True)).to_have_value('8')
+   page.wait_for_function("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).design.cornerX===8")
+   d=page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).design")
+   assert d['cornerY']==8 and d['cornerAnchor']=='border'
+   assert all('x' not in value and 'y' not in value and 'anchor' not in value for value in d['cornerDetails'].values())
+   assert d['cornerDetails']['tl']['size']==40
    page.locator('[data-corner-target="all"]').click();page.locator('[data-corner-reset]').click()
    for border in ['none','line','double','rounded','scallop','dashed','dotted']:
     page.locator(f'[data-border-pick="{border}"]').click();expect(page.locator('#render-error')).to_be_empty()
    page.locator('[data-border-pick="rounded"]').click()
    page.get_by_label('테두리 둥근 정도',exact=True).fill('70');page.locator('[data-design="borderPattern"]').select_option('dashed')
+   page.locator('[data-radius-mode="individual"]').click()
+   for key,value in [('tl','0'),('tr','64'),('bl','80'),('br','16')]:
+    page.locator(f'[data-radius="{key}"][type=number]').fill(value)
+    expect(page.locator(f'[data-radius="{key}"][type=range]')).to_have_value(value)
+   page.locator('[data-radius-mode="all"]').click()
+   expect(page.get_by_label('테두리 둥근 정도 숫자',exact=True)).to_have_value('')
+   page.get_by_label('테두리 둥근 정도 숫자',exact=True).fill('70')
+   page.locator('[data-radius-mode="individual"]').click()
+   for key in ['tl','tr','bl','br']:expect(page.locator(f'[data-radius="{key}"][type=number]')).to_have_value('70')
+   page.locator('[data-radius="tl"][type=number]').fill('0')
+   page.locator('[data-radius="br"][type=number]').fill('16')
    page.locator('[data-corner-pick="angle"]').click();page.get_by_label('모서리 크기',exact=True).fill('24')
    page.locator('[data-corner-target="tl"]').click();page.locator('[data-corner-pick="round"]').click()
    page.get_by_label('모서리 가로 안쪽 여백',exact=True).fill('70');page.get_by_label('모서리 세로 안쪽 여백',exact=True).fill('24');page.get_by_label('모서리 회전',exact=True).fill('20')
@@ -48,6 +67,7 @@ try:
    expect(page.locator('#render-error')).to_be_empty();expect(page.locator('main')).to_have_attribute('data-view','canvas')
    page.wait_for_function("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).design.cornerDetails?.bl?.shape==='none'")
    saved=page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).design")
+   assert saved['borderRadii']=={'tl':0,'tr':70,'br':16,'bl':70}
    assert saved['borderRadius']==70 and saved['cornerDetails']['tl']['x']==70 and saved['cornerDetails']['tr']['fill']=='outline'
    page.screenshot(path=f'/tmp/price-borders-{width}.png')
    page.locator('#inspector-close').click();page.reload(wait_until='networkidle')

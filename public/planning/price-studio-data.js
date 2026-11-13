@@ -1,6 +1,6 @@
-import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-21';
-import {validatePrint} from './price-studio-print.js?v=decor-21';
-import {SHAPES} from './price-studio-shapes.js?v=decor-21';
+import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-22';
+import {validatePrint} from './price-studio-print.js?v=decor-22';
+import {SHAPES} from './price-studio-shapes.js?v=decor-22';
 import {createDefaultProject} from './price-studio-defaults.js';
 export {createDefaultProject};
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -24,6 +24,7 @@ export function validateProject(input){
  for(const key of ['markerShape','cornerShape'])if(d[key]!==undefined){if(!Object.hasOwn(key==='cornerShape'?CORNERS:SHAPES,d[key]))fail('장식 모양을 확인해 주세요.');p.design[key]=d[key];}
  if(d.markerSize!==undefined)p.design.markerSize=num(d.markerSize,12,30);
  for(const [k,min,max] of [['borderRadius',0,120],['cornerSize',6,120],['cornerX',0,200],['cornerY',0,200],['cornerRotation',-180,180],['cornerStroke',.5,6]])if(d[k]!==undefined)p.design[k]=num(d[k],min,max);
+ if(d.borderRadii!==undefined){if(!d.borderRadii||typeof d.borderRadii!=='object'||Array.isArray(d.borderRadii))fail('테두리 라운드 오류');p.design.borderRadii={};for(const [key,value] of Object.entries(d.borderRadii)){if(!Object.hasOwn(CORNER_POSITIONS,key))fail('테두리 모서리 오류');p.design.borderRadii[key]=num(value,0,120);}}
  for(const k of ['borderColor','cornerColor'])if(d[k]!==undefined)p.design[k]=color(d[k]);
  if(d.borderPattern!==undefined){if(!['solid','dashed','dotted'].includes(d.borderPattern))fail('테두리 선 모양 오류');p.design.borderPattern=d.borderPattern;}
  if(d.cornerAnchor!==undefined){if(!['border','page','legacy'].includes(d.cornerAnchor))fail('모서리 기준 오류');p.design.cornerAnchor=d.cornerAnchor;}
@@ -37,6 +38,7 @@ export function validateProject(input){
  p.sections=input.sections.map(s=>{
   if(!['matrix','list','text'].includes(s.kind)||!['full','half'].includes(s.span)||typeof s.visible!=='boolean')fail('섹션 형식을 확인해 주세요.');
   const out={id:id(s.id),kind:s.kind,title:text(s.title,100),breeds:text(s.breeds),note:text(s.note,3000),span:s.kind==='matrix'?'full':s.span,visible:s.visible,style:{}};
+  if(s.layoutWidth!==undefined)out.layoutWidth=num(s.layoutWidth,120,900);
   if(s.layoutAlign!==undefined){if(!['left','center','right'].includes(s.layoutAlign))fail('섹션 정렬 오류');out.layoutAlign=s.layoutAlign;}
   for(const [k,v] of Object.entries(s.style||{})){if(['heading','body','price','note','line','background','tableHeader'].includes(k))out.style[k]=color(v);else if(k==='border'){if(!['none','line','dashed'].includes(v))fail('섹션 테두리 형식 오류');out.style.border=v;}else if(k==='borderWidth')out.style.borderWidth=num(v,.5,6);else fail('지원하지 않는 섹션 스타일이에요.');}
   if(s.kind==='matrix'){if(!Array.isArray(s.rows)||s.rows.length<1||s.rows.length>30)fail('몸무게 행은 1~30개여야 해요.');out.rows=s.rows.map(r=>{if(!Array.isArray(r.prices)||r.prices.length!==p.columns.length)fail('가격 칸과 서비스 열 수가 달라요.');return {id:id(r.id),weight:text(r.weight,100),prices:r.prices.map(v=>text(String(v),20))};});if(new Set(out.rows.map(r=>r.id)).size!==out.rows.length)fail('몸무게 행 ID가 중복됐어요.');}

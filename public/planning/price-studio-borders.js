@@ -1,4 +1,4 @@
-import {SHAPES,drawShape} from './price-studio-shapes.js?v=decor-21';
+import {SHAPES,drawShape} from './price-studio-shapes.js?v=decor-22';
 export const BORDERS={none:'없음',line:'직선',double:'이중선',rounded:'라운드',scallop:'물결',dashed:'점선',dotted:'도트'};
 export const CORNERS={none:'없음',angle:'ㄱ자 선',round:'둥근 선',doubleAngle:'이중 ㄱ자',step:'계단 선',arc:'원호',flourish:'장식 곡선',...SHAPES};
 export const CORNER_POSITIONS={tl:'왼쪽 위',tr:'오른쪽 위',br:'오른쪽 아래',bl:'왼쪽 아래'};
@@ -8,12 +8,22 @@ export function cornerSettings(d,key){
  const anchor=detail.anchor||d.cornerAnchor||([detail.x,detail.y,d.cornerX,d.cornerY].some(v=>v!==undefined)?'legacy':'border');
  return {shape:d.corners?(d.cornerShape||'leaf'):'none',size:d.cornerSize??14,x:d.cornerX??(anchor==='legacy'?edge:0),y:d.cornerY??(anchor==='legacy'?edge:0),rotation:d.cornerRotation??0,fill:d.cornerFill||'solid',stroke:d.cornerStroke??1.5,color:d.cornerColor||d.colors.decoration,...detail,anchor};
 }
-function roundedFrame(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();ctx.stroke();}
+export function borderRadii(d){return Object.fromEntries(Object.keys(CORNER_POSITIONS).map(key=>[key,d.borderRadii?.[key]??d.borderRadius??(d.border==='rounded'?24:0)]));}
+export function setAllCornerInset(d,value){
+ d.cornerAnchor='border';d.cornerX=value;d.cornerY=value;
+ for(const detail of Object.values(d.cornerDetails||{})){delete detail.anchor;delete detail.x;delete detail.y;}
+}
+function roundedFrame(ctx,x,y,w,h,radii){
+ const [tl,tr,br,bl]=Object.values(radii).map(r=>Math.max(0,Math.min(r,w/2,h/2)));
+ ctx.beginPath();ctx.moveTo(x+tl,y);ctx.lineTo(x+w-tr,y);ctx.quadraticCurveTo(x+w,y,x+w,y+tr);
+ ctx.lineTo(x+w,y+h-br);ctx.quadraticCurveTo(x+w,y+h,x+w-br,y+h);ctx.lineTo(x+bl,y+h);
+ ctx.quadraticCurveTo(x,y+h,x,y+h-bl);ctx.lineTo(x,y+tl);ctx.quadraticCurveTo(x,y,x+tl,y);ctx.closePath();ctx.stroke();
+}
 export function drawBorder(ctx,d,W,H){
  const i=d.borderInset;if(d.border==='none')return;ctx.save();ctx.strokeStyle=d.borderColor||d.colors.line;ctx.lineWidth=d.borderWidth;
  const pattern=d.borderPattern||(d.border==='dashed'?'dashed':d.border==='dotted'?'dotted':'solid');ctx.setLineDash(pattern==='dashed'?[8,5]:pattern==='dotted'?[2,4]:[]);
  if(d.border==='scallop'){ctx.beginPath();ctx.moveTo(i,i);for(let x=i;x<W-i;x+=22)ctx.quadraticCurveTo(Math.min(x+11,W-i),i+6,Math.min(x+22,W-i),i);for(let y=i;y<H-i;y+=22)ctx.quadraticCurveTo(W-i-6,Math.min(y+11,H-i),W-i,Math.min(y+22,H-i));for(let x=W-i;x>i;x-=22)ctx.quadraticCurveTo(Math.max(x-11,i),H-i-6,Math.max(x-22,i),H-i);for(let y=H-i;y>i;y-=22)ctx.quadraticCurveTo(i+6,Math.max(y-11,i),i,Math.max(y-22,i));ctx.closePath();ctx.stroke();}
- else{const r=d.borderRadius??(d.border==='rounded'?24:0);roundedFrame(ctx,i,i,W-i*2,H-i*2,r);if(d.border==='double'){ctx.lineWidth=d.borderWidth*.6;roundedFrame(ctx,i+7,i+7,W-i*2-14,H-i*2-14,Math.max(0,r-7));}}
+ else{const r=borderRadii(d);roundedFrame(ctx,i,i,W-i*2,H-i*2,r);if(d.border==='double'){ctx.lineWidth=d.borderWidth*.6;roundedFrame(ctx,i+7,i+7,W-i*2-14,H-i*2-14,Object.fromEntries(Object.entries(r).map(([key,value])=>[key,Math.max(0,value-7)])));}}
  ctx.restore();
 }
 export function drawCorner(ctx,settings,x,y,angle,background){
