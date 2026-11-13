@@ -1,4 +1,4 @@
-import {renderPoster} from './price-studio-render.js?v=weight-font-29';
+import {renderPoster} from './price-studio-render.js?v=weight-service-31';
 export const A4_HEIGHT=1273;
 export function renderSheetPoster(canvas,project,logo){
  // Shrinking is an explicit export choice, never the default editing behavior.

@@ -63,7 +63,7 @@ export function renderPoster(canvas,p,logo,options={}){
    if(columns.some(col=>!col.name.trim()))error='서비스 열 이름을 입력해 주세요.';
    if(s.note&&!inlineNote){yy+=3;yy=block(s.note,xx,yy,inner,noteFont,d.bodySize+4,sc.note,'sec:'+s.id+':note',{type:'section',sectionId:s.id,key:'note'},s.title+' 안내');}
    yy+=10;const tableStart=ops.length,tableTop=yy,weightWidth=112,cw=(inner-weightWidth)/columns.length;
-   const cells=[{value:'몸무게',x:xx,w:weightWidth,id:'sec:'+s.id+':weight-header',binding:{type:'weightHeader',sectionId:s.id},label:s.title+' 몸무게 헤더'},...columns.map((col,j)=>({value:(col.note?'('+col.note+')\n':'')+col.name,x:xx+weightWidth+cw*j,w:cw,id:'sec:'+s.id+':col:'+col.id,binding:{type:'column',sectionId:s.id,columnId:col.id,key:'name'},label:col.name+' 열 제목'}))];
+   const cells=[{value:s.weightLabel??'몸무게',x:xx,w:weightWidth,id:'sec:'+s.id+':weight-header',binding:{type:'weightHeader',sectionId:s.id},label:s.title+' 몸무게 헤더'},...columns.map((col,j)=>({value:(col.note?'('+col.note+')\n':'')+col.name,x:xx+weightWidth+cw*j,w:cw,id:'sec:'+s.id+':col:'+col.id,binding:{type:'column',sectionId:s.id,columnId:col.id,key:'name'},label:col.name+' 열 제목'}))];
    for(const cell of cells)cell.layout=layoutText(ctx,cell.value,cell.w-8,`600 ${d.bodySize}px StudioSans`,d.bodySize+4,p.canvas?.styles?.[cell.id]||{});
    const headHeight=Math.max(...cells.map(cell=>cell.layout.height))+10;
    for(const cell of cells){const begin=ops.length,l=cell.layout;l.lines.forEach((v,i)=>text(v,cell.x+cell.w/2,yy+(headHeight-l.height)/2+l.padding+l.ascent+i*l.step,l.font,sc.tableHeader,'center',l.inner));if(cell.id)mark(cell.id,rect(cell.x,yy,cell.w,headHeight),cell.binding,begin,cell.label);}
