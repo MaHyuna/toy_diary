@@ -21,9 +21,9 @@ try:
    const project=JSON.parse(localStorage.getItem('mongle-price-studio-v2')),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),draws=[],flowers=[];
    const fill=ctx.fillText.bind(ctx),ellipse=ctx.ellipse.bind(ctx);
    ctx.fillText=function(value,x,y,width){const m=this.measureText(value);draws.push({value,x,y,align:this.textAlign,top:y-m.actualBoundingBoxAscent,bottom:y+m.actualBoundingBoxDescent});return fill(value,x,y,width);};
-   ctx.ellipse=function(x,y,...rest){flowers.push({x,y});return ellipse(x,y,...rest);};
+   ctx.ellipse=function(x,y,...rest){const m=this.getTransform();flowers.push({x:(m.a*x+m.c*y+m.e)/2,y:(m.b*x+m.d*y+m.f)/2});return ellipse(x,y,...rest);};
    const result=renderPoster(canvas,project,null,{fixedHeight:1273});
-   const headings=project.sections.map((s,i)=>{const t=draws.find(d=>d.value===s.title);const flowerY=flowers.slice(i*5,i*5+5).reduce((n,v)=>n+v.y,0)/5;return Math.abs((t.top+t.bottom)/2-flowerY);});
+   const headings=project.sections.map((s,i)=>{const t=draws.find(d=>d.value===s.title);const flowerY=flowers.slice(i*6,i*6+6).reduce((n,v)=>n+v.y,0)/6;return Math.abs((t.top+t.bottom)/2-flowerY);});
    const extras=project.sections.find(s=>s.id==='extras');const rows=extras.items.map((item,i)=>{const box=result.elements.find(e=>e.id===`sec:extras:item:${i}:label`);const label=draws.find(d=>d.value===item.label&&d.y>=box.y&&d.y<=box.y+box.height);const value=draws.find(d=>d.value===item.value&&d.y>=box.y&&d.y<=box.y+box.height&&d.align==='right');return {centerDiff:Math.abs((label.top+label.bottom-value.top-value.bottom)/2),right:value.x};});
    const notes=project.sections.filter(s=>s.kind==='matrix').map(s=>{const title=result.elements.find(e=>e.id===`sec:${s.id}:title`),note=result.elements.find(e=>e.id===`sec:${s.id}:note`);return {titleY:title.y,noteY:note.y,noteX:note.x,titleX:title.x};});
    return {error:result.error,height:result.requiredHeight,headings,rows,notes};
@@ -41,9 +41,9 @@ try:
   page.locator('#import').set_input_files({'name':'user-menu.json','mimeType':'application/json','buffer':json.dumps(long['project'],ensure_ascii=False).encode()})
   expect(page.locator('#render-error')).to_be_empty();expect(page.locator('#output-badge')).to_have_text('A4 · 축소')
   page.locator('#download').click()
+  page.locator('#print-format').select_option('png');page.locator('#print-dpi').select_option('150')
   with page.expect_download() as download:page.locator('#export-current').click()
-  raw=Path(download.value.path()).read_bytes();assert struct.unpack('>II',raw[16:24])==(1800,2546)
-  assert raw==base64.b64decode(page.locator('#preview').evaluate('c=>c.toDataURL().split(",")[1]'))
+  raw=Path(download.value.path()).read_bytes();assert struct.unpack('>II',raw[16:24])==(1240,1754)
   Path('/tmp/pricelist-single-a4.png').write_bytes(raw);page.locator('#export-close').click()
   # Even a much longer table stays on one sheet and retains every editable row.
   expanded=json.loads(json.dumps(original));seed=expanded['sections'][0]['rows'][0]
@@ -52,13 +52,15 @@ try:
   page.locator('#import').set_input_files({'name':'long-menu.json','mimeType':'application/json','buffer':json.dumps(expanded,ensure_ascii=False).encode()})
   expect(page.locator('#output-badge')).to_have_text('A4 · 축소');expect(page.locator('#render-error')).to_be_empty()
   expect(page.locator('#page-next')).to_have_count(0);expect(page.locator('#download-pages')).to_have_count(0)
+  expect(page.locator('[data-element^="sec:group-0:row:long-row-"]')).to_have_count(30)
   row_ids=page.locator('[data-element^="sec:group-0:row:long-row-"]').evaluate_all("els=>els.map(e=>e.dataset.element.split(':').at(-1))")
   assert row_ids==[f'long-row-{i}' for i in range(30)]
   # The last scaled row remains selectable and editable at the rendered location.
   last=page.locator('[data-element="sec:group-0:cell:long-row-29:col-5"]');last.click();page.locator('#canvas-edit').click();expect(page.locator('.canvas-input')).to_have_value(seed['prices'][5]);page.locator('.canvas-input').press('Enter')
   page.locator('#download').click()
+  page.locator('#print-format').select_option('png');page.locator('#print-dpi').select_option('150')
   with page.expect_download() as download:page.locator('#export-current').click()
-  assert struct.unpack('>II',Path(download.value.path()).read_bytes()[16:24])==(1800,2546)
+  assert struct.unpack('>II',Path(download.value.path()).read_bytes()[16:24])==(1240,1754)
   page.locator('#export-close').click()
   for width in [390,1440]:
    page.set_viewport_size({'width':width,'height':1000});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=f'/tmp/pricelist-editor-{width}.png')

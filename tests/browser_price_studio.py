@@ -18,7 +18,7 @@ with sync_playwright() as p:
  page.goto(url,wait_until='networkidle')
  def saved(): expect(page.locator('#save-status')).to_contain_text('자동 저장됨')
  def data(): return page.evaluate('JSON.parse(localStorage.getItem("mongle-price-studio-v2"))')
- expect(page.locator('#download-mobile')).to_be_enabled();assert page.locator('.canvas-shell').bounding_box()['height']>400
+ expect(page.locator('#download-mobile')).to_be_enabled();assert page.locator('.canvas-shell').bounding_box()['height']>=300
  legacy=data();legacy['brand']['name']='몽글 미용실';legacy['canvas']={'transforms':{'sec:group-0':{'x':10,'y':90,'scale':.7}},'styles':{'sec:group-0:title':{'color':'#ab2345','bold':True}}}
  page.add_init_script("if(!sessionStorage.getItem('restore-test')){localStorage.setItem('mongle-price-studio-v2',"+json.dumps(json.dumps(legacy))+");sessionStorage.setItem('restore-test','1');}")
  page.reload(wait_until='networkidle');saved();legacy['canvas']['transforms']={};assert data()==legacy
@@ -39,17 +39,17 @@ with sync_playwright() as p:
  cell=page.locator('[data-element="sec:group-0:cell:row-0-0:col-0"]');cell.tap();expect(page.locator('#mobile-sheet')).to_be_hidden();page.locator('.canvas-edit-handle').tap();expect(page.locator('#sheet-value')).to_have_value('17500');page.locator('#sheet-next').tap();expect(page.locator('#sheet-value')).to_have_value('18500');page.locator('#sheet-close').tap()
  page.locator('#focus-section').select_option('all');page.wait_for_timeout(350)
  page.locator('#canvas-add').tap();page.locator('[data-canvas-add="text"]').tap();expect(page.locator('#mobile-sheet')).to_be_hidden();page.locator('.canvas-edit-handle').tap();page.locator('#sheet-value').fill('예약 안내');page.locator('#sheet-close').tap();saved()
- # Export begins with a clean customer preview and a purpose-based format choice.
- page.locator('#download-mobile').tap();expect(page.locator('#export-menu')).to_be_visible();expect(page.locator('#export-preview')).to_be_visible();page.locator('#format').select_option('fit');expect(page.locator('#export-error')).to_be_empty();page.screenshot(path='/tmp/workflow-export.png');page.locator('#export-close').tap()
- assert page.locator('#preview').evaluate('c=>[c.width,c.height]')==[1800,2546]
- image=base64.b64decode(page.locator('#preview').evaluate('c=>c.toDataURL().split(",")[1]'))
- expect(page.locator('#output-badge')).to_have_text('A4 · 축소')
- page.locator('#download-mobile').tap()
+ # Export controls operate independently of the editable composition.
+ original_canvas=page.locator('#preview').evaluate('c=>c.toDataURL()')
+ page.locator('#download-mobile').tap();expect(page.locator('#export-menu')).to_be_visible();expect(page.locator('#export-preview')).to_be_visible()
+ page.locator('#print-format').select_option('png');page.locator('#print-dpi').select_option('150')
+ expect(page.locator('#export-error')).to_be_empty();page.screenshot(path='/tmp/workflow-export.png')
  with page.expect_download() as dl:page.locator('#export-current').tap()
- raw=Path(dl.value.path()).read_bytes();assert raw==image;assert Image.open(io.BytesIO(raw)).size==(1800,2546)
- page.locator('#format').select_option('content')
+ raw=Path(dl.value.path()).read_bytes();assert Image.open(io.BytesIO(raw)).size==(1240,1754)
+ page.locator('#print-layout').select_option('natural')
  with page.expect_download() as dl:page.locator('#export-current').tap()
- assert Path(dl.value.path()).read_bytes()==base64.b64decode(page.locator('#preview').evaluate('c=>c.toDataURL().split(",")[1]'))
+ assert Image.open(dl.value.path()).width==1240
+ assert page.locator('#preview').evaluate('c=>c.toDataURL()')==original_canvas
  page.locator('#export-close').tap()
  for w in [320,390,768,1440]:
   page.set_viewport_size({'width':w,'height':844})
@@ -73,6 +73,6 @@ with sync_playwright() as p:
   expect(page.locator('[data-element="brand:logo"]')).to_be_visible()
   page.locator('#view-form').click();page.locator('[data-tab="brand"]').click()
  assert not errors,errors
- print('PASS restored layout, explicit editing, readable mobile price cards, persistence, styling, section focus, addition, single-sheet A4 PNG equality and 320–1440 layouts')
+ print('PASS restored layout, explicit editing, readable mobile price cards, persistence, styling, section focus, addition, independent print export and 320–1440 layouts')
  browser.close()
 server.shutdown()

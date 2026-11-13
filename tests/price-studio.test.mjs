@@ -126,3 +126,11 @@ test('growing the logo preserves table geometry and expands paper instead of shr
  assert.equal(before.fitScale,1);assert.equal(after.fitScale,1);assert.ok(after.height>before.height);
  for(const a of before.elements.filter(e=>e.id.startsWith('sec:'))){const b=after.elements.find(e=>e.id===a.id);assert.equal(b.x,a.x);assert.equal(b.width,a.width);assert.equal(b.height,a.height);assert.equal(b.y-a.y,400);}
 });
+
+test('print and decorative options survive backups and malformed sizes are rejected',()=>{
+ const p=createDefaultProject();p.print={paper:'custom',width:594,height:841,orientation:'landscape',layout:'sheet',format:'svg',dpi:300,bleed:3,cropMarks:true};
+ p.design.markerShape='paw';p.design.cornerShape='star';p.design.markerSize=30;p.design.border='rounded';
+ assert.deepEqual(validateProject(structuredClone(p)),p);
+ for(const print of [{...p.print,width:-1},{...p.print,height:Infinity},{...p.print,paper:'bad'},{...p.print,dpi:999},{...p.print,bleed:100},null])assert.throws(()=>validateProject({...p,print}));
+ assert.throws(()=>validateProject({...p,design:{...p.design,markerShape:'<svg>'}}));
+});
