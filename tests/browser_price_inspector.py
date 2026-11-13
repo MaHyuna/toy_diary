@@ -32,6 +32,16 @@ try:
    if width==390:
     page.locator('#canvas-edit').click();expect(page.locator('#mobile-sheet')).to_be_visible();expect(page.locator('#studio-inspector')).to_be_hidden()
     page.locator('#sheet-close').click();page.locator('[data-open-inspector="text"]').first.click()
+   # Toggling, outside taps and Escape dismiss; dragging blank space does not.
+   launcher=page.locator('[data-open-inspector="text"]').first
+   launcher.click();expect(page.locator('#studio-inspector')).to_be_hidden()
+   launcher.click();expect(page.locator('#studio-inspector')).to_be_visible()
+   shell=page.locator('.canvas-shell').bounding_box();x=shell['x']+3;y=shell['y']+30
+   page.mouse.move(x,y);page.mouse.down();page.mouse.move(x,y+25,steps=5);page.mouse.up()
+   expect(page.locator('#studio-inspector')).to_be_visible()
+   page.mouse.click(x,y);expect(page.locator('#studio-inspector')).to_be_hidden()
+   launcher.click();page.keyboard.press('Escape');expect(page.locator('#studio-inspector')).to_be_hidden()
+   launcher.click()
    # A new selection updates properties while keeping the inspector and canvas visible.
    page.locator('[data-element="sec:group-0:title"]').click()
    expect(page.locator('#studio-inspector')).to_be_visible();expect(page.locator('#selection-label')).to_contain_text('소형견')

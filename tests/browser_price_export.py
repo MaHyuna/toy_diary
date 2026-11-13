@@ -70,10 +70,9 @@ try:
   page.locator('#view-form').click();page.locator('[data-tab="design"]').click()
   for shape in ['paw','heart','star','sparkle','diamond','circle','leaf','flower']:
    page.locator('[data-design="markerShape"]').select_option(shape)
-   page.locator('[data-design="cornerShape"]').select_option(shape)
    page.locator('[data-design="markerSize"]').fill('30')
    expect(page.locator('#render-error')).to_be_empty()
-  page.locator('[data-design="border"]').select_option('rounded')
+  page.locator('[data-inspector-tab="border"]').click();page.locator('[data-border-pick="rounded"]').click()
   page.wait_for_function("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).design.border==='rounded'")
   page.reload(wait_until='networkidle');expect(page.locator('#render-error')).to_be_empty()
   assert page.evaluate("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).print.paper")=='A1'

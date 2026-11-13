@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  match /users/{uid}/priceStudio/{documentId} {
+   function owner() { return request.auth != null && request.auth.uid == uid && documentId == 'main'; }
+   function valid() {
+    return request.resource.data.keys().hasOnly(['schema','project','logo','revision','updatedAt'])
+      && request.resource.data.schema == 1
+      && request.resource.data.project is string && request.resource.data.project.size() < 800000
+      && request.resource.data.logo is map
+      && request.resource.data.logo.keys().hasOnly(['kind','path'])
+      && request.resource.data.logo.kind in ['empty','builtin','upload']
+      && (request.resource.data.logo.kind != 'upload' || request.resource.data.logo.path.matches('users/'+uid+'/price-logos/[a-f0-9]{64}'))
+      && request.resource.data.updatedAt == request.time;
+   }
+   allow read: if owner();
+   allow create: if owner() && valid() && request.resource.data.revision == 1;
+   allow update: if owner() && valid() && request.resource.data.revision == resource.data.revision + 1;
+  }
+ }
+}

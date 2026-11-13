@@ -1,0 +1,12 @@
+rules_version = '2';
+service firebase.storage {
+ match /b/{bucket}/o {
+  match /users/{uid}/price-logos/{hash} {
+   allow read: if request.auth != null && request.auth.uid == uid;
+   allow write: if request.auth != null && request.auth.uid == uid
+     && hash.matches('[a-f0-9]{64}') && request.resource != null
+     && request.resource.size < 2000000
+     && request.resource.contentType.matches('image/(png|jpeg|webp)');
+  }
+ }
+}

@@ -1,5 +1,6 @@
-import {drawShape} from './price-studio-shapes.js?v=workspace-18';
-import {layoutText} from './price-studio-text.js?v=workspace-18';
+import {drawBorder,drawCorner,cornerGeometry} from './price-studio-borders.js?v=decor-20';
+import {drawShape} from './price-studio-shapes.js?v=decor-20';
+import {layoutText} from './price-studio-text.js?v=decor-20';
 export function renderPoster(canvas,p,logo,options={}){
  canvas.lang='ko';
  const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d={...p.design,font:p.design.font==='Jua'?'Jua':'StudioSans'},c=d.colors,ops=[],boxes=[],elements=[];let y=d.pageMargin??36,error='';
@@ -122,9 +123,9 @@ export function renderPoster(canvas,p,logo,options={}){
  if(required>H&&!options.fitToPage)error='요소가 용지 영역을 넘어요. 배치를 자동 정렬하거나 크기를 줄여 주세요.';if(H>6000)error='내용이 너무 길어요. 섹션을 나누거나 줄여 주세요.';
  if(options.measureOnly)return {error,requiredHeight:required,elements:positioned,width:W,height:H,fitScale};
  canvas.width=W*2;canvas.height=Math.min(H,6000)*2;ctx.setTransform(2,0,0,2,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.lang='ko';ctx.fontKerning='none';ctx.textRendering='geometricPrecision';ctx.fillStyle=c.background;ctx.fillRect(0,0,W,H);
- const inset=d.borderInset;if(d.border!=='none'){ctx.strokeStyle=c.line;ctx.lineWidth=d.borderWidth;if(d.border==='dashed')ctx.setLineDash([8,5]);if(d.border==='dotted')ctx.setLineDash([2,4]);if(d.border==='rounded'){const r=18;ctx.beginPath();ctx.moveTo(inset+r,inset);ctx.lineTo(W-inset-r,inset);ctx.quadraticCurveTo(W-inset,inset,W-inset,inset+r);ctx.lineTo(W-inset,H-inset-r);ctx.quadraticCurveTo(W-inset,H-inset,W-inset-r,H-inset);ctx.lineTo(inset+r,H-inset);ctx.quadraticCurveTo(inset,H-inset,inset,H-inset-r);ctx.lineTo(inset,inset+r);ctx.quadraticCurveTo(inset,inset,inset+r,inset);ctx.closePath();ctx.stroke();}else if(d.border==='scallop'){ctx.beginPath();ctx.moveTo(inset,inset);for(let x=inset;x<W-inset;x+=22)ctx.quadraticCurveTo(Math.min(x+11,W-inset),inset+6,Math.min(x+22,W-inset),inset);for(let y=inset;y<H-inset;y+=22)ctx.quadraticCurveTo(W-inset-6,Math.min(y+11,H-inset),W-inset,Math.min(y+22,H-inset));for(let x=W-inset;x>inset;x-=22)ctx.quadraticCurveTo(Math.max(x-11,inset),H-inset-6,Math.max(x-22,inset),H-inset);for(let y=H-inset;y>inset;y-=22)ctx.quadraticCurveTo(inset+6,Math.max(y-11,inset),inset,Math.max(y-22,inset));ctx.closePath();ctx.stroke();}else{ctx.strokeRect(inset,inset,W-inset*2,H-inset*2);if(d.border==='double'){ctx.lineWidth=d.borderWidth*.6;ctx.strokeRect(inset+7,inset+7,W-inset*2-14,H-inset*2-14);}}}
- ctx.setLineDash([]);
- if(d.corners){const edge=Math.min(m/2,inset+8);for(const [x,y] of [[edge,edge],[W-edge,edge],[W-edge,H-edge],[edge,H-edge]])drawShape(ctx,d.cornerShape||'leaf',x,y,14,c.decoration,c.background);}
+ drawBorder(ctx,d,W,H);
+ if(d.corners)for(const corner of cornerGeometry(d,W,H)){if(corner.settings.shape==='none')continue;const {x,y,r}=corner;const collision=positioned.some(e=>e.kind!=='group'&&x+r>e.x&&x-r<e.x+e.width&&y+r>e.y&&y-r<e.y+e.height);if(collision){error=corner.label+' 모서리가 내용과 겹쳐요. 크기나 위치를 조절해 주세요.';continue;}ctx.elementId='corner:'+corner.key;drawCorner(ctx,corner.settings,x,y,corner.angle,c.background);}
+
  ctx.save();ctx.translate(fitX,fitY);ctx.scale(fitScale,fitScale);
  for(const op of ops){ctx.save();const tr=matrixFor(op.owners||[]);ctx.translate(tr.dx,tr.dy);ctx.scale(tr.scale,tr.scale);ctx.elementId=op.element||'decoration';op();ctx.restore();}ctx.restore();return {error,boxes,elements:positioned,width:W,height:Math.min(H,6000),requiredHeight:required,fitScale};
 }

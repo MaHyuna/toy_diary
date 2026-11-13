@@ -146,3 +146,10 @@ test('text frame alignment and a lone half-width section move within their own r
  assert.deepEqual(validateProject(structuredClone(p)),p);
  assert.throws(()=>validateProject({...p,canvas:{styles:{'brand:name':{fontFamily:'unbundled'}}}}));
 });
+
+
+test('independent corner settings, outline styles and rounded borders survive backup',()=>{
+ const p=createDefaultProject();p.design.border='rounded';p.design.borderRadius=70;p.design.borderPattern='dashed';p.design.cornerShape='angle';p.design.cornerSize=24;p.design.cornerDetails={tl:{shape:'round',x:70,y:24,rotation:20},tr:{shape:'heart',fill:'outline',color:'#123456'},bl:{shape:'none'}};
+ assert.deepEqual(validateProject(structuredClone(p)),p);
+ for(const detail of [{shape:'invalid'},{x:500},{stroke:-1},{fill:'url(x)'},{color:'bad'}])assert.throws(()=>validateProject({...p,design:{...p.design,cornerDetails:{tl:detail}}}));
+});

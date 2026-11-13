@@ -11,8 +11,8 @@ export function createInspector({getProject,getActive,selectSection,setTab,chang
   $('sheet-close').click();$('view-canvas').click();panel.hidden=false;document.body.classList.add('inspector-open');mode=next;
   for(const el of panel.querySelectorAll('[data-inspector-panel]'))el.hidden=el.dataset.inspectorPanel!==next;
   for(const button of panel.querySelectorAll('[data-inspector-tab]'))button.setAttribute('aria-selected',String(button.dataset.inspectorTab===next));
-  if(['design','brand'].includes(next)){$('inspector-general').hidden=false;$('inspector-general').append(editor);setTab(next);}else restoreEditor();
-  $('inspector-title').textContent={text:'문자 · 색상',design:'전체 꾸미기',brand:'로고 · 매장',layout:'레이아웃'}[next];
+  if(['design','brand','border'].includes(next)){$('inspector-general').hidden=false;$('inspector-general').append(editor);setTab(next);}else restoreEditor();
+  $('inspector-title').textContent={text:'문자 · 색상',design:'전체 꾸미기',brand:'로고 · 매장',layout:'레이아웃',border:'테두리 · 모서리'}[next];
   document.body.dataset.inspector=next;panel.querySelector('.inspector-scroll').prepend(status);if(switched)panel.querySelector('.inspector-scroll').scrollTop=0;position();refresh();reveal();
  }
  function close(){if(panel.hidden)return;panel.hidden=true;document.body.classList.remove('inspector-open','inspector-keyboard');document.body.style.removeProperty('--inspector-canvas-height');panel.style.height='';panel.style.bottom='';delete document.body.dataset.inspector;restoreEditor();statusHome.after(status);if(lastFocus?.isConnected)lastFocus.focus({preventScroll:true});}
@@ -35,9 +35,10 @@ export function createInspector({getProject,getActive,selectSection,setTab,chang
   // Inputs are shared with the original editor; update values without stealing focus.
   panel.querySelectorAll('[data-design]').forEach(input=>{if(document.activeElement!==input&&input.type!=='checkbox'&&getProject().design[input.dataset.design]!==undefined)input.value=getProject().design[input.dataset.design];});
  }
+ function toggle(next){if(!panel.hidden&&mode===next)close();else open(next);}
  $('inspector-close').onclick=close;
  panel.querySelectorAll('[data-inspector-tab]').forEach(button=>button.onclick=()=>open(button.dataset.inspectorTab));
- document.querySelectorAll('[data-open-inspector]').forEach(button=>button.onclick=()=>open(button.dataset.openInspector));
+ document.querySelectorAll('[data-open-inspector]').forEach(button=>button.onclick=()=>toggle(button.dataset.openInspector));
  $('section-position').onchange=()=>{const s=getProject().sections.find(s=>s.id===getActive());if(s){s.layoutAlign=$('section-position').value;change();}};
  for(const button of panel.querySelectorAll('[data-layout-preset]'))button.onclick=()=>{for(const s of getProject().sections)s.span=button.dataset.layoutPreset==='columns'&&s.kind!=='matrix'?'half':'full';change();};
  $('layout-even-gaps').onclick=()=>{getProject().design.gap=24;getProject().design.columnGap=24;change();};
@@ -47,9 +48,21 @@ export function createInspector({getProject,getActive,selectSection,setTab,chang
  function endDrag(ev,cancel=false){if(drag?.pointer!==ev.pointerId)return;const previous=drag;drag=null;if(panel.hasPointerCapture(ev.pointerId))panel.releasePointerCapture(ev.pointerId);if(!cancel&&previous.to!==null){const from=getProject().sections.findIndex(s=>s.id===previous.id);reorder(from,previous.to);}refresh();}
  panel.addEventListener('pointerup',ev=>endDrag(ev));panel.addEventListener('pointercancel',ev=>endDrag(ev,true));
  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!panel.hidden&&!document.querySelector('dialog[open]')){ev.preventDefault();close();}});
+ // Dismiss on a deliberate blank-space tap, not canvas selection or scrolling.
+ let outsideTap=null;
+ document.addEventListener('pointerdown',ev=>{
+  const interactive=ev.composedPath().some(node=>node instanceof Element&&(node===panel||node.matches('button,input,select,textarea,label,a,[role="button"],.canvas-hit,.canvas-input')));
+  outsideTap=!panel.hidden&&!interactive&&!document.querySelector('dialog[open]')?{id:ev.pointerId,x:ev.clientX,y:ev.clientY,moved:false}:null;
+ },true);
+ document.addEventListener('pointermove',ev=>{if(outsideTap?.id===ev.pointerId&&Math.hypot(ev.clientX-outsideTap.x,ev.clientY-outsideTap.y)>8)outsideTap.moved=true;},true);
+ document.addEventListener('pointercancel',()=>outsideTap=null,true);
+ document.addEventListener('click',ev=>{
+  const tap=outsideTap;outsideTap=null;
+  if(tap&&!tap.moved&&!panel.hidden&&!panel.contains(ev.target)&&Math.hypot(ev.clientX-tap.x,ev.clientY-tap.y)<=8)close();
+ });
  $('view-form').addEventListener('click',close);
  function position(){if(panel.hidden||!mobile()){panel.style.height='';panel.style.bottom='';document.body.style.removeProperty('--inspector-canvas-height');document.body.classList.remove('inspector-keyboard');return;}const v=window.visualViewport,available=v?.height||innerHeight,inset=Math.max(0,innerHeight-available-(v?.offsetTop||0)),height=Math.max(180,Math.round(available*.44));panel.style.height=height+'px';panel.style.bottom=inset+'px';document.body.style.setProperty('--inspector-canvas-height',Math.max(120,available-height)+'px');document.body.classList.toggle('inspector-keyboard',inset>100);}
  window.visualViewport?.addEventListener('resize',()=>{position();if(!panel.hidden)reveal();});
  const resize=()=>{position();if(!panel.hidden)reveal();};matchMedia('(max-width:740px)').addEventListener('change',resize);
- return {open,close,refresh,get mode(){return panel.hidden?null:mode;}};
+ return {open,toggle,close,refresh,get mode(){return panel.hidden?null:mode;}};
 }

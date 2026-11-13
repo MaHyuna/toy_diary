@@ -15,7 +15,9 @@
     "test:studio": "node --test --test-isolation=none tests/price-studio.test.mjs",
     "test:care": "node --experimental-strip-types --test --test-isolation=none tests/care.test.ts",
     "test:routes": "node --experimental-strip-types --test --test-isolation=none tests/routes.test.ts",
-    "test:auth:browser": "npm run build && python tests/browser_auth.py"
+    "test:auth:browser": "npm run build && python tests/browser_auth.py",
+    "build:price-firebase": "node scripts/build-price-firebase.mjs",
+    "test:price-cloud": "firebase emulators:exec --project demo-price-studio --only firestore,auth,storage \"node tests/firebase-rules.test.mjs && python tests/browser_price_cloud.py\""
   },
   "dependencies": {
     "@internationalized/date": "3.12.4",
@@ -25,8 +27,11 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "firebase": "^13.3.0",
+    "firebase-tools": "^15.36.0",
     "jspdf": "^4.2.1",
     "opentype.js": "^2.0.0",
     "svg2pdf.js": "^2.9.0",
