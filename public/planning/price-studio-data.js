@@ -1,7 +1,7 @@
 import {validateStructure,placeSection} from './price-studio-structure.js?v=decor-27';
 import {columnsFor} from './price-studio-model.js?v=decor-27';
 import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-27';
-import {validatePrint} from './price-studio-print.js?v=weight-service-31';
+import {validatePrint} from './price-studio-print.js?v=sync-33';
 import {SHAPES} from './price-studio-shapes.js?v=decor-27';
 import {createDefaultProject} from './price-studio-defaults.js';
 export {createDefaultProject};
@@ -20,7 +20,7 @@ export function validateProject(input){
  for(const k of Object.keys(p.design.colors))p.design.colors[k]=color(d.colors?.[k]);
  for(const [k,min,max] of [['borderWidth',.5,6],['borderInset',12,40],['headingSize',18,38],['bodySize',11,20],['priceSize',12,22],['gap',10,70],['rowHeight',24,50],['logoSize',40,500]])p.design[k]=num(d[k],min,max);
  for(const [k,values] of [['border',['none','line','double','scallop','rounded','dashed','dotted']],['font',['Jua','sans-serif']],['format',['content','portrait','fit']]]){if(!values.includes(d[k]))fail('지원하지 않는 디자인 옵션이에요.');p.design[k]=d[k];}
- for(const [k,min,max] of [['pageMargin',40,120],['sectionPadding',12,40],['columnGap',12,80]])if(d[k]!==undefined)p.design[k]=num(d[k],min,max);
+ for(const [k,min,max] of [['headerTop',0,160],['weightColumnWidth',40,180],['pageMargin',40,120],['sectionPadding',12,40],['columnGap',12,80]])if(d[k]!==undefined)p.design[k]=num(d[k],min,max);
  for(const k of ['corners','flowers']){if(typeof d[k]!=='boolean')fail('디자인 옵션이 올바르지 않아요.');p.design[k]=d[k];}
  if(input.print!==undefined)p.print=validatePrint(input.print);
  for(const key of ['markerShape','cornerShape'])if(d[key]!==undefined){if(!Object.hasOwn(key==='cornerShape'?CORNERS:SHAPES,d[key]))fail('장식 모양을 확인해 주세요.');p.design[key]=d[key];}

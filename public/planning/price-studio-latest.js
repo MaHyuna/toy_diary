@@ -4,7 +4,7 @@ import {createDefaultProject} from './price-studio-defaults.js?v=decor-27';
 export function createLatestProject(){
  const p=createDefaultProject();
  p.brand={name:'',title:'',logo:DEFAULT_LOGO,footer:'',contact:'예쁜 미용보다 안전하고 스트레스 없는 미용을 추구합니다!'};
- p.design={...p.design,border:'double',corners:true,logoSize:120,pageMargin:40,colors:{background:'#fffaf0',heading:'#3b342c',category:'#3b342c',body:'#3b342c',price:'#3b342c',note:'#a07a4d',line:'#3b342c',decoration:'#a07a4d',tableHeader:'#3b342c'}};
+ p.design={...p.design,border:'double',corners:true,logoSize:120,pageMargin:120,headerTop:24,weightColumnWidth:87.4285714286,rowHeight:26,gap:10,colors:{background:'#fffaf0',heading:'#3b342c',category:'#3b342c',body:'#3b342c',price:'#3b342c',note:'#a07a4d',line:'#3b342c',decoration:'#a07a4d',tableHeader:'#3b342c'}};
  p.columns[1].name='위생미용';p.columns[2].name='위생+목욕';
  const weights=['3kg 미만','3~5kg 미만','5~7kg 미만','7~9kg 미만'];
  const prices=[
@@ -21,7 +21,7 @@ export function createLatestProject(){
  p.sections[0].breeds='말티즈, 요크셔 테리어, 치와와, 포메라니안, 시츄, 토이푸들 등';
  p.sections[1].breeds='닥스훈트, 슈나우저, 미니어처푸들, 코카 스파니엘, 스피츠, 프렌치 불독, 믹스견 등';
  p.sections[3].items=[
-  ['크라운 / 무스타슈 / 크라운 / 가면','5,000'],['곰돌이 / 테디','10,000'],['귀툭튀 / 하이바 / 베이비컷 / 디자인컷','15,000'],['발바닥 / 닭발','5,000 / 5,000'],['양말 / 장화 / 엉뽕','10,000'],['약욕 / 스파 / 머드팩','5,000 / 10,000 / 20,000'],['털길이 (6mm/1cm/2cm)','5,000 / 10,000 / 20,000'],['노령견 (10살 이상)','10,000']
+  ['크라운 / 무스타슈 / 크라운 / 가면','5,000'],['곰돌이 / 테디','10,000'],['귀툭튀 / 하이바 / 베이비컷 / 디자인컷','15,000'],['발바닥 / 닭발','5,000 / 5,000'],['양말 / 장화 / 엉뽕','10,000'],['약욕 / 스파 / 머드팩','5,000 / 10,000 / 20,000'],['털길이\n(6mm/1cm/2cm)','5,000 / 10,000 / 20,000'],['노령견 (10살 이상)','10,000']
  ].map(([label,value])=>({label,value}));
  p.sections[3].note='';
  p.sections[4].note='털엉킴 등 추가 작업은 별도 안내합니다.';
@@ -29,11 +29,8 @@ export function createLatestProject(){
  for(const s of p.sections.filter(s=>s.items))s.items.forEach((item,j)=>p.canvas.styles['sec:'+s.id+':item:'+j+':label']={bold:true});
  p.sections.push({id:'grooming-notice',kind:'text',title:'미용 안내',breeds:'',note:'',span:'full',visible:true,hideHeading:true,style:{body:'#f06373'},content:[
  '이중모, 엉킴, 기장, 입질, 미용매너 등 추가비용이 발생 할 수 있습니다.',
- '빗질이나 클리핑자국 등으로 인해 트러블, 발진, 습진 등의 일시적인 증상이 나타날 수 있습니다. 대부분 일주일 이내에 회복됩니다.',
- '피부상태나 움직임으로 피부가 찝혀 작은 상처가 생길 수 있으며, 봉합이 필요하지 않은 경우 대부분 일주일 이내에 회복됩니다.',
- '미용 중 미용거부가 심하거나 노령견의 안전에 문제가 생겨 미용이 중단 될 경우, 미용 진행 정도에 따라 비용은 부과 됩니다.',
  '작업 비용은 보호자와 상담 후 안내합니다.'
  ].join('\n')});
- p.canvas.styles['sec:grooming-notice:content']={fontSize:14,lineHeight:2};
+ p.canvas.styles['sec:grooming-notice:content']={fontSize:14,lineHeight:1.8};
  return p;
 }
