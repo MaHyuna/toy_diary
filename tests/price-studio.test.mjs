@@ -153,3 +153,22 @@ test('independent corner settings, outline styles and rounded borders survive ba
  assert.deepEqual(validateProject(structuredClone(p)),p);
  for(const detail of [{shape:'invalid'},{x:500},{stroke:-1},{fill:'url(x)'},{color:'bad'}])assert.throws(()=>validateProject({...p,design:{...p.design,cornerDetails:{tl:detail}}}));
 });
+
+test('corners follow border inset and grow inward without moving the outer gap',async()=>{
+ const {cornerGeometry}=await import('../public/planning/price-studio-borders.js');const p=createDefaultProject(),d=p.design;d.cornerAnchor='border';d.cornerX=5;d.cornerY=9;
+ const a=cornerGeometry(d,900,1300);d.borderInset+=10;const b=cornerGeometry(d,900,1300);
+ for(let i=0;i<4;i++){assert.equal(b[i].x-a[i].x,i===1||i===2?-10:10);assert.equal(b[i].y-a[i].y,i>=2?-10:10);}
+ d.cornerSize=70;const c=cornerGeometry(d,900,1300);assert.ok(Math.abs((c[0].x-c[0].r)-(b[0].x-b[0].r))<1e-8);assert.ok(Math.abs((c[2].x+c[2].r)-(b[2].x+b[2].r))<1e-8);
+ d.cornerDetails={tr:{anchor:'page',x:4,y:8,size:20}};const independent=cornerGeometry(d,900,1300)[1];assert.equal(900-independent.x-independent.r,4);
+ assert.deepEqual(validateProject(p).design,d);assert.throws(()=>validateProject({...p,design:{...d,cornerAnchor:'invalid'}}));
+ const legacy={...d};delete legacy.cornerAnchor;legacy.cornerSize=14;legacy.cornerX=70;legacy.cornerY=35;delete legacy.cornerDetails;assert.equal(cornerGeometry(legacy,900,1300)[0].x,70);
+});
+
+test('blank text frame space does not hide a corner, while real text overlap is reported',async()=>{
+ const {renderPoster}=await import('../public/planning/price-studio-render.js');
+ const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx};
+ const p=createDefaultProject();p.brand.footer='Short note';p.brand.contact='';p.design.corners=true;p.design.cornerShape='none';p.design.cornerDetails={br:{anchor:'border',size:60,shape:'angle'}};
+ assert.equal(renderPoster(canvas,p,null).error,'');
+ p.canvas={transforms:{},styles:{'brand:footer':{align:'right'}}};
+ assert.match(renderPoster(canvas,p,null).error,/오른쪽 아래 모서리가 내용과 겹쳐요/);
+});

@@ -1,6 +1,6 @@
-import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-20';
-import {validatePrint} from './price-studio-print.js?v=decor-20';
-import {SHAPES} from './price-studio-shapes.js?v=decor-20';
+import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-21';
+import {validatePrint} from './price-studio-print.js?v=decor-21';
+import {SHAPES} from './price-studio-shapes.js?v=decor-21';
 import {createDefaultProject} from './price-studio-defaults.js';
 export {createDefaultProject};
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -26,8 +26,9 @@ export function validateProject(input){
  for(const [k,min,max] of [['borderRadius',0,120],['cornerSize',6,120],['cornerX',0,200],['cornerY',0,200],['cornerRotation',-180,180],['cornerStroke',.5,6]])if(d[k]!==undefined)p.design[k]=num(d[k],min,max);
  for(const k of ['borderColor','cornerColor'])if(d[k]!==undefined)p.design[k]=color(d[k]);
  if(d.borderPattern!==undefined){if(!['solid','dashed','dotted'].includes(d.borderPattern))fail('테두리 선 모양 오류');p.design.borderPattern=d.borderPattern;}
+ if(d.cornerAnchor!==undefined){if(!['border','page','legacy'].includes(d.cornerAnchor))fail('모서리 기준 오류');p.design.cornerAnchor=d.cornerAnchor;}
  if(d.cornerFill!==undefined){if(!['solid','outline'].includes(d.cornerFill))fail('모서리 채움 오류');p.design.cornerFill=d.cornerFill;}
- if(d.cornerDetails!==undefined){if(!d.cornerDetails||typeof d.cornerDetails!=='object'||Array.isArray(d.cornerDetails))fail('모서리 설정 오류');p.design.cornerDetails={};for(const [key,detail] of Object.entries(d.cornerDetails)){if(!Object.hasOwn(CORNER_POSITIONS,key)||!detail||typeof detail!=='object')fail('모서리 위치 오류');const out={};for(const [name,value] of Object.entries(detail)){const ranges={size:[6,120],x:[0,200],y:[0,200],rotation:[-180,180],stroke:[.5,6]};if(ranges[name])out[name]=num(value,...ranges[name]);else if(name==='shape'&&Object.hasOwn(CORNERS,value))out[name]=value;else if(name==='fill'&&['solid','outline'].includes(value))out[name]=value;else if(name==='color')out[name]=color(value);else fail('모서리 옵션 오류');}p.design.cornerDetails[key]=out;}}
+ if(d.cornerDetails!==undefined){if(!d.cornerDetails||typeof d.cornerDetails!=='object'||Array.isArray(d.cornerDetails))fail('모서리 설정 오류');p.design.cornerDetails={};for(const [key,detail] of Object.entries(d.cornerDetails)){if(!Object.hasOwn(CORNER_POSITIONS,key)||!detail||typeof detail!=='object')fail('모서리 위치 오류');const out={};for(const [name,value] of Object.entries(detail)){const ranges={size:[6,120],x:[0,200],y:[0,200],rotation:[-180,180],stroke:[.5,6]};if(ranges[name])out[name]=num(value,...ranges[name]);else if(name==='shape'&&Object.hasOwn(CORNERS,value))out[name]=value;else if(name==='anchor'&&['border','page','legacy'].includes(value))out[name]=value;else if(name==='fill'&&['solid','outline'].includes(value))out[name]=value;else if(name==='color')out[name]=color(value);else fail('모서리 옵션 오류');}p.design.cornerDetails[key]=out;}}
 
  if(!Array.isArray(input.columns)||input.columns.length<1||input.columns.length>8)fail('서비스 열은 1~8개여야 해요.');
  p.columns=input.columns.map(c=>({id:id(c.id),name:text(c.name,80),note:text(c.note,120)}));

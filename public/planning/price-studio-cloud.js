@@ -1,4 +1,4 @@
-import {DEFAULT_LOGO} from './price-studio-logo.js?v=decor-20';
+import {DEFAULT_LOGO} from './price-studio-logo.js?v=decor-21';
 const META='price-studio-cloud-meta-v1';
 const uploadedLogos=new Set();
 const hash=async text=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))].map(x=>x.toString(16).padStart(2,'0')).join('');
