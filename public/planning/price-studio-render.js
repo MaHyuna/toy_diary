@@ -1,9 +1,9 @@
-import {flattenStructure} from './price-studio-structure.js?v=decor-26';
-import {columnsFor} from './price-studio-model.js?v=decor-26';
-import {rowWidths,sectionWidth,structureRowWidths,structureRowStacks} from './price-studio-layout.js?v=decor-26';
-import {drawBorder,drawCorner,cornerGeometry,decorationTargets} from './price-studio-borders.js?v=decor-26';
-import {drawShape} from './price-studio-shapes.js?v=decor-26';
-import {layoutText} from './price-studio-text.js?v=decor-26';
+import {flattenStructure} from './price-studio-structure.js?v=decor-27';
+import {columnsFor} from './price-studio-model.js?v=decor-27';
+import {rowWidths,sectionWidth,structureRowWidths,structureRowStacks} from './price-studio-layout.js?v=decor-27';
+import {drawBorder,drawCorner,cornerGeometry,decorationTargets} from './price-studio-borders.js?v=decor-27';
+import {drawShape} from './price-studio-shapes.js?v=decor-27';
+import {layoutText} from './price-studio-text.js?v=decor-27';
 export function renderPoster(canvas,p,logo,options={}){
  canvas.lang='ko';
  const ctx=canvas.getContext('2d',{willReadFrequently:true}),W=900,m=p.design.pageMargin??48,B=W-m*2,d={...p.design,font:p.design.font==='Jua'?'Jua':'StudioSans'},c=d.colors,ops=[],boxes=[],elements=[],splits=[],rowDrops=[];let y=d.pageMargin??36,error='';

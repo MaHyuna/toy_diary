@@ -1,8 +1,8 @@
-import {validateStructure,placeSection} from './price-studio-structure.js?v=decor-26';
-import {columnsFor} from './price-studio-model.js?v=decor-26';
-import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-26';
-import {validatePrint} from './price-studio-print.js?v=decor-26';
-import {SHAPES} from './price-studio-shapes.js?v=decor-26';
+import {validateStructure,placeSection} from './price-studio-structure.js?v=decor-27';
+import {columnsFor} from './price-studio-model.js?v=decor-27';
+import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-27';
+import {validatePrint} from './price-studio-print.js?v=decor-27';
+import {SHAPES} from './price-studio-shapes.js?v=decor-27';
 import {createDefaultProject} from './price-studio-defaults.js';
 export {createDefaultProject};
 const clone=x=>JSON.parse(JSON.stringify(x));

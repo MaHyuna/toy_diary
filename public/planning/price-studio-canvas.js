@@ -1,7 +1,7 @@
-import {columnsFor,ownColumns} from './price-studio-model.js?v=decor-26';
-import {createFlowDrag} from './price-studio-flow-drag.js?v=decor-26';
-import {setSectionWidth} from './price-studio-layout.js?v=decor-26';
-import {fitItemWidth} from './price-studio-fit.js?v=decor-26';
+import {columnsFor,ownColumns} from './price-studio-model.js?v=decor-27';
+import {createFlowDrag} from './price-studio-flow-drag.js?v=decor-27';
+import {setSectionWidth} from './price-studio-layout.js?v=decor-27';
+import {fitItemWidth} from './price-studio-fit.js?v=decor-27';
 // Canvas interaction stays in HTML; exported pixels contain only the price poster.
 export function createCanvasEditor({getProject,getResult,change,onSection,refreshForm,onAdd,onReveal,onProperties,onDecoration,onNotice,onRender=()=>{}}){
  const $=id=>document.getElementById(id),stage=$('poster-stage'),overlay=$('canvas-overlay');

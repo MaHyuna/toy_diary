@@ -22,6 +22,7 @@ try:
     page.locator('[data-tree-element="sec:extras:note"]').click()
     expect(page.locator('[data-element="sec:extras:note"]')).to_have_attribute('aria-pressed','true')
     assert page.locator('[data-branch="extras"]').get_attribute('open') is not None
+    page.locator('.layer-options > summary').click()
     page.locator('#layers-width').fill('160')
     assert page.locator('.layers').bounding_box()['width']<=161
     page.locator('#layers-collapse').click()
