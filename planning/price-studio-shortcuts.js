@@ -1,5 +1,5 @@
-import {columnsFor} from './price-studio-model.js?v=decor-26';
-import {deriveStructure,flattenStructure,placeSection,placeGroup,syncStructure} from './price-studio-structure.js?v=decor-26';
+import {columnsFor} from './price-studio-model.js?v=decor-27';
+import {deriveStructure,flattenStructure,placeSection,placeGroup,syncStructure} from './price-studio-structure.js?v=decor-27';
 const clone=value=>structuredClone(value),uid=()=>crypto.randomUUID();
 const editable=target=>target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"],[role="textbox"]');
 function nodeById(node,id){if(node?.id===id)return node;for(const child of node?.children||[]){const found=nodeById(child,id);if(found)return found;}return null;}

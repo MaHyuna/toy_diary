@@ -1,5 +1,5 @@
-import {setSectionFlow} from './price-studio-structure.js?v=decor-26';
-import {pairedSections,rowWidths,rowMetrics,setSectionWidth} from './price-studio-layout.js?v=decor-26';
+import {setSectionFlow} from './price-studio-structure.js?v=decor-27';
+import {pairedSections,rowWidths,rowMetrics,setSectionWidth} from './price-studio-layout.js?v=decor-27';
 // Desktop properties stay beside the canvas; mobile uses a resizable bottom sheet.
 export function createInspector({getProject,getActive,selectSection,setTab,change,reorder}){
  const $=id=>document.getElementById(id),panel=$('studio-inspector'),editor=document.querySelector('.editor'),editorHome=editor.parentNode,editorNext=editor.nextSibling;
