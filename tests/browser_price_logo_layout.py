@@ -25,7 +25,7 @@ try:
    assert before['image']==after['image'],'Table pixels changed when logo grew'
    assert before['scale']==after['scale']==1
    assert after['height']>before['height'];assert after['table']['x']==before['table']['x'];assert after['sections']==before['sections']
-   page.locator('#view-canvas').click();page.locator('#preview-format').select_option('fit');expect(page.locator('#output-badge')).to_have_text('A4 · 축소')
+   page.locator('#inspector-close').click();page.locator('#preview-format').select_option('fit');expect(page.locator('#output-badge')).to_have_text('A4 · 축소')
    assert page.locator('#preview').evaluate('c=>c.height')==2546
    page.locator('#use-default-logo').click();expect(page.locator('#output-badge')).to_have_text('크기 유지')
    expect(page.locator('#render-error')).to_be_empty()

@@ -35,7 +35,7 @@ with sync_playwright() as p:
  page.locator('#mobile-form-section').select_option('cat');expect(page.locator('.section-head')).to_contain_text('고양이');page.get_by_label('항목 1 금액',exact=True).fill('55000');saved()
  # Occasional styling is separate from the daily price screen.
  page.locator('#show-editor').tap();expect(page.locator('[data-tab="design"]')).to_have_attribute('aria-selected','true');page.get_by_label('섹션 제목 색',exact=True).fill('#553344');saved()
- page.locator('#view-canvas').tap();page.locator('#focus-section').select_option('group-0');page.wait_for_timeout(350);assert page.locator('#poster-stage').bounding_box()['width']>700
+ page.locator('#inspector-close').tap();page.locator('#focus-section').select_option('group-0');page.wait_for_timeout(350);assert page.locator('#poster-stage').bounding_box()['width']>700
  cell=page.locator('[data-element="sec:group-0:cell:row-0-0:col-0"]');cell.tap();expect(page.locator('#mobile-sheet')).to_be_hidden();page.locator('.canvas-edit-handle').tap();expect(page.locator('#sheet-value')).to_have_value('17500');page.locator('#sheet-next').tap();expect(page.locator('#sheet-value')).to_have_value('18500');page.locator('#sheet-close').tap()
  page.locator('#focus-section').select_option('all');page.wait_for_timeout(350)
  page.locator('#canvas-add').tap();page.locator('[data-canvas-add="text"]').tap();expect(page.locator('#mobile-sheet')).to_be_hidden();page.locator('.canvas-edit-handle').tap();page.locator('#sheet-value').fill('예약 안내');page.locator('#sheet-close').tap();saved()

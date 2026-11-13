@@ -134,3 +134,15 @@ test('print and decorative options survive backups and malformed sizes are rejec
  for(const print of [{...p.print,width:-1},{...p.print,height:Infinity},{...p.print,paper:'bad'},{...p.print,dpi:999},{...p.print,bleed:100},null])assert.throws(()=>validateProject({...p,print}));
  assert.throws(()=>validateProject({...p,design:{...p.design,markerShape:'<svg>'}}));
 });
+
+test('text frame alignment and a lone half-width section move within their own row',async()=>{
+ const {renderPoster}=await import('../public/planning/price-studio-render.js');
+ const ctx=new Proxy({measureText:s=>({width:String(s).length*7})},{get:(o,k)=>k in o?o[k]:()=>{}}),canvas={getContext:()=>ctx},p=createDefaultProject();
+ p.canvas={transforms:{},styles:{'sec:group-0:breeds':{width:240,boxAlign:'right',fontFamily:'Jua'}}};
+ const before=renderPoster(canvas,p,null),breed=before.elements.find(e=>e.id==='sec:group-0:breeds');assert.ok(breed.x>400);assert.equal(breed.width,240);
+ p.sections.find(s=>s.id==='cat').span='full';p.sections.find(s=>s.id==='extras').layoutAlign='right';
+ const after=renderPoster(canvas,p,null),extras=after.boxes.find(e=>e.id==='extras'),cat=after.boxes.find(e=>e.id==='cat');
+ assert.ok(extras.width<450);assert.ok(extras.x>400);assert.ok(cat.y>=extras.y+extras.height);
+ assert.deepEqual(validateProject(structuredClone(p)),p);
+ assert.throws(()=>validateProject({...p,canvas:{styles:{'brand:name':{fontFamily:'unbundled'}}}}));
+});

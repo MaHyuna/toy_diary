@@ -1,4 +1,4 @@
-import {PAPERS,validatePrint,printPreview,exportPrint} from './price-studio-print.js?v=print-17';
+import {PAPERS,validatePrint,printPreview,exportPrint} from './price-studio-print.js?v=workspace-18';
 export function createExportUI({getProject,getLogo,change,download,filename,ready}){
  const $=id=>document.getElementById(id);let busy=false;
  const controls=['paper','orientation','width','height','layout','format','dpi','bleed','cropMarks'];

@@ -56,7 +56,7 @@ try:
   row_ids=page.locator('[data-element^="sec:group-0:row:long-row-"]').evaluate_all("els=>els.map(e=>e.dataset.element.split(':').at(-1))")
   assert row_ids==[f'long-row-{i}' for i in range(30)]
   # The last scaled row remains selectable and editable at the rendered location.
-  last=page.locator('[data-element="sec:group-0:cell:long-row-29:col-5"]');last.click();page.locator('#canvas-edit').click();expect(page.locator('.canvas-input')).to_have_value(seed['prices'][5]);page.locator('.canvas-input').press('Enter')
+  last=page.locator('[data-element="sec:group-0:cell:long-row-29:col-5"]');last.click();page.locator('.canvas-edit-handle').click();expect(page.locator('.canvas-input')).to_have_value(seed['prices'][5]);page.locator('.canvas-input').press('Enter')
   page.locator('#download').click()
   page.locator('#print-format').select_option('png');page.locator('#print-dpi').select_option('150')
   with page.expect_download() as download:page.locator('#export-current').click()

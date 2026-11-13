@@ -17,7 +17,7 @@ try:
    page=browser.new_page(viewport={'width':390 if mobile else 1440,'height':1000},is_mobile=mobile,has_touch=mobile)
    errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
    page.goto(f'http://127.0.0.1:{server.server_port}/planning/pricelist.html',wait_until='networkidle')
-   page.locator('[data-element="sec:group-0:breeds"]').click();page.locator('.spacing-inspector summary').click()
+   page.locator('[data-element="sec:group-0:breeds"]').click();page.locator('[data-open-inspector="text"]').first.click();page.locator('.spacing-inspector summary').click()
    for label,value in [('자간','2'),('행간 배수','2.2'),('상자 안쪽 여백','12'),('상자 너비','240'),('용지 여백','65'),('섹션 안쪽 여백','28'),('두 열 사이 간격','40'),('섹션 사이 간격','55'),('표 행 최소 높이','45')]:
     field=page.get_by_label(label,exact=True);field.fill(value);field.press('Tab')
    page.wait_for_function("JSON.parse(localStorage.getItem('mongle-price-studio-v2')).design.columnGap===40")
