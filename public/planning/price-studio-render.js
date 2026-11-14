@@ -53,9 +53,12 @@ export function renderPoster(canvas,p,logo,options={}){
   flower(x+(d.markerSize||18)/2,yy+(titleMetrics.ascent+titleMetrics.descent)/2);
   const headingTop=yy;
   yy=block(s.title,xx,yy,inner,headingFont,Math.ceil(headingSize*1.22),sc.heading,titleId,{type:'section',sectionId:s.id,key:'title'},s.title+' 제목');
-  const noteText='/ '+s.note;ctx.font=headingFont;ctx.letterSpacing='0px';const headingWidth=ctx.measureText(s.title).width,noteX=xx+headingWidth+18;ctx.font=noteFont;
-  inlineNote=!p.canvas?.styles?.[titleId]&&!p.canvas?.styles?.['sec:'+s.id+':note']&&s.kind==='matrix'&&!!s.note&&titleLines.length===1&&ctx.measureText(noteText).width<=xx+inner-noteX;
-  if(inlineNote){const titleBox=elements.find(e=>e.id===titleId);titleBox.width=Math.min(titleBox.width,headingWidth+4);const mt=metrics(noteFont,noteText),noteHeight=mt.ascent+mt.descent,noteTop=headingTop+(titleMetrics.ascent+titleMetrics.descent-noteHeight)/2;yy=Math.max(yy,block(noteText,noteX,noteTop,xx+inner-noteX,noteFont,d.bodySize+4,sc.note,'sec:'+s.id+':note',{type:'section',sectionId:s.id,key:'note'},s.title+' 안내'));}
+  const titleStyle=p.canvas?.styles?.[titleId]||{},titleLayout=layoutText(ctx,s.title,Math.min(titleStyle.width||inner,inner),headingFont,Math.ceil(headingSize*1.22),titleStyle);
+  ctx.font=titleLayout.font;ctx.letterSpacing=titleLayout.spacing+'px';
+  const titleInk=Math.max(...titleLayout.lines.map(line=>ctx.measureText(line).width)),headingWidth=Math.min(inner,Math.max(titleStyle.width||0,titleInk+2*titleLayout.padding)),noteX=xx+headingWidth+18,noteText='/ '+s.note,noteStyle=p.canvas?.styles?.['sec:'+s.id+':note']||{};
+  const noteAvailable=Math.max(8,xx+inner-noteX),noteLayout=layoutText(ctx,noteText,Math.min(noteStyle.width||noteAvailable,noteAvailable),noteFont,d.bodySize+4,noteStyle);
+  inlineNote=s.kind==='matrix'&&!!s.note&&titleLayout.lines.length===1&&noteX<xx+inner&&noteLayout.lines.length===1;
+  if(inlineNote){const titleBox=elements.find(e=>e.id===titleId);titleBox.width=Math.min(titleBox.width,headingWidth+4);const noteTop=headingTop+Math.max(0,(titleLayout.height-noteLayout.height)/2);yy=Math.max(yy,block(noteText,noteX,noteTop,xx+inner-noteX,noteFont,d.bodySize+4,sc.note,'sec:'+s.id+':note',{type:'section',sectionId:s.id,key:'note'},s.title+' 안내'));}
   yy+=s.breeds?2:8;
   if(s.breeds)yy=block(s.breeds,xx,yy,inner,`${d.bodySize-1}px StudioSans`,d.bodySize+5,sc.body,'sec:'+s.id+':breeds',{type:'section',sectionId:s.id,key:'breeds'},s.title+' 견종 설명');
   }
@@ -139,7 +142,7 @@ for(let i=0;i<visible.length;i++){
  if(positioned.some(e=>e.x<-.5||e.y<-.5||e.x+e.width>W+.5))error='화면 밖으로 나간 요소를 안쪽으로 이동하거나 자동 정렬해 주세요.';
  const required=Math.ceil(extent+40),H=options.fixedHeight||Math.max(900,required);
  // Fit the complete composition inside one sheet. The paper and its border never scale.
- const safe=Math.max(36,d.borderInset+14),top=Math.min(safe,...positioned.map(e=>e.y)),bottom=Math.max(extent,...positioned.map(e=>e.y+e.height));
+ const safe=options.fitToPage?d.borderInset+(d.fitPadding??12):Math.max(36,d.borderInset+14),top=Math.min(safe,...positioned.map(e=>e.y)),bottom=Math.max(extent,...positioned.map(e=>e.y+e.height));
  const fitScale=options.fitToPage?Math.min(1,(H-safe*2)/(bottom-top)):1,fitX=(W-W*fitScale)/2,fitY=fitScale<1?safe-top*fitScale:0;
  const fitted=e=>({...e,x:e.x*fitScale+fitX,y:e.y*fitScale+fitY,width:e.width*fitScale,height:e.height*fitScale,...(e.parentScale===undefined?{}:{parentScale:e.parentScale*fitScale})});
  if(fitScale<1){positioned=positioned.map(fitted);for(let i=0;i<boxes.length;i++)boxes[i]=fitted(boxes[i]);}
