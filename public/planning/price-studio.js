@@ -9,13 +9,13 @@ import {columnsFor,ownColumns,moveService} from './price-studio-model.js?v=decor
 import {createCloudSync} from './price-studio-cloud.js?v=weight-service-31';
 import {BORDERS,CORNERS,CORNER_POSITIONS,cornerSettings,borderRadii,setAllCornerInset,borderIcon,cornerIcon} from './price-studio-borders.js?v=decor-27';
 import {createInspector} from './price-studio-inspector.js?v=decor-27';
-import {createExportUI} from './price-studio-export-ui.js?v=layout-fix-34';
+import {createExportUI} from './price-studio-export-ui.js?v=layout-fix-35';
 import {SHAPES} from './price-studio-shapes.js?v=decor-27';
 import {DEFAULT_LOGO} from './price-studio-logo.js?v=decor-27';
 import {createLatestProject} from './price-studio-latest.js?v=sync-33';
-import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=layout-fix-34';
-import {createCanvasEditor} from './price-studio-canvas.js?v=layout-fix-34';
-import {renderSheetPoster} from './price-studio-pages.js?v=layout-fix-34';
+import {createDefaultProject,validateProject,toCSV,fromCSV,moveColumn,moveSection} from './price-studio-data.js?v=layout-fix-35';
+import {createCanvasEditor} from './price-studio-canvas.js?v=layout-fix-35';
+import {renderSheetPoster} from './price-studio-pages.js?v=layout-fix-35';
 const $=id=>document.getElementById(id),KEY='mongle-price-studio-v2';
 const clone=x=>JSON.parse(JSON.stringify(x)),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let project=createLatestProject(),active=project.sections[0].id,tab='content',logo=null,logoSeq=0,undo=[],redo=[],last='',timer,paused=false,csvHandle=null,csvQueue=Promise.resolve(),fontReady=false,result={error:''},cornerTarget='all',radiusMode=null;
