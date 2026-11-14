@@ -57,7 +57,7 @@ export function renderPoster(canvas,p,logo,options={}){
   ctx.font=titleLayout.font;ctx.letterSpacing=titleLayout.spacing+'px';
   const titleInk=Math.max(...titleLayout.lines.map(line=>ctx.measureText(line).width)),headingWidth=Math.min(inner,Math.max(titleStyle.width||0,titleInk+2*titleLayout.padding)),noteX=xx+headingWidth+18,noteText='/ '+s.note,noteStyle=p.canvas?.styles?.['sec:'+s.id+':note']||{};
   const noteAvailable=Math.max(8,xx+inner-noteX),noteLayout=layoutText(ctx,noteText,Math.min(noteStyle.width||noteAvailable,noteAvailable),noteFont,d.bodySize+4,noteStyle);
-  inlineNote=s.kind==='matrix'&&!!s.note&&titleLayout.lines.length===1&&noteX<xx+inner&&noteLayout.lines.length===1;
+  inlineNote=s.kind==='matrix'&&!!s.note&&titleLayout.lines.length===1&&noteAvailable>=80;
   if(inlineNote){const titleBox=elements.find(e=>e.id===titleId);titleBox.width=Math.min(titleBox.width,headingWidth+4);const noteTop=headingTop+Math.max(0,(titleLayout.height-noteLayout.height)/2);yy=Math.max(yy,block(noteText,noteX,noteTop,xx+inner-noteX,noteFont,d.bodySize+4,sc.note,'sec:'+s.id+':note',{type:'section',sectionId:s.id,key:'note'},s.title+' 안내'));}
   yy+=s.breeds?2:8;
   if(s.breeds)yy=block(s.breeds,xx,yy,inner,`${d.bodySize-1}px StudioSans`,d.bodySize+5,sc.body,'sec:'+s.id+':breeds',{type:'section',sectionId:s.id,key:'breeds'},s.title+' 견종 설명');

@@ -1,7 +1,7 @@
 import {validateStructure,placeSection} from './price-studio-structure.js?v=decor-27';
 import {columnsFor} from './price-studio-model.js?v=decor-27';
 import {CORNERS,CORNER_POSITIONS} from './price-studio-borders.js?v=decor-27';
-import {validatePrint} from './price-studio-print.js?v=layout-fix-34';
+import {validatePrint} from './price-studio-print.js?v=layout-fix-35';
 import {SHAPES} from './price-studio-shapes.js?v=decor-27';
 import {createDefaultProject} from './price-studio-defaults.js';
 export {createDefaultProject};
